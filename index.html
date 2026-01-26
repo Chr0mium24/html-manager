@@ -156,6 +156,7 @@
             padding: 24px;
             text-align: center;
             box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            position: relative;
         }
         .modal-title {
             font-size: 18px;
@@ -186,6 +187,22 @@
         }
         .btn-cancel { background: #E5E5EA; color: var(--text-main); }
         .btn-primary { background: var(--primary); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .modal-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: none;
+            background: #E5E5EA;
+            color: #111111;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 28px;
+            padding: 0;
+        }
 
         /* 管理模式特有 */
         .admin-badge {
@@ -369,6 +386,34 @@
         </div>
     </div>
 
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal-card">
+            <button class="modal-close" onclick="app.closeModal('settingsModal')">×</button>
+            <div class="modal-title">Settings</div>
+            <input type="text" class="ios-input" id="apiKeyInput" placeholder="Gemini API Key (optional)">
+            <div class="modal-actions">
+                <button class="ios-btn btn-cancel" onclick="app.saveApiKey()">Save Key</button>
+                <button class="ios-btn btn-danger" onclick="app.logoutAdmin()">Logout</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Project Modal -->
+    <div class="modal-overlay" id="editProjectModal">
+        <div class="modal-card">
+            <div class="modal-title">Edit Project</div>
+            <input type="text" class="ios-input" id="editNameInput" placeholder="Project Name">
+            <input type="text" class="ios-input" id="editDescInput" placeholder="Description">
+            <input type="text" class="ios-input" id="editIconInput" placeholder="Emoji Icon">
+            <div class="modal-actions">
+                <button class="ios-btn btn-cancel" onclick="app.closeModal('editProjectModal')">Cancel</button>
+                <button class="ios-btn btn-cancel" onclick="app.aiFillProject()">AI Fill</button>
+                <button class="ios-btn btn-primary" onclick="app.saveProjectEdits()">Save</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast -->
     <div class="toast" id="toast">Message</div>
     <input type="file" id="newProjectFile" accept=".html" style="display:none;">
@@ -376,7 +421,8 @@
 
 <script>
 const CONFIG = {
-    adminPwdKey: "ios_admin_pwd"
+    adminPwdKey: "ios_admin_pwd",
+    apiKey: "gemini_api_key"
 };
 
 const state = {
@@ -385,7 +431,9 @@ const state = {
     currentView: "list",
     activeProjectId: null,
     projects: [],
-    activeProject: null
+    activeProject: null,
+    apiKey: "",
+    editingProjectId: null
 };
 
 const app = {
@@ -393,6 +441,7 @@ const app = {
         this.updateDateHeader();
         this.bindFileInputs();
         this.restoreAdmin();
+        this.restoreApiKey();
         this.loadProjects();
         this.setupGlobalListeners();
         this.render();
@@ -469,14 +518,31 @@ const app = {
 
     toggleAdmin: function() {
         if (state.isAdmin) {
-            if (confirm('Logout admin?')) {
-                this.forceLogout();
-                this.showToast('Logged Out');
-            }
-            return;
+            document.getElementById('settingsModal').classList.add('active');
+            document.getElementById('apiKeyInput').focus();
+        } else {
+            document.getElementById('loginModal').classList.add('active');
+            document.getElementById('passwordInput').focus();
         }
-        document.getElementById('loginModal').classList.add('active');
-        document.getElementById('passwordInput').focus();
+    },
+
+    restoreApiKey: function() {
+        const saved = localStorage.getItem(CONFIG.apiKey);
+        if (saved) state.apiKey = saved;
+        document.getElementById('apiKeyInput').value = state.apiKey || '';
+    },
+
+    saveApiKey: function() {
+        const key = document.getElementById('apiKeyInput').value.trim();
+        if (key) {
+            localStorage.setItem(CONFIG.apiKey, key);
+            state.apiKey = key;
+            this.showToast('API Key Saved');
+        } else {
+            localStorage.removeItem(CONFIG.apiKey);
+            state.apiKey = '';
+            this.showToast('API Key Cleared');
+        }
     },
 
     login: function() {
@@ -485,6 +551,13 @@ const app = {
         this.closeModal('loginModal');
         document.getElementById('passwordInput').value = '';
         this.verifyAdmin(pwd);
+    },
+
+    logoutAdmin: function() {
+        if (!state.isAdmin) return;
+        this.forceLogout();
+        this.closeModal('settingsModal');
+        this.showToast('Logged Out');
     },
 
     // ---- Data ----
@@ -691,41 +764,32 @@ const app = {
 
     renameProject: async function(projId) {
         const proj = state.projects.find((p) => p.id === projId) || state.activeProject;
-        const currentName = proj ? proj.name : '';
-        const currentDesc = proj ? (proj.description || '') : '';
-        const currentIcon = proj ? (proj.icon || '📁') : '📁';
+        if (!proj) return;
+        state.editingProjectId = projId;
+        document.getElementById('editNameInput').value = proj.name || '';
+        document.getElementById('editDescInput').value = proj.description || '';
+        document.getElementById('editIconInput').value = proj.icon || '📁';
+        document.getElementById('editProjectModal').classList.add('active');
+    },
 
-        const useAI = confirm('Use AI to regenerate name, description, and icon?');
-        if (useAI) {
-            try {
-                await this.apiRequest(
-                    `/api/projects/${projId}/regenerate`,
-                    { method: 'POST' },
-                    true
-                );
-                this.showToast('AI Regenerated');
-                await this.loadProjects();
-                if (state.activeProjectId === projId) {
-                    await this.openProject(projId);
-                }
-            } catch (err) {
-                this.showToast('AI failed');
-            }
-            return;
-        }
+    saveProjectEdits: async function() {
+        const projId = state.editingProjectId;
+        if (!projId) return;
+        const proj = state.projects.find((p) => p.id === projId) || state.activeProject;
+        if (!proj) return;
 
-        const nextName = prompt('Project name:', currentName || '');
-        if (nextName === null) return;
-        const nextDesc = prompt('Project description:', currentDesc || '');
-        if (nextDesc === null) return;
-        const nextIcon = prompt('Project icon (emoji):', currentIcon || '📁');
-        if (nextIcon === null) return;
+        const nextName = document.getElementById('editNameInput').value.trim();
+        const nextDesc = document.getElementById('editDescInput').value.trim();
+        const nextIcon = document.getElementById('editIconInput').value.trim();
 
         const payload = {};
-        if (nextName.trim() && nextName !== currentName) payload.name = nextName.trim();
-        if (nextDesc.trim() && nextDesc !== currentDesc) payload.description = nextDesc.trim();
-        if (nextIcon.trim() && nextIcon !== currentIcon) payload.icon = nextIcon.trim();
-        if (!Object.keys(payload).length) return;
+        if (nextName && nextName !== proj.name) payload.name = nextName;
+        if (nextDesc && nextDesc !== (proj.description || '')) payload.description = nextDesc;
+        if (nextIcon && nextIcon !== (proj.icon || '📁')) payload.icon = nextIcon;
+        if (!Object.keys(payload).length) {
+            this.closeModal('editProjectModal');
+            return;
+        }
 
         try {
             await this.apiRequest(
@@ -737,6 +801,7 @@ const app = {
                 },
                 true
             );
+            this.closeModal('editProjectModal');
             this.showToast('Project Updated');
             await this.loadProjects();
             if (state.activeProjectId === projId) {
@@ -744,6 +809,61 @@ const app = {
             }
         } catch (err) {
             this.showToast('Update failed');
+        }
+    },
+
+    parseJsonFromText: function(text) {
+        if (!text) return null;
+        const match = text.match(/\{[\s\S]*\}/);
+        if (!match) return null;
+        try {
+            return JSON.parse(match[0]);
+        } catch (err) {
+            return null;
+        }
+    },
+
+    aiFillProject: async function() {
+        const projId = state.editingProjectId;
+        if (!projId) return;
+        if (!state.apiKey) {
+            alert('Please set your Gemini API key in Settings.');
+            return;
+        }
+
+        try {
+            const htmlText = await fetch(`/projects/${projId}/latest`).then((r) => r.text());
+            const prompt = (
+                "You are a product naming assistant. Given HTML content, return a JSON object " +
+                'with keys "name", "description", and "icon". Keep the name <= 20 characters and the description <= 120 characters. ' +
+                "The icon must be a single emoji. Return JSON only, no extra text.\n\nHTML:\n" +
+                htmlText.slice(0, 12000)
+            );
+
+            const payload = { contents: [{ parts: [{ text: prompt }] }] };
+            const resp = await fetch(
+                "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent",
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "x-goog-api-key": state.apiKey
+                    },
+                    body: JSON.stringify(payload)
+                }
+            );
+            if (!resp.ok) throw new Error('AI request failed');
+            const data = await resp.json();
+            const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+            const parsed = this.parseJsonFromText(text);
+            if (!parsed) throw new Error('AI response invalid');
+
+            if (parsed.name) document.getElementById('editNameInput').value = String(parsed.name).trim();
+            if (parsed.description) document.getElementById('editDescInput').value = String(parsed.description).trim();
+            if (parsed.icon) document.getElementById('editIconInput').value = String(parsed.icon).trim();
+            this.showToast('AI Filled');
+        } catch (err) {
+            this.showToast('AI failed');
         }
     },
 
@@ -820,6 +940,22 @@ const app = {
             if (e.key === 'Enter' && !e.isComposing) {
                 e.preventDefault();
                 this.login();
+            }
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const loginOpen = document.getElementById('loginModal').classList.contains('active');
+                const settingsOpen = document.getElementById('settingsModal').classList.contains('active');
+                const editOpen = document.getElementById('editProjectModal').classList.contains('active');
+                if (loginOpen || settingsOpen || editOpen) {
+                    this.closeModal('loginModal');
+                    this.closeModal('settingsModal');
+                    this.closeModal('editProjectModal');
+                    return;
+                }
+                if (state.currentView === 'detail') {
+                    this.goHome();
+                }
             }
         });
 

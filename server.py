@@ -1,4 +1,3 @@
-import json
 import os
 import re
 import shutil
@@ -8,7 +7,6 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-import httpx
 from fastapi import FastAPI, File, Header, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
@@ -18,11 +16,6 @@ DATA_DIR = os.getenv("DATA_DIR", os.path.join(BASE_DIR, "data", "projects"))
 DB_PATH = os.getenv("DB_PATH", os.path.join(BASE_DIR, "data", "app.db"))
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3-flash-preview")
-GEMINI_ENDPOINT = (
-    f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
-)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -111,29 +104,6 @@ def validate_html_file(file: UploadFile) -> None:
         raise HTTPException(status_code=400, detail="Only .html files are allowed")
 
 
-def read_project_latest_html(project_id: str) -> tuple[str, str]:
-    with get_conn() as conn:
-        row = conn.execute(
-            """
-            SELECT stored_filename, original_filename
-            FROM versions
-            WHERE project_id = ?
-            ORDER BY created_at DESC
-            LIMIT 1
-            """,
-            (project_id,),
-        ).fetchone()
-        if not row:
-            raise HTTPException(status_code=404, detail="No versions found")
-        stored_filename = row["stored_filename"]
-        original_filename = row["original_filename"] or "latest.html"
-
-    file_path = os.path.join(DATA_DIR, project_id, stored_filename)
-    if not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="File missing")
-    with open(file_path, "rb") as f:
-        content = f.read()
-    return content.decode("utf-8", errors="ignore"), original_filename
 
 
 def safe_basename(filename: str) -> str:
@@ -182,18 +152,6 @@ def extract_text_snippet(html_text: str) -> Optional[str]:
     return cleaned[:160]
 
 
-def parse_json_from_text(text: str) -> Optional[Dict[str, Any]]:
-    if not text:
-        return None
-    match = re.search(r"\{.*\}", text, re.DOTALL)
-    if not match:
-        return None
-    try:
-        return json.loads(match.group(0))
-    except json.JSONDecodeError:
-        return None
-
-
 def row_to_dict(row: Optional[sqlite3.Row]) -> Optional[Dict[str, Any]]:
     return dict(row) if row else None
 
@@ -222,49 +180,7 @@ def sanitize_icon(value: str) -> str:
 
 
 async def generate_metadata(html_text: str, filename: str) -> tuple[str, str, str]:
-    if not GEMINI_API_KEY:
-        print("AI disabled: GEMINI_API_KEY not set")
-        return build_fallback_metadata(html_text, filename)
-
-    prompt = (
-        "You are a product naming assistant. Given HTML content, return a JSON object "
-        'with keys "name", "description", and "icon". Keep the name <= 20 characters and the description <= 60 characters. '
-        "The icon must be a single emoji. Return JSON only, no extra text.\n\nHTML:\n"
-        + html_text[:12000]
-    )
-
-    payload = {"contents": [{"parts": [{"text": prompt}]}]}
-    headers = {"x-goog-api-key": GEMINI_API_KEY, "Content-Type": "application/json"}
-
-    try:
-        async with httpx.AsyncClient(timeout=30) as client:
-            resp = await client.post(GEMINI_ENDPOINT, headers=headers, json=payload)
-            resp.raise_for_status()
-            data = resp.json()
-    except Exception as exc:
-        print("AI request failed:", exc)
-        return build_fallback_metadata(html_text, filename)
-
-    try:
-        text = data["candidates"][0]["content"]["parts"][0]["text"]
-    except Exception as exc:
-        print("AI response parse failed:", exc, "raw:", data)
-        return build_fallback_metadata(html_text, filename)
-
-    print("AI raw output:", text)
-
-    parsed = parse_json_from_text(text)
-    if not parsed:
-        return build_fallback_metadata(html_text, filename)
-
-    name = str(parsed.get("name", ""))
-    desc = str(parsed.get("description", ""))
-    icon = sanitize_icon(str(parsed.get("icon", "")))
-    fallback = build_fallback_metadata(html_text, filename)
-    name = name.strip()[:60] or fallback[0]
-    desc = desc.strip()[:160] or fallback[1]
-    icon = sanitize_icon(icon) or fallback[2]
-    return name, desc, icon
+    return build_fallback_metadata(html_text, filename)
 
 
 @app.get("/")
@@ -508,33 +424,6 @@ def update_project(
         )
 
     return {"ok": True}
-
-
-@app.post("/api/projects/{project_id}/regenerate")
-async def regenerate_project(
-    project_id: str,
-    x_admin_password: Optional[str] = Header(None),
-) -> Dict[str, Any]:
-    require_admin(x_admin_password)
-
-    with get_conn() as conn:
-        proj = conn.execute(
-            "SELECT id FROM projects WHERE id = ?", (project_id,)
-        ).fetchone()
-        if not proj:
-            raise HTTPException(status_code=404, detail="Project not found")
-
-    html_text, filename = read_project_latest_html(project_id)
-    name, desc, icon = await generate_metadata(html_text, filename)
-    now = now_iso()
-
-    with get_conn() as conn:
-        conn.execute(
-            "UPDATE projects SET name = ?, description = ?, icon = ?, updated_at = ? WHERE id = ?",
-            (name, desc, icon, now, project_id),
-        )
-
-    return {"ok": True, "name": name, "description": desc, "icon": icon}
 
 
 @app.patch("/api/versions/{version_id}")
