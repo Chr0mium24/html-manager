@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>iOS Style Manager</title>
+    <style>
+        :root {
+            --bg-color: #F2F2F7;
+            --card-bg: #FFFFFF;
+            --primary: #007AFF;
+            --text-main: #000000;
+            --text-sub: #8E8E93;
+            --danger: #FF3B30;
+            --success: #34C759;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            --radius-l: 20px;
+            --radius-m: 16px;
+            --font-stack: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body {
+            background-color: var(--bg-color);
+            font-family: var(--font-stack);
+            margin: 0;
+            padding: 0;
+            padding-bottom: 100px; /* Space for dock */
+            color: var(--text-main);
+            overflow-x: hidden;
+        }
+
+        /* 标题区域 */
+        .header {
+            padding: 60px 20px 20px;
+        }
+        .header-date {
+            font-size: 14px;
+            color: var(--text-sub);
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+        .header-title {
+            font-size: 34px;
+            font-weight: 800;
+            margin: 0;
+            letter-spacing: -0.5px;
+        }
+
+        /* 卡片通用样式 */
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius-l);
+            box-shadow: var(--shadow);
+            margin: 0 20px 16px;
+            overflow: hidden;
+            transition: transform 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+            position: relative;
+        }
+        .card:active { transform: scale(0.98); }
+
+        /* 项目列表项 */
+        .project-item {
+            display: flex;
+            align-items: center;
+            padding: 20px;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+        }
+        .project-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #007AFF, #5AC8FA);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            margin-right: 16px;
+            flex-shrink: 0;
+        }
+        .project-info { flex: 1; }
+        .project-name {
+            font-size: 17px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .project-desc {
+            font-size: 14px;
+            color: var(--text-sub);
+            line-height: 1.4;
+        }
+        .project-meta {
+            font-size: 12px;
+            color: var(--text-sub);
+            margin-top: 6px;
+        }
+
+        /* 底部悬浮坞 */
+        .floating-dock {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            padding: 12px 24px;
+            border-radius: 32px;
+            display: flex;
+            gap: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            z-index: 100;
+            border: 0.5px solid rgba(255,255,255,0.3);
+        }
+        .dock-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            transition: background 0.2s;
+        }
+        .dock-btn svg {
+            width: 24px;
+            height: 24px;
+            stroke: var(--primary);
+            stroke-width: 2.5;
+        }
+        .dock-btn:active { background: rgba(0,0,0,0.05); }
+
+        /* 模态框 (Admin Login / Create) */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(5px);
+            z-index: 200;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .modal-overlay.active { display: flex; opacity: 1; }
+        
+        .modal-card {
+            background: var(--bg-color);
+            width: 85%;
+            max-width: 320px;
+            border-radius: var(--radius-l);
+            padding: 24px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+        .modal-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+        .ios-input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid #d1d1d6;
+            background: white;
+            font-size: 16px;
+            margin-bottom: 16px;
+            outline: none;
+        }
+        .ios-input:focus { border-color: var(--primary); }
+        
+        .modal-actions { display: flex; gap: 10px; }
+        .ios-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 12px;
+            border: none;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn-cancel { background: #E5E5EA; color: var(--text-main); }
+        .btn-primary { background: var(--primary); color: white; }
+
+        /* 管理模式特有 */
+        .admin-badge {
+            background: var(--success);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 100px;
+            font-size: 10px;
+            font-weight: 700;
+            vertical-align: middle;
+            margin-left: 8px;
+            display: none;
+        }
+        .delete-btn {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: var(--danger);
+            color: white;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+        .card:hover .delete-btn { opacity: 1; pointer-events: auto; }
+
+        /* Toast 通知 */
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-size: 14px;
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 300;
+            backdrop-filter: blur(10px);
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+        /* 拖拽区域 */
+        .drop-zone {
+            border: 2px dashed #C7C7CC;
+            border-radius: var(--radius-m);
+            padding: 40px;
+            text-align: center;
+            color: var(--text-sub);
+            margin: 20px;
+            transition: all 0.2s;
+            display: none; /* 仅在管理详情页显示 */
+        }
+        .drop-zone.dragover { border-color: var(--primary); background: rgba(0,122,255,0.05); color: var(--primary); }
+
+        /* 面包屑导航 */
+        .breadcrumb {
+            padding: 0 20px;
+            margin-bottom: 20px;
+            color: var(--primary);
+            font-weight: 600;
+            cursor: pointer;
+            display: none;
+        }
+
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-sub);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="header-date" id="currentDate">TUESDAY, JANUARY 27</div>
+        <h1 class="header-title">
+            Projects
+            <span class="admin-badge" id="adminBadge">ADMIN</span>
+        </h1>
+    </div>
+
+    <!-- 面包屑 (返回) -->
+    <div class="breadcrumb" id="backBtn" onclick="app.goHome()">← Back to Projects</div>
+
+    <!-- 内容区域 -->
+    <div id="contentArea"></div>
+
+    <!-- 底部 Dock -->
+    <div class="floating-dock">
+        <button class="dock-btn" onclick="app.goHome()" title="Home">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+        </button>
+        <button class="dock-btn" onclick="app.toggleAdmin()" title="Settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        </button>
+        <button class="dock-btn" id="addBtn" onclick="app.showAddModal()" style="display:none;" title="Add Project">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </button>
+    </div>
+
+    <!-- Login Modal -->
+    <div class="modal-overlay" id="loginModal">
+        <div class="modal-card">
+            <div class="modal-title">Admin Access</div>
+            <input type="password" class="ios-input" id="passwordInput" placeholder="Enter Password">
+            <div class="modal-actions">
+                <button class="ios-btn btn-cancel" onclick="app.closeModal('loginModal')">Cancel</button>
+                <button class="ios-btn btn-primary" onclick="app.login()">Verify</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Project Modal -->
+    <div class="modal-overlay" id="addModal">
+        <div class="modal-card">
+            <div class="modal-title">New Project</div>
+            <input type="text" class="ios-input" id="projName" placeholder="Project Name">
+            <input type="text" class="ios-input" id="projDesc" placeholder="Short Description">
+            <div class="modal-actions">
+                <button class="ios-btn btn-cancel" onclick="app.closeModal('addModal')">Cancel</button>
+                <button class="ios-btn btn-primary" onclick="app.createProject()">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast">Message</div>
+
+<script>
+/**
+ * iOS Style Management System - Mock Backend & Logic
+ */
+
+// 1. 配置与状态
+const CONFIG = {
+    password: "admin", // 默认密码
+    storageKey: "ios_manager_db",
+    tokenKey: "ios_manager_token"
+};
+
+// 模拟数据库结构
+let db = {
+    projects: [] 
+    /* 
+     Project Structure:
+     {
+        id: string,
+        name: string,
+        desc: string,
+        icon: string (emoji or svg),
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        versions: [ { id, html, date } ]
+     }
+    */
+};
+
+// 状态管理
+const state = {
+    isAdmin: false,
+    currentView: 'list', // 'list' or 'detail'
+    activeProjectId: null
+};
+
+// 2. 核心逻辑 Class
+const app = {
+    init: function() {
+        this.loadData();
+        this.checkAuth();
+        this.updateDateHeader();
+        this.render();
+        this.setupGlobalListeners();
+    },
+
+    // --- 数据持久化 (Mock Backend) ---
+    loadData: function() {
+        const saved = localStorage.getItem(CONFIG.storageKey);
+        if (saved) {
+            db = JSON.parse(saved);
+        } else {
+            // 初始化一些演示数据
+            db.projects = [
+                {
+                    id: 'demo_1',
+                    name: 'Demo Landing Page',
+                    desc: 'Marketing campaign v1',
+                    icon: '🚀',
+                    createdAt: Date.now(),
+                    updatedAt: Date.now(),
+                    versions: [{ id: 'v1', html: '<h1>Hello World</h1><p>This is a demo page.</p>', date: Date.now() }]
+                }
+            ];
+            this.saveData();
+        }
+    },
+
+    saveData: function() {
+        localStorage.setItem(CONFIG.storageKey, JSON.stringify(db));
+        this.render(); // 数据变更触发重绘
+    },
+
+    checkAuth: function() {
+        const token = localStorage.getItem(CONFIG.tokenKey);
+        if (token === 'valid_token') {
+            state.isAdmin = true;
+            document.getElementById('adminBadge').style.display = 'inline-block';
+            document.getElementById('addBtn').style.display = 'block';
+        }
+    },
+
+    // --- 认证逻辑 ---
+    toggleAdmin: function() {
+        if (state.isAdmin) {
+            // Logout
+            if(confirm("Logout admin?")) {
+                state.isAdmin = false;
+                localStorage.removeItem(CONFIG.tokenKey);
+                document.getElementById('adminBadge').style.display = 'none';
+                document.getElementById('addBtn').style.display = 'none';
+                this.showToast("Logged Out");
+                this.render();
+            }
+        } else {
+            // Show Login
+            document.getElementById('loginModal').classList.add('active');
+            document.getElementById('passwordInput').focus();
+        }
+    },
+
+    login: function() {
+        const pwd = document.getElementById('passwordInput').value;
+        if (pwd === CONFIG.password) {
+            state.isAdmin = true;
+            localStorage.setItem(CONFIG.tokenKey, 'valid_token');
+            document.getElementById('adminBadge').style.display = 'inline-block';
+            document.getElementById('addBtn').style.display = 'block';
+            this.closeModal('loginModal');
+            document.getElementById('passwordInput').value = '';
+            this.showToast("Welcome Back");
+            this.render();
+        } else {
+            this.showToast("Wrong Password");
+            document.getElementById('passwordInput').classList.add('shake'); // 你可以加个shake动画css
+        }
+    },
+
+    // --- 路由与视图 ---
+    render: function() {
+        const container = document.getElementById('contentArea');
+        container.innerHTML = '';
+
+        if (state.currentView === 'list') {
+            this.renderProjectList(container);
+            document.getElementById('backBtn').style.display = 'none';
+            document.querySelector('.header-title').innerText = 'Projects';
+        } else if (state.currentView === 'detail') {
+            this.renderProjectDetail(container);
+            document.getElementById('backBtn').style.display = 'block';
+        }
+    },
+
+    renderProjectList: function(container) {
+        // 倒序排列
+        const list = [...db.projects].sort((a, b) => b.updatedAt - a.updatedAt);
+
+        if (list.length === 0) {
+            container.innerHTML = '<div class="empty-state">No projects yet.<br>Go to settings to add one.</div>';
+            return;
+        }
+
+        list.forEach(proj => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            
+            // 删除按钮 (仅管理员)
+            let deleteBtnHTML = '';
+            if (state.isAdmin) {
+                deleteBtnHTML = `<button class="delete-btn" onclick="event.stopPropagation(); app.deleteProject('${proj.id}')">
+                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="3" fill="none"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>`;
+            }
+
+            const latestVersionDate = proj.versions.length > 0 
+                ? new Date(proj.versions[proj.versions.length-1].date).toLocaleDateString() 
+                : 'No versions';
+
+            card.innerHTML = `
+                <div class="project-item" onclick="app.openProject('${proj.id}')">
+                    <div class="project-icon">${proj.icon}</div>
+                    <div class="project-info">
+                        <div class="project-name">${proj.name}</div>
+                        <div class="project-desc">${proj.desc}</div>
+                        <div class="project-meta">Last updated: ${latestVersionDate}</div>
+                    </div>
+                    ${deleteBtnHTML}
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    },
+
+    renderProjectDetail: function(container) {
+        const proj = db.projects.find(p => p.id === state.activeProjectId);
+        if (!proj) return this.goHome();
+
+        document.querySelector('.header-title').innerText = proj.name;
+
+        // 1. 如果是管理员，显示拖拽/粘贴提示区
+        if (state.isAdmin) {
+            const dropZone = document.createElement('div');
+            dropZone.className = 'drop-zone';
+            dropZone.innerHTML = `
+                <div style="font-size:40px;margin-bottom:10px;">☁️</div>
+                <div style="font-weight:600">Drag HTML file here</div>
+                <div style="font-size:12px;margin-top:5px;">Or copy HTML code and Paste (Ctrl+V)</div>
+            `;
+            // 绑定拖拽事件
+            dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+            dropZone.addEventListener('dragleave', (e) => { e.preventDefault(); dropZone.classList.remove('dragover'); });
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+                this.handleFileDrop(e.dataTransfer.files);
+            });
+            dropZone.style.display = 'block';
+            container.appendChild(dropZone);
+        }
+
+        // 2. 显示版本列表
+        const versionsDiv = document.createElement('div');
+        if (proj.versions.length === 0) {
+            versionsDiv.innerHTML = '<div class="empty-state">No HTML versions uploaded yet.</div>';
+        } else {
+            // 最新的在上面
+            [...proj.versions].reverse().forEach((ver, index) => {
+                const vCard = document.createElement('div');
+                vCard.className = 'card';
+                const dateStr = new Date(ver.date).toLocaleString();
+                // 真实索引（因为reverse了）
+                const realIndex = proj.versions.length - 1 - index;
+                
+                let deleteVerBtn = '';
+                if (state.isAdmin) {
+                    deleteVerBtn = `<button class="delete-btn" onclick="event.stopPropagation(); app.deleteVersion('${proj.id}', '${ver.id}')">×</button>`;
+                }
+
+                vCard.innerHTML = `
+                    <div class="project-item" onclick="app.previewHtml('${proj.id}', '${ver.id}')">
+                        <div class="project-icon" style="background:#34C759; font-size:14px; font-weight:bold;">V${realIndex + 1}</div>
+                        <div class="project-info">
+                            <div class="project-name">Version ${realIndex + 1}</div>
+                            <div class="project-desc">Uploaded: ${dateStr}</div>
+                        </div>
+                        ${deleteVerBtn}
+                    </div>
+                `;
+                versionsDiv.appendChild(vCard);
+            });
+        }
+        container.appendChild(versionsDiv);
+    },
+
+    // --- 操作逻辑 ---
+    goHome: function() {
+        state.currentView = 'list';
+        state.activeProjectId = null;
+        this.render();
+    },
+
+    openProject: function(id) {
+        state.activeProjectId = id;
+        state.currentView = 'detail';
+        this.render();
+    },
+
+    createProject: function() {
+        const name = document.getElementById('projName').value;
+        const desc = document.getElementById('projDesc').value;
+        if (!name) return;
+
+        const newProj = {
+            id: 'proj_' + Date.now(),
+            name: name,
+            desc: desc || 'No description',
+            icon: '📁',
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+            versions: []
+        };
+        db.projects.push(newProj);
+        this.saveData();
+        this.closeModal('addModal');
+        // Clear inputs
+        document.getElementById('projName').value = '';
+        document.getElementById('projDesc').value = '';
+        this.showToast("Project Created");
+    },
+
+    deleteProject: function(id) {
+        if(!confirm("Delete this project and all versions?")) return;
+        db.projects = db.projects.filter(p => p.id !== id);
+        this.saveData();
+        this.showToast("Project Deleted");
+    },
+
+    // --- 文件处理核心 ---
+    
+    // 1. 处理拖拽上传
+    handleFileDrop: function(files) {
+        if (files.length === 0) return;
+        const file = files[0];
+        
+        if (file.type !== 'text/html' && !file.name.endsWith('.html')) {
+            alert("Only .html files are allowed");
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            this.addVersionToProject(state.activeProjectId, e.target.result);
+        };
+        reader.readAsText(file);
+    },
+
+    // 2. 处理全局粘贴
+    setupGlobalListeners: function() {
+        document.addEventListener('paste', (e) => {
+            // 只有在管理模式且在详情页时才生效
+            if (!state.isAdmin || state.currentView !== 'detail' || !state.activeProjectId) return;
+            
+            // 如果焦点在输入框，不拦截
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+            const text = e.clipboardData.getData('text');
+            // 简单的 HTML 检测
+            if (text && (text.includes('<!DOCTYPE html>') || text.includes('<html') || text.includes('<body>'))) {
+                e.preventDefault();
+                if(confirm("HTML code detected in clipboard. Create new version?")) {
+                    this.addVersionToProject(state.activeProjectId, text);
+                }
+            }
+        });
+    },
+
+    addVersionToProject: function(projId, htmlContent) {
+        const proj = db.projects.find(p => p.id === projId);
+        if (!proj) return;
+
+        proj.versions.push({
+            id: 'ver_' + Date.now(),
+            html: htmlContent,
+            date: Date.now()
+        });
+        proj.updatedAt = Date.now(); // Update project timestamp for sorting
+        this.saveData();
+        this.showToast("New Version Uploaded");
+    },
+
+    deleteVersion: function(projId, verId) {
+        if(!confirm("Delete this version?")) return;
+        const proj = db.projects.find(p => p.id === projId);
+        if(proj) {
+            proj.versions = proj.versions.filter(v => v.id !== verId);
+            this.saveData();
+            this.showToast("Version Deleted");
+        }
+    },
+
+    // --- 预览/打开 HTML ---
+    previewHtml: function(projId, verId) {
+        const proj = db.projects.find(p => p.id === projId);
+        const ver = proj.versions.find(v => v.id === verId);
+        
+        if (ver) {
+            // 创建一个 Blob 对象
+            const blob = new Blob([ver.html], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            // 在新标签页打开，模拟服务器效果
+            window.open(url, '_blank');
+        }
+    },
+
+    // --- UI Helpers ---
+    showAddModal: function() {
+        document.getElementById('addModal').classList.add('active');
+        document.getElementById('projName').focus();
+    },
+
+    closeModal: function(id) {
+        document.getElementById(id).classList.remove('active');
+    },
+
+    showToast: function(msg) {
+        const t = document.getElementById('toast');
+        t.innerText = msg;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 2000);
+    },
+
+    updateDateHeader: function() {
+        const options = { weekday: 'long', month: 'long', day: 'numeric' };
+        document.getElementById('currentDate').innerText = new Date().toLocaleDateString('en-US', options).toUpperCase();
+    }
+};
+
+// Start App
+window.addEventListener('DOMContentLoaded', () => {
+    app.init();
+});
+
+</script>
+</body>
+</html>
