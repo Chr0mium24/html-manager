@@ -260,18 +260,63 @@
         }
         .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 
-        /* 拖拽区域 */
-        .drop-zone {
-            border: 2px dashed #C7C7CC;
-            border-radius: var(--radius-m);
-            padding: 40px;
-            text-align: center;
-            color: var(--text-sub);
-            margin: 20px;
-            transition: all 0.2s;
-            display: none; /* 仅在管理详情页显示 */
+        .header-actions {
+            position: absolute;
+            right: 20px;
+            top: 20px;
         }
-        .drop-zone.dragover { border-color: var(--primary); background: rgba(0,122,255,0.05); color: var(--primary); }
+        .header-gear {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: white;
+            border: 1px solid rgba(0,0,0,0.06);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #111827;
+            box-shadow: 0 6px 16px rgba(15,23,42,0.08);
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .header-gear:hover { transform: translateY(-1px); box-shadow: 0 10px 22px rgba(15,23,42,0.12); }
+        .header-gear svg { width: 20px; height: 20px; }
+
+        .upload-cta {
+            margin: 10px 20px 20px;
+            padding: 14px 16px;
+            border-radius: 14px;
+            background: white;
+            border: 1px solid rgba(0,0,0,0.06);
+            box-shadow: 0 10px 24px rgba(15,23,42,0.08);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .upload-cta-text {
+            font-size: 13px;
+            color: #6B7280;
+            line-height: 1.3;
+        }
+        .upload-cta-text strong {
+            color: #111827;
+            font-weight: 700;
+            display: block;
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+        .upload-cta-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+        }
 
         /* 面包屑导航 */
         .breadcrumb {
@@ -299,6 +344,11 @@
             <span id="headerTitleText">Projects</span>
             <span class="admin-badge" id="adminBadge">ADMIN</span>
         </h1>
+        <div class="header-actions">
+            <button class="header-gear" onclick="app.toggleAdmin()" title="Settings">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            </button>
+        </div>
     </div>
 
     <!-- 面包屑 (返回) -->
@@ -306,19 +356,6 @@
 
     <!-- 内容区域 -->
     <div id="contentArea"></div>
-
-    <!-- 底部 Dock -->
-    <div class="floating-dock">
-        <button class="dock-btn" onclick="app.goHome()" title="Home">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
-        </button>
-        <button class="dock-btn" onclick="app.toggleAdmin()" title="Settings">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-        </button>
-        <button class="dock-btn" id="addBtn" onclick="app.triggerNewProject()" style="display:none;" title="Add Project">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-        </button>
-    </div>
 
     <!-- Login Modal -->
     <div class="modal-overlay" id="loginModal">
@@ -427,7 +464,6 @@ const app = {
 
     updateAdminUI: function() {
         document.getElementById('adminBadge').style.display = state.isAdmin ? 'inline-block' : 'none';
-        document.getElementById('addBtn').style.display = state.isAdmin ? 'block' : 'none';
         document.body.classList.toggle('is-admin', state.isAdmin);
     },
 
@@ -479,13 +515,17 @@ const app = {
 
     renderProjectList: function(container) {
         if (state.isAdmin) {
-            const dropZone = document.createElement('div');
-            dropZone.className = 'drop-zone';
-            dropZone.innerHTML = '<div style="font-size:40px;margin-bottom:10px;">📦</div><div style="font-weight:600">Drop HTML to create new project</div><div style="font-size:12px;margin-top:5px;">Or tap to choose file</div>';
-            dropZone.style.display = 'block';
-            dropZone.addEventListener('click', () => this.triggerNewProject());
-            this.bindDropZone(dropZone, (file) => this.createProjectFromFile(file));
-            container.appendChild(dropZone);
+            const cta = document.createElement('div');
+            cta.className = 'upload-cta';
+            cta.innerHTML = `
+                <div class="upload-cta-text">
+                    <strong>Upload HTML</strong>
+                    Drag & drop or paste HTML (Ctrl+V) anywhere, or click to choose a file.
+                </div>
+                <button class="upload-cta-btn">Choose File</button>
+            `;
+            cta.querySelector('button').addEventListener('click', () => this.triggerNewProject());
+            container.appendChild(cta);
         }
 
         if (!state.projects.length) {
@@ -535,14 +575,19 @@ const app = {
         if (!proj) return this.goHome();
 
         document.getElementById('headerTitleText').innerText = proj.name;
-
-        const dropZone = document.createElement('div');
-        dropZone.className = 'drop-zone';
-        dropZone.innerHTML = '<div style="font-size:40px;margin-bottom:10px;">☁️</div><div style="font-weight:600">Drop HTML to add version</div><div style="font-size:12px;margin-top:5px;">Or tap to choose file</div>';
-        dropZone.style.display = 'block';
-        dropZone.addEventListener('click', () => this.triggerVersionUpload());
-        this.bindDropZone(dropZone, (file) => this.addVersionToProject(state.activeProjectId, file));
-        container.appendChild(dropZone);
+        if (state.isAdmin) {
+            const cta = document.createElement('div');
+            cta.className = 'upload-cta';
+            cta.innerHTML = `
+                <div class="upload-cta-text">
+                    <strong>Upload Version</strong>
+                    Drag & drop or paste HTML (Ctrl+V) anywhere, or click to choose a file.
+                </div>
+                <button class="upload-cta-btn">Choose File</button>
+            `;
+            cta.querySelector('button').addEventListener('click', () => this.triggerVersionUpload());
+            container.appendChild(cta);
+        }
 
         const versionsDiv = document.createElement('div');
         const versions = proj.versions || [];
@@ -736,36 +781,63 @@ const app = {
         });
     },
 
-    bindDropZone: function(zone, onFile) {
-        zone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            zone.classList.add('dragover');
-        });
-        zone.addEventListener('dragleave', (e) => {
-            e.preventDefault();
-            zone.classList.remove('dragover');
-        });
-        zone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            zone.classList.remove('dragover');
-            const file = e.dataTransfer.files[0];
-            if (file) onFile(file);
-        });
-    },
-
     setupGlobalListeners: function() {
+        const passwordInput = document.getElementById('passwordInput');
+        passwordInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.isComposing) {
+                e.preventDefault();
+                this.login();
+            }
+        });
+
         document.addEventListener('paste', (e) => {
-            if (!state.isAdmin || state.currentView !== 'detail' || !state.activeProjectId) return;
+            if (!state.isAdmin) return;
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
-            const text = e.clipboardData.getData('text');
-            if (text && (text.includes('<!DOCTYPE html>') || text.includes('<html') || text.includes('<body>'))) {
-                e.preventDefault();
+            const html = e.clipboardData.getData('text/html');
+            const text = html || e.clipboardData.getData('text');
+            const lower = (text || '').toLowerCase();
+            const isHtml =
+                lower.includes('<!doctype html') ||
+                lower.includes('<html') ||
+                lower.includes('<body') ||
+                lower.includes('<head');
+
+            if (!isHtml) return;
+            e.preventDefault();
+
+            if (state.currentView === 'detail' && state.activeProjectId) {
                 if (confirm('HTML detected. Create new version?')) {
                     const blob = new Blob([text], { type: 'text/html' });
                     const file = new File([blob], 'pasted.html', { type: 'text/html' });
                     this.addVersionToProject(state.activeProjectId, file);
                 }
+                return;
+            }
+
+            if (state.currentView === 'list') {
+                if (confirm('HTML detected. Create new project?')) {
+                    const blob = new Blob([text], { type: 'text/html' });
+                    const file = new File([blob], 'pasted.html', { type: 'text/html' });
+                    this.createProjectFromFile(file);
+                }
+            }
+        });
+
+        // Allow dropping HTML anywhere on the page.
+        document.addEventListener('dragover', (e) => {
+            if (!state.isAdmin) return;
+            e.preventDefault();
+        });
+        document.addEventListener('drop', (e) => {
+            if (!state.isAdmin) return;
+            e.preventDefault();
+            const file = e.dataTransfer.files[0];
+            if (!file) return;
+            if (state.currentView === 'detail' && state.activeProjectId) {
+                this.addVersionToProject(state.activeProjectId, file);
+            } else if (state.currentView === 'list') {
+                this.createProjectFromFile(file);
             }
         });
     },

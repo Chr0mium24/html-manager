@@ -123,6 +123,39 @@ def extract_title(html_text: str) -> Optional[str]:
     return title[:60] if title else None
 
 
+def extract_meta_description(html_text: str) -> Optional[str]:
+    meta_match = re.search(
+        r'<meta[^>]+(?:name|property)=["\']description["\'][^>]*>',
+        html_text,
+        re.IGNORECASE | re.DOTALL,
+    )
+    if not meta_match:
+        meta_match = re.search(
+            r'<meta[^>]+property=["\']og:description["\'][^>]*>',
+            html_text,
+            re.IGNORECASE | re.DOTALL,
+        )
+    if not meta_match:
+        return None
+    content_match = re.search(
+        r'content=["\'](.*?)["\']', meta_match.group(0), re.IGNORECASE | re.DOTALL
+    )
+    if not content_match:
+        return None
+    desc = re.sub(r"\s+", " ", content_match.group(1)).strip()
+    return desc[:160] if desc else None
+
+
+def extract_text_snippet(html_text: str) -> Optional[str]:
+    cleaned = re.sub(r"<script.*?</script>", " ", html_text, flags=re.IGNORECASE | re.DOTALL)
+    cleaned = re.sub(r"<style.*?</style>", " ", cleaned, flags=re.IGNORECASE | re.DOTALL)
+    cleaned = re.sub(r"<[^>]+>", " ", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    if not cleaned:
+        return None
+    return cleaned[:160]
+
+
 def parse_json_from_text(text: str) -> Optional[Dict[str, Any]]:
     if not text:
         return None
@@ -143,22 +176,34 @@ def rows_to_list(rows: List[sqlite3.Row]) -> List[Dict[str, Any]]:
     return [dict(r) for r in rows]
 
 
-def build_fallback_metadata(html_text: str, filename: str) -> tuple[str, str]:
+def build_fallback_metadata(html_text: str, filename: str) -> tuple[str, str, str]:
     title = extract_title(html_text)
     base = os.path.splitext(safe_basename(filename))[0] or "Untitled"
     name = title or base or "Untitled"
-    desc = "Auto generated description"
-    return name[:60], desc[:160]
+    desc = (
+        extract_meta_description(html_text)
+        or extract_text_snippet(html_text)
+        or f"{name} HTML project"
+    )
+    return name[:60], desc[:160], "📁"
 
 
-async def generate_metadata(html_text: str, filename: str) -> tuple[str, str]:
+def sanitize_icon(value: str) -> str:
+    icon = (value or "").strip()
+    if not icon:
+        return "📁"
+    return icon[:2]
+
+
+async def generate_metadata(html_text: str, filename: str) -> tuple[str, str, str]:
     if not GEMINI_API_KEY:
         return build_fallback_metadata(html_text, filename)
 
     prompt = (
         "You are a product naming assistant. Given HTML content, return a JSON object "
-        'with keys "name" and "description". Keep the name <= 20 characters and the description <= 120 characters. '
-        "Return JSON only, no extra text.\n\nHTML:\n" + html_text[:12000]
+        'with keys "name", "description", and "icon". Keep the name <= 20 characters and the description <= 120 characters. '
+        "The icon must be a single emoji. Return JSON only, no extra text.\n\nHTML:\n"
+        + html_text[:12000]
     )
 
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
@@ -183,9 +228,12 @@ async def generate_metadata(html_text: str, filename: str) -> tuple[str, str]:
 
     name = str(parsed.get("name", ""))
     desc = str(parsed.get("description", ""))
-    name = name.strip()[:60] or build_fallback_metadata(html_text, filename)[0]
-    desc = desc.strip()[:160] or build_fallback_metadata(html_text, filename)[1]
-    return name, desc
+    icon = sanitize_icon(str(parsed.get("icon", "")))
+    fallback = build_fallback_metadata(html_text, filename)
+    name = name.strip()[:60] or fallback[0]
+    desc = desc.strip()[:160] or fallback[1]
+    icon = sanitize_icon(icon) or fallback[2]
+    return name, desc, icon
 
 
 @app.get("/")
@@ -297,7 +345,7 @@ async def create_project(
 
     content = await file.read()
     html_text = content.decode("utf-8", errors="ignore")
-    name, desc = await generate_metadata(html_text, file.filename or "upload.html")
+    name, desc, icon = await generate_metadata(html_text, file.filename or "upload.html")
 
     project_id = uuid.uuid4().hex
     version_id = uuid.uuid4().hex
@@ -319,7 +367,7 @@ async def create_project(
             INSERT INTO projects (id, name, description, icon, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?)
             """,
-            (project_id, name, desc, "📁", now, now),
+            (project_id, name, desc, icon, now, now),
         )
         conn.execute(
             """
@@ -329,7 +377,7 @@ async def create_project(
             (version_id, project_id, stored_filename, original_filename, original_filename, now),
         )
 
-    return {"id": project_id, "name": name, "description": desc}
+    return {"id": project_id, "name": name, "description": desc, "icon": icon}
 
 
 @app.post("/api/projects/{project_id}/versions")
