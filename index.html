@@ -217,7 +217,30 @@
             pointer-events: none;
             transition: opacity 0.2s;
         }
-        .card:hover .delete-btn { opacity: 1; pointer-events: auto; }
+        .edit-btn {
+            position: absolute;
+            right: 60px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #E5E5EA;
+            color: #111111;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+            font-size: 14px;
+            font-weight: 700;
+        }
+        .card:hover .delete-btn,
+        .card:hover .edit-btn { opacity: 1; pointer-events: auto; }
+        body.is-admin .delete-btn,
+        body.is-admin .edit-btn { opacity: 1; pointer-events: auto; }
 
         /* Toast 通知 */
         .toast {
@@ -273,7 +296,7 @@
     <div class="header">
         <div class="header-date" id="currentDate">TUESDAY, JANUARY 27</div>
         <h1 class="header-title">
-            Projects
+            <span id="headerTitleText">Projects</span>
             <span class="admin-badge" id="adminBadge">ADMIN</span>
         </h1>
     </div>
@@ -292,7 +315,7 @@
         <button class="dock-btn" onclick="app.toggleAdmin()" title="Settings">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
         </button>
-        <button class="dock-btn" id="addBtn" onclick="app.showAddModal()" style="display:none;" title="Add Project">
+        <button class="dock-btn" id="addBtn" onclick="app.triggerNewProject()" style="display:none;" title="Add Project">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
         </button>
     </div>
@@ -309,141 +332,137 @@
         </div>
     </div>
 
-    <!-- Add Project Modal -->
-    <div class="modal-overlay" id="addModal">
-        <div class="modal-card">
-            <div class="modal-title">New Project</div>
-            <input type="text" class="ios-input" id="projName" placeholder="Project Name">
-            <input type="text" class="ios-input" id="projDesc" placeholder="Short Description">
-            <div class="modal-actions">
-                <button class="ios-btn btn-cancel" onclick="app.closeModal('addModal')">Cancel</button>
-                <button class="ios-btn btn-primary" onclick="app.createProject()">Create</button>
-            </div>
-        </div>
-    </div>
-
     <!-- Toast -->
     <div class="toast" id="toast">Message</div>
+    <input type="file" id="newProjectFile" accept=".html" style="display:none;">
+    <input type="file" id="versionFile" accept=".html" style="display:none;">
 
 <script>
-/**
- * iOS Style Management System - Mock Backend & Logic
- */
-
-// 1. 配置与状态
 const CONFIG = {
-    password: "admin", // 默认密码
-    storageKey: "ios_manager_db",
-    tokenKey: "ios_manager_token"
+    adminPwdKey: "ios_admin_pwd"
 };
 
-// 模拟数据库结构
-let db = {
-    projects: [] 
-    /* 
-     Project Structure:
-     {
-        id: string,
-        name: string,
-        desc: string,
-        icon: string (emoji or svg),
-        createdAt: timestamp,
-        updatedAt: timestamp,
-        versions: [ { id, html, date } ]
-     }
-    */
-};
-
-// 状态管理
 const state = {
     isAdmin: false,
-    currentView: 'list', // 'list' or 'detail'
-    activeProjectId: null
+    adminPassword: "",
+    currentView: "list",
+    activeProjectId: null,
+    projects: [],
+    activeProject: null
 };
 
-// 2. 核心逻辑 Class
 const app = {
     init: function() {
-        this.loadData();
-        this.checkAuth();
         this.updateDateHeader();
-        this.render();
+        this.bindFileInputs();
+        this.restoreAdmin();
+        this.loadProjects();
         this.setupGlobalListeners();
+        this.render();
     },
 
-    // --- 数据持久化 (Mock Backend) ---
-    loadData: function() {
-        const saved = localStorage.getItem(CONFIG.storageKey);
+    // ---- API helpers ----
+    apiRequest: async function(path, options = {}, admin = false) {
+        const opts = { ...options };
+        const headers = { ...(opts.headers || {}) };
+        if (admin && state.adminPassword) {
+            headers['X-Admin-Password'] = state.adminPassword;
+        }
+        opts.headers = headers;
+
+        const resp = await fetch(path, opts);
+        if (resp.status === 401 && admin) {
+            this.forceLogout();
+            throw new Error('Unauthorized');
+        }
+        if (!resp.ok) {
+            const msg = await resp.text();
+            throw new Error(msg || 'Request failed');
+        }
+        const contentType = resp.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+            return resp.json();
+        }
+        return {};
+    },
+
+    // ---- Auth ----
+    restoreAdmin: function() {
+        const saved = sessionStorage.getItem(CONFIG.adminPwdKey);
         if (saved) {
-            db = JSON.parse(saved);
-        } else {
-            // 初始化一些演示数据
-            db.projects = [
-                {
-                    id: 'demo_1',
-                    name: 'Demo Landing Page',
-                    desc: 'Marketing campaign v1',
-                    icon: '🚀',
-                    createdAt: Date.now(),
-                    updatedAt: Date.now(),
-                    versions: [{ id: 'v1', html: '<h1>Hello World</h1><p>This is a demo page.</p>', date: Date.now() }]
-                }
-            ];
-            this.saveData();
+            this.verifyAdmin(saved, true);
         }
     },
 
-    saveData: function() {
-        localStorage.setItem(CONFIG.storageKey, JSON.stringify(db));
-        this.render(); // 数据变更触发重绘
-    },
-
-    checkAuth: function() {
-        const token = localStorage.getItem(CONFIG.tokenKey);
-        if (token === 'valid_token') {
+    verifyAdmin: async function(password, silent = false) {
+        try {
+            await this.apiRequest('/api/admin/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password })
+            });
             state.isAdmin = true;
-            document.getElementById('adminBadge').style.display = 'inline-block';
-            document.getElementById('addBtn').style.display = 'block';
+            state.adminPassword = password;
+            sessionStorage.setItem(CONFIG.adminPwdKey, password);
+            this.updateAdminUI();
+            if (!silent) this.showToast('Admin Enabled');
+            this.loadProjects();
+        } catch (err) {
+            this.forceLogout();
+            if (!silent) this.showToast('Admin Failed');
         }
     },
 
-    // --- 认证逻辑 ---
+    forceLogout: function() {
+        state.isAdmin = false;
+        state.adminPassword = '';
+        sessionStorage.removeItem(CONFIG.adminPwdKey);
+        this.updateAdminUI();
+        if (state.currentView === 'detail') {
+            this.goHome();
+        } else {
+            this.render();
+        }
+    },
+
+    updateAdminUI: function() {
+        document.getElementById('adminBadge').style.display = state.isAdmin ? 'inline-block' : 'none';
+        document.getElementById('addBtn').style.display = state.isAdmin ? 'block' : 'none';
+        document.body.classList.toggle('is-admin', state.isAdmin);
+    },
+
     toggleAdmin: function() {
         if (state.isAdmin) {
-            // Logout
-            if(confirm("Logout admin?")) {
-                state.isAdmin = false;
-                localStorage.removeItem(CONFIG.tokenKey);
-                document.getElementById('adminBadge').style.display = 'none';
-                document.getElementById('addBtn').style.display = 'none';
-                this.showToast("Logged Out");
-                this.render();
+            if (confirm('Logout admin?')) {
+                this.forceLogout();
+                this.showToast('Logged Out');
             }
-        } else {
-            // Show Login
-            document.getElementById('loginModal').classList.add('active');
-            document.getElementById('passwordInput').focus();
+            return;
         }
+        document.getElementById('loginModal').classList.add('active');
+        document.getElementById('passwordInput').focus();
     },
 
     login: function() {
         const pwd = document.getElementById('passwordInput').value;
-        if (pwd === CONFIG.password) {
-            state.isAdmin = true;
-            localStorage.setItem(CONFIG.tokenKey, 'valid_token');
-            document.getElementById('adminBadge').style.display = 'inline-block';
-            document.getElementById('addBtn').style.display = 'block';
-            this.closeModal('loginModal');
-            document.getElementById('passwordInput').value = '';
-            this.showToast("Welcome Back");
+        if (!pwd) return;
+        this.closeModal('loginModal');
+        document.getElementById('passwordInput').value = '';
+        this.verifyAdmin(pwd);
+    },
+
+    // ---- Data ----
+    loadProjects: async function() {
+        try {
+            const data = await this.apiRequest('/api/projects');
+            state.projects = data.projects || [];
             this.render();
-        } else {
-            this.showToast("Wrong Password");
-            document.getElementById('passwordInput').classList.add('shake'); // 你可以加个shake动画css
+        } catch (err) {
+            this.showToast('Failed to load');
         }
     },
 
-    // --- 路由与视图 ---
+    // ---- Views ----
     render: function() {
         const container = document.getElementById('contentArea');
         container.innerHTML = '';
@@ -451,7 +470,7 @@ const app = {
         if (state.currentView === 'list') {
             this.renderProjectList(container);
             document.getElementById('backBtn').style.display = 'none';
-            document.querySelector('.header-title').innerText = 'Projects';
+            document.getElementById('headerTitleText').innerText = 'Projects';
         } else if (state.currentView === 'detail') {
             this.renderProjectDetail(container);
             document.getElementById('backBtn').style.display = 'block';
@@ -459,38 +478,47 @@ const app = {
     },
 
     renderProjectList: function(container) {
-        // 倒序排列
-        const list = [...db.projects].sort((a, b) => b.updatedAt - a.updatedAt);
+        if (state.isAdmin) {
+            const dropZone = document.createElement('div');
+            dropZone.className = 'drop-zone';
+            dropZone.innerHTML = '<div style="font-size:40px;margin-bottom:10px;">📦</div><div style="font-weight:600">Drop HTML to create new project</div><div style="font-size:12px;margin-top:5px;">Or tap to choose file</div>';
+            dropZone.style.display = 'block';
+            dropZone.addEventListener('click', () => this.triggerNewProject());
+            this.bindDropZone(dropZone, (file) => this.createProjectFromFile(file));
+            container.appendChild(dropZone);
+        }
 
-        if (list.length === 0) {
-            container.innerHTML = '<div class="empty-state">No projects yet.<br>Go to settings to add one.</div>';
+        if (!state.projects.length) {
+            const empty = document.createElement('div');
+            empty.className = 'empty-state';
+            empty.innerText = 'No projects yet.';
+            container.appendChild(empty);
             return;
         }
 
-        list.forEach(proj => {
+        state.projects.forEach((proj) => {
             const card = document.createElement('div');
             card.className = 'card';
-            
-            // 删除按钮 (仅管理员)
-            let deleteBtnHTML = '';
-            if (state.isAdmin) {
-                deleteBtnHTML = `<button class="delete-btn" onclick="event.stopPropagation(); app.deleteProject('${proj.id}')">
-                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="3" fill="none"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                </button>`;
-            }
 
-            const latestVersionDate = proj.versions.length > 0 
-                ? new Date(proj.versions[proj.versions.length-1].date).toLocaleDateString() 
-                : 'No versions';
+            const latestDate = proj.latest_version?.created_at || proj.updated_at;
+            const dateLabel = latestDate ? new Date(latestDate).toLocaleDateString() : 'No versions';
+
+            const editBtnHTML = state.isAdmin
+                ? `<button class="edit-btn" onclick="event.stopPropagation(); app.renameProject('${proj.id}')">✎</button>`
+                : '';
+            const deleteBtnHTML = state.isAdmin
+                ? `<button class="delete-btn" onclick="event.stopPropagation(); app.deleteProject('${proj.id}')">×</button>`
+                : '';
 
             card.innerHTML = `
                 <div class="project-item" onclick="app.openProject('${proj.id}')">
-                    <div class="project-icon">${proj.icon}</div>
+                    <div class="project-icon">${this.escapeHtml(proj.icon || '📁')}</div>
                     <div class="project-info">
-                        <div class="project-name">${proj.name}</div>
-                        <div class="project-desc">${proj.desc}</div>
-                        <div class="project-meta">Last updated: ${latestVersionDate}</div>
+                        <div class="project-name">${this.escapeHtml(proj.name)}</div>
+                        <div class="project-desc">${this.escapeHtml(proj.description || '')}</div>
+                        <div class="project-meta">Last updated: ${dateLabel}</div>
                     </div>
+                    ${editBtnHTML}
                     ${deleteBtnHTML}
                 </div>
             `;
@@ -499,58 +527,54 @@ const app = {
     },
 
     renderProjectDetail: function(container) {
-        const proj = db.projects.find(p => p.id === state.activeProjectId);
+        if (!state.isAdmin) {
+            this.goHome();
+            return;
+        }
+        const proj = state.activeProject;
         if (!proj) return this.goHome();
 
-        document.querySelector('.header-title').innerText = proj.name;
+        document.getElementById('headerTitleText').innerText = proj.name;
 
-        // 1. 如果是管理员，显示拖拽/粘贴提示区
-        if (state.isAdmin) {
-            const dropZone = document.createElement('div');
-            dropZone.className = 'drop-zone';
-            dropZone.innerHTML = `
-                <div style="font-size:40px;margin-bottom:10px;">☁️</div>
-                <div style="font-weight:600">Drag HTML file here</div>
-                <div style="font-size:12px;margin-top:5px;">Or copy HTML code and Paste (Ctrl+V)</div>
-            `;
-            // 绑定拖拽事件
-            dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
-            dropZone.addEventListener('dragleave', (e) => { e.preventDefault(); dropZone.classList.remove('dragover'); });
-            dropZone.addEventListener('drop', (e) => {
-                e.preventDefault();
-                dropZone.classList.remove('dragover');
-                this.handleFileDrop(e.dataTransfer.files);
-            });
-            dropZone.style.display = 'block';
-            container.appendChild(dropZone);
-        }
+        const dropZone = document.createElement('div');
+        dropZone.className = 'drop-zone';
+        dropZone.innerHTML = '<div style="font-size:40px;margin-bottom:10px;">☁️</div><div style="font-weight:600">Drop HTML to add version</div><div style="font-size:12px;margin-top:5px;">Or tap to choose file</div>';
+        dropZone.style.display = 'block';
+        dropZone.addEventListener('click', () => this.triggerVersionUpload());
+        this.bindDropZone(dropZone, (file) => this.addVersionToProject(state.activeProjectId, file));
+        container.appendChild(dropZone);
 
-        // 2. 显示版本列表
         const versionsDiv = document.createElement('div');
-        if (proj.versions.length === 0) {
+        const versions = proj.versions || [];
+        if (!versions.length) {
             versionsDiv.innerHTML = '<div class="empty-state">No HTML versions uploaded yet.</div>';
         } else {
-            // 最新的在上面
-            [...proj.versions].reverse().forEach((ver, index) => {
+            versions.forEach((ver) => {
                 const vCard = document.createElement('div');
                 vCard.className = 'card';
-                const dateStr = new Date(ver.date).toLocaleString();
-                // 真实索引（因为reverse了）
-                const realIndex = proj.versions.length - 1 - index;
-                
-                let deleteVerBtn = '';
-                if (state.isAdmin) {
-                    deleteVerBtn = `<button class="delete-btn" onclick="event.stopPropagation(); app.deleteVersion('${proj.id}', '${ver.id}')">×</button>`;
-                }
+                const dateStr = new Date(ver.created_at).toLocaleString();
+                const displayName = ver.display_name || ver.original_filename || 'Version';
+                const original = ver.original_filename && ver.original_filename !== displayName
+                    ? `Original: ${ver.original_filename}`
+                    : '';
+
+                const editBtn = state.isAdmin
+                    ? `<button class="edit-btn" onclick="event.stopPropagation(); app.renameVersion('${ver.id}')">✎</button>`
+                    : '';
+                const deleteBtn = state.isAdmin
+                    ? `<button class="delete-btn" onclick="event.stopPropagation(); app.deleteVersion('${ver.id}')">×</button>`
+                    : '';
 
                 vCard.innerHTML = `
                     <div class="project-item" onclick="app.previewHtml('${proj.id}', '${ver.id}')">
-                        <div class="project-icon" style="background:#34C759; font-size:14px; font-weight:bold;">V${realIndex + 1}</div>
+                        <div class="project-icon" style="background:#34C759; font-size:14px; font-weight:bold;">HTML</div>
                         <div class="project-info">
-                            <div class="project-name">Version ${realIndex + 1}</div>
+                            <div class="project-name">${this.escapeHtml(displayName)}</div>
                             <div class="project-desc">Uploaded: ${dateStr}</div>
+                            <div class="project-meta">${this.escapeHtml(original)}</div>
                         </div>
-                        ${deleteVerBtn}
+                        ${editBtn}
+                        ${deleteBtn}
                     </div>
                 `;
                 versionsDiv.appendChild(vCard);
@@ -559,132 +583,194 @@ const app = {
         container.appendChild(versionsDiv);
     },
 
-    // --- 操作逻辑 ---
+    // ---- Navigation ----
     goHome: function() {
         state.currentView = 'list';
         state.activeProjectId = null;
+        state.activeProject = null;
         this.render();
     },
 
-    openProject: function(id) {
-        state.activeProjectId = id;
-        state.currentView = 'detail';
-        this.render();
-    },
-
-    createProject: function() {
-        const name = document.getElementById('projName').value;
-        const desc = document.getElementById('projDesc').value;
-        if (!name) return;
-
-        const newProj = {
-            id: 'proj_' + Date.now(),
-            name: name,
-            desc: desc || 'No description',
-            icon: '📁',
-            createdAt: Date.now(),
-            updatedAt: Date.now(),
-            versions: []
-        };
-        db.projects.push(newProj);
-        this.saveData();
-        this.closeModal('addModal');
-        // Clear inputs
-        document.getElementById('projName').value = '';
-        document.getElementById('projDesc').value = '';
-        this.showToast("Project Created");
-    },
-
-    deleteProject: function(id) {
-        if(!confirm("Delete this project and all versions?")) return;
-        db.projects = db.projects.filter(p => p.id !== id);
-        this.saveData();
-        this.showToast("Project Deleted");
-    },
-
-    // --- 文件处理核心 ---
-    
-    // 1. 处理拖拽上传
-    handleFileDrop: function(files) {
-        if (files.length === 0) return;
-        const file = files[0];
-        
-        if (file.type !== 'text/html' && !file.name.endsWith('.html')) {
-            alert("Only .html files are allowed");
+    openProject: async function(id) {
+        if (!state.isAdmin) {
+            window.location.href = `/projects/${id}/latest`;
             return;
         }
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            this.addVersionToProject(state.activeProjectId, e.target.result);
-        };
-        reader.readAsText(file);
+        try {
+            const data = await this.apiRequest(`/api/projects/${id}`, {}, true);
+            state.activeProjectId = id;
+            state.activeProject = data;
+            state.currentView = 'detail';
+            this.render();
+        } catch (err) {
+            this.showToast('Failed to open');
+        }
     },
 
-    // 2. 处理全局粘贴
+    // ---- Admin actions ----
+    triggerNewProject: function() {
+        if (!state.isAdmin) return;
+        document.getElementById('newProjectFile').click();
+    },
+
+    triggerVersionUpload: function() {
+        if (!state.isAdmin) return;
+        document.getElementById('versionFile').click();
+    },
+
+    createProjectFromFile: async function(file) {
+        if (!file) return;
+        const form = new FormData();
+        form.append('file', file);
+        try {
+            await this.apiRequest('/api/projects', { method: 'POST', body: form }, true);
+            this.showToast('Project Created');
+            await this.loadProjects();
+        } catch (err) {
+            this.showToast('Upload failed');
+        }
+    },
+
+    addVersionToProject: async function(projId, file) {
+        if (!file || !projId) return;
+        const form = new FormData();
+        form.append('file', file);
+        try {
+            await this.apiRequest(`/api/projects/${projId}/versions`, { method: 'POST', body: form }, true);
+            this.showToast('New Version Uploaded');
+            await this.openProject(projId);
+        } catch (err) {
+            this.showToast('Upload failed');
+        }
+    },
+
+    renameProject: async function(projId) {
+        const proj = state.projects.find((p) => p.id === projId) || state.activeProject;
+        const current = proj ? proj.name : '';
+        const next = prompt('New project name:', current || '');
+        if (!next || next === current) return;
+        try {
+            await this.apiRequest(
+                `/api/projects/${projId}`,
+                {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: next })
+                },
+                true
+            );
+            this.showToast('Project Updated');
+            await this.loadProjects();
+            if (state.activeProjectId === projId) {
+                await this.openProject(projId);
+            }
+        } catch (err) {
+            this.showToast('Update failed');
+        }
+    },
+
+    renameVersion: async function(versionId) {
+        if (!state.activeProject || !state.activeProject.versions) return;
+        const ver = state.activeProject.versions.find((v) => v.id === versionId);
+        const current = ver ? ver.display_name || ver.original_filename : '';
+        const next = prompt('New file name:', current || '');
+        if (!next || next === current) return;
+        try {
+            await this.apiRequest(
+                `/api/versions/${versionId}`,
+                {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ display_name: next })
+                },
+                true
+            );
+            this.showToast('File Name Updated');
+            await this.openProject(state.activeProjectId);
+        } catch (err) {
+            this.showToast('Update failed');
+        }
+    },
+
+    deleteProject: async function(projId) {
+        if (!confirm('Delete this project and all versions?')) return;
+        try {
+            await this.apiRequest(`/api/projects/${projId}`, { method: 'DELETE' }, true);
+            this.showToast('Project Deleted');
+            await this.loadProjects();
+        } catch (err) {
+            this.showToast('Delete failed');
+        }
+    },
+
+    deleteVersion: async function(versionId) {
+        if (!confirm('Delete this version?')) return;
+        try {
+            await this.apiRequest(`/api/versions/${versionId}`, { method: 'DELETE' }, true);
+            this.showToast('Version Deleted');
+            await this.openProject(state.activeProjectId);
+        } catch (err) {
+            this.showToast('Delete failed');
+        }
+    },
+
+    // ---- File & preview ----
+    previewHtml: function(projId, verId) {
+        window.open(`/projects/${projId}/versions/${verId}`, '_blank');
+    },
+
+    bindFileInputs: function() {
+        const newInput = document.getElementById('newProjectFile');
+        const versionInput = document.getElementById('versionFile');
+
+        newInput.addEventListener('change', () => {
+            const file = newInput.files[0];
+            newInput.value = '';
+            if (file) this.createProjectFromFile(file);
+        });
+
+        versionInput.addEventListener('change', () => {
+            const file = versionInput.files[0];
+            versionInput.value = '';
+            if (file && state.activeProjectId) this.addVersionToProject(state.activeProjectId, file);
+        });
+    },
+
+    bindDropZone: function(zone, onFile) {
+        zone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            zone.classList.add('dragover');
+        });
+        zone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            zone.classList.remove('dragover');
+        });
+        zone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            zone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file) onFile(file);
+        });
+    },
+
     setupGlobalListeners: function() {
         document.addEventListener('paste', (e) => {
-            // 只有在管理模式且在详情页时才生效
             if (!state.isAdmin || state.currentView !== 'detail' || !state.activeProjectId) return;
-            
-            // 如果焦点在输入框，不拦截
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
             const text = e.clipboardData.getData('text');
-            // 简单的 HTML 检测
             if (text && (text.includes('<!DOCTYPE html>') || text.includes('<html') || text.includes('<body>'))) {
                 e.preventDefault();
-                if(confirm("HTML code detected in clipboard. Create new version?")) {
-                    this.addVersionToProject(state.activeProjectId, text);
+                if (confirm('HTML detected. Create new version?')) {
+                    const blob = new Blob([text], { type: 'text/html' });
+                    const file = new File([blob], 'pasted.html', { type: 'text/html' });
+                    this.addVersionToProject(state.activeProjectId, file);
                 }
             }
         });
     },
 
-    addVersionToProject: function(projId, htmlContent) {
-        const proj = db.projects.find(p => p.id === projId);
-        if (!proj) return;
-
-        proj.versions.push({
-            id: 'ver_' + Date.now(),
-            html: htmlContent,
-            date: Date.now()
-        });
-        proj.updatedAt = Date.now(); // Update project timestamp for sorting
-        this.saveData();
-        this.showToast("New Version Uploaded");
-    },
-
-    deleteVersion: function(projId, verId) {
-        if(!confirm("Delete this version?")) return;
-        const proj = db.projects.find(p => p.id === projId);
-        if(proj) {
-            proj.versions = proj.versions.filter(v => v.id !== verId);
-            this.saveData();
-            this.showToast("Version Deleted");
-        }
-    },
-
-    // --- 预览/打开 HTML ---
-    previewHtml: function(projId, verId) {
-        const proj = db.projects.find(p => p.id === projId);
-        const ver = proj.versions.find(v => v.id === verId);
-        
-        if (ver) {
-            // 创建一个 Blob 对象
-            const blob = new Blob([ver.html], { type: 'text/html' });
-            const url = URL.createObjectURL(blob);
-            // 在新标签页打开，模拟服务器效果
-            window.open(url, '_blank');
-        }
-    },
-
-    // --- UI Helpers ---
-    showAddModal: function() {
-        document.getElementById('addModal').classList.add('active');
-        document.getElementById('projName').focus();
-    },
-
+    // ---- UI helpers ----
     closeModal: function(id) {
         document.getElementById(id).classList.remove('active');
     },
@@ -699,14 +785,21 @@ const app = {
     updateDateHeader: function() {
         const options = { weekday: 'long', month: 'long', day: 'numeric' };
         document.getElementById('currentDate').innerText = new Date().toLocaleDateString('en-US', options).toUpperCase();
+    },
+
+    escapeHtml: function(str) {
+        return String(str || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
     }
 };
 
-// Start App
 window.addEventListener('DOMContentLoaded', () => {
     app.init();
 });
-
 </script>
 </body>
 </html>
