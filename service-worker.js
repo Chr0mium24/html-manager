@@ -8,7 +8,20 @@ const ASSETS = [
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
+    caches.open(CACHE_NAME).then(async (cache) => {
+      await Promise.allSettled(
+        ASSETS.map(async (url) => {
+          try {
+            const resp = await fetch(url, { cache: "no-cache" });
+            if (resp.ok) {
+              await cache.put(url, resp);
+            }
+          } catch {
+            // Ignore individual cache failures to avoid blocking install.
+          }
+        })
+      );
+    })
   );
   self.skipWaiting();
 });

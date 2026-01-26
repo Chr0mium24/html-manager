@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import FastAPI, File, Header, HTTPException, UploadFile
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -25,6 +26,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+app.mount("/icons", StaticFiles(directory=os.path.join(BASE_DIR, "icons")), name="icons")
 
 
 class ProjectUpdate(BaseModel):
@@ -186,6 +188,21 @@ async def generate_metadata(html_text: str, filename: str) -> tuple[str, str, st
 @app.get("/")
 def index() -> FileResponse:
     return FileResponse(os.path.join(BASE_DIR, "index.html"))
+
+
+@app.get("/index.html")
+def index_html() -> FileResponse:
+    return FileResponse(os.path.join(BASE_DIR, "index.html"))
+
+
+@app.get("/manifest.webmanifest")
+def manifest() -> FileResponse:
+    return FileResponse(os.path.join(BASE_DIR, "manifest.webmanifest"), media_type="application/manifest+json")
+
+
+@app.get("/service-worker.js")
+def service_worker() -> FileResponse:
+    return FileResponse(os.path.join(BASE_DIR, "service-worker.js"), media_type="application/javascript")
 
 
 @app.post("/api/admin/verify")
