@@ -19,7 +19,7 @@ DB_PATH = os.getenv("DB_PATH", os.path.join(BASE_DIR, "data", "app.db"))
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3-flash-preview")
 GEMINI_ENDPOINT = (
     f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
 )
@@ -37,6 +37,7 @@ app = FastAPI(lifespan=lifespan)
 class ProjectUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
+    icon: Optional[str] = None
 
 
 class VersionUpdate(BaseModel):
@@ -108,6 +109,31 @@ def validate_html_file(file: UploadFile) -> None:
     filename = (file.filename or "").lower()
     if not filename.endswith(".html") and file.content_type != "text/html":
         raise HTTPException(status_code=400, detail="Only .html files are allowed")
+
+
+def read_project_latest_html(project_id: str) -> tuple[str, str]:
+    with get_conn() as conn:
+        row = conn.execute(
+            """
+            SELECT stored_filename, original_filename
+            FROM versions
+            WHERE project_id = ?
+            ORDER BY created_at DESC
+            LIMIT 1
+            """,
+            (project_id,),
+        ).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="No versions found")
+        stored_filename = row["stored_filename"]
+        original_filename = row["original_filename"] or "latest.html"
+
+    file_path = os.path.join(DATA_DIR, project_id, stored_filename)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File missing")
+    with open(file_path, "rb") as f:
+        content = f.read()
+    return content.decode("utf-8", errors="ignore"), original_filename
 
 
 def safe_basename(filename: str) -> str:
@@ -197,11 +223,12 @@ def sanitize_icon(value: str) -> str:
 
 async def generate_metadata(html_text: str, filename: str) -> tuple[str, str, str]:
     if not GEMINI_API_KEY:
+        print("AI disabled: GEMINI_API_KEY not set")
         return build_fallback_metadata(html_text, filename)
 
     prompt = (
         "You are a product naming assistant. Given HTML content, return a JSON object "
-        'with keys "name", "description", and "icon". Keep the name <= 20 characters and the description <= 120 characters. '
+        'with keys "name", "description", and "icon". Keep the name <= 20 characters and the description <= 60 characters. '
         "The icon must be a single emoji. Return JSON only, no extra text.\n\nHTML:\n"
         + html_text[:12000]
     )
@@ -214,13 +241,17 @@ async def generate_metadata(html_text: str, filename: str) -> tuple[str, str, st
             resp = await client.post(GEMINI_ENDPOINT, headers=headers, json=payload)
             resp.raise_for_status()
             data = resp.json()
-    except Exception:
+    except Exception as exc:
+        print("AI request failed:", exc)
         return build_fallback_metadata(html_text, filename)
 
     try:
         text = data["candidates"][0]["content"]["parts"][0]["text"]
-    except Exception:
+    except Exception as exc:
+        print("AI response parse failed:", exc, "raw:", data)
         return build_fallback_metadata(html_text, filename)
+
+    print("AI raw output:", text)
 
     parsed = parse_json_from_text(text)
     if not parsed:
@@ -435,7 +466,7 @@ def update_project(
 ) -> Dict[str, Any]:
     require_admin(x_admin_password)
 
-    if not payload.name and not payload.description:
+    if not payload.name and not payload.description and not payload.icon:
         raise HTTPException(status_code=400, detail="No updates provided")
 
     with get_conn() as conn:
@@ -445,24 +476,65 @@ def update_project(
         if not proj:
             raise HTTPException(status_code=404, detail="Project not found")
 
+        updates: List[str] = []
+        values: List[Any] = []
+
+        if payload.name is not None:
+            name = payload.name.strip()
+            if not name:
+                raise HTTPException(status_code=400, detail="Name required")
+            updates.append("name = ?")
+            values.append(name)
+
+        if payload.description is not None:
+            desc = payload.description.strip()
+            if not desc:
+                raise HTTPException(status_code=400, detail="Description required")
+            updates.append("description = ?")
+            values.append(desc)
+
+        if payload.icon is not None:
+            icon = sanitize_icon(payload.icon)
+            updates.append("icon = ?")
+            values.append(icon)
+
         now = now_iso()
-        if payload.name and payload.description:
-            conn.execute(
-                "UPDATE projects SET name = ?, description = ?, updated_at = ? WHERE id = ?",
-                (payload.name, payload.description, now, project_id),
-            )
-        elif payload.name:
-            conn.execute(
-                "UPDATE projects SET name = ?, updated_at = ? WHERE id = ?",
-                (payload.name, now, project_id),
-            )
-        elif payload.description:
-            conn.execute(
-                "UPDATE projects SET description = ?, updated_at = ? WHERE id = ?",
-                (payload.description, now, project_id),
-            )
+        updates.append("updated_at = ?")
+        values.append(now)
+        values.append(project_id)
+        conn.execute(
+            f"UPDATE projects SET {', '.join(updates)} WHERE id = ?",
+            values,
+        )
 
     return {"ok": True}
+
+
+@app.post("/api/projects/{project_id}/regenerate")
+async def regenerate_project(
+    project_id: str,
+    x_admin_password: Optional[str] = Header(None),
+) -> Dict[str, Any]:
+    require_admin(x_admin_password)
+
+    with get_conn() as conn:
+        proj = conn.execute(
+            "SELECT id FROM projects WHERE id = ?", (project_id,)
+        ).fetchone()
+        if not proj:
+            raise HTTPException(status_code=404, detail="Project not found")
+
+    html_text, filename = read_project_latest_html(project_id)
+    name, desc, icon = await generate_metadata(html_text, filename)
+    now = now_iso()
+
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE projects SET name = ?, description = ?, icon = ?, updated_at = ? WHERE id = ?",
+            (name, desc, icon, now, project_id),
+        )
+
+    return {"ok": True, "name": name, "description": desc, "icon": icon}
 
 
 @app.patch("/api/versions/{version_id}")

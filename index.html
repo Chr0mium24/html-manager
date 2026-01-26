@@ -691,16 +691,49 @@ const app = {
 
     renameProject: async function(projId) {
         const proj = state.projects.find((p) => p.id === projId) || state.activeProject;
-        const current = proj ? proj.name : '';
-        const next = prompt('New project name:', current || '');
-        if (!next || next === current) return;
+        const currentName = proj ? proj.name : '';
+        const currentDesc = proj ? (proj.description || '') : '';
+        const currentIcon = proj ? (proj.icon || '📁') : '📁';
+
+        const useAI = confirm('Use AI to regenerate name, description, and icon?');
+        if (useAI) {
+            try {
+                await this.apiRequest(
+                    `/api/projects/${projId}/regenerate`,
+                    { method: 'POST' },
+                    true
+                );
+                this.showToast('AI Regenerated');
+                await this.loadProjects();
+                if (state.activeProjectId === projId) {
+                    await this.openProject(projId);
+                }
+            } catch (err) {
+                this.showToast('AI failed');
+            }
+            return;
+        }
+
+        const nextName = prompt('Project name:', currentName || '');
+        if (nextName === null) return;
+        const nextDesc = prompt('Project description:', currentDesc || '');
+        if (nextDesc === null) return;
+        const nextIcon = prompt('Project icon (emoji):', currentIcon || '📁');
+        if (nextIcon === null) return;
+
+        const payload = {};
+        if (nextName.trim() && nextName !== currentName) payload.name = nextName.trim();
+        if (nextDesc.trim() && nextDesc !== currentDesc) payload.description = nextDesc.trim();
+        if (nextIcon.trim() && nextIcon !== currentIcon) payload.icon = nextIcon.trim();
+        if (!Object.keys(payload).length) return;
+
         try {
             await this.apiRequest(
                 `/api/projects/${projId}`,
                 {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: next })
+                    body: JSON.stringify(payload)
                 },
                 true
             );
