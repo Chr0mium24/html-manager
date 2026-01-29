@@ -207,6 +207,18 @@
             line-height: 28px;
             padding: 0;
         }
+        .install-btn {
+            width: 100%;
+            margin-top: 6px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px dashed rgba(0,0,0,0.2);
+            background: #F9FAFB;
+            color: #111827;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
 
         /* 管理模式特有 */
         .admin-badge {
@@ -396,6 +408,7 @@
             <button class="modal-close" onclick="app.closeModal('settingsModal')">×</button>
             <div class="modal-title">Settings</div>
             <input type="text" class="ios-input" id="apiKeyInput" placeholder="Gemini API Key (optional)">
+            <button class="install-btn" id="installBtn" style="display:none;">Install App</button>
             <div class="modal-actions">
                 <button class="ios-btn btn-cancel" onclick="app.saveApiKey()">Save Key</button>
                 <button class="ios-btn btn-danger" onclick="app.logoutAdmin()">Logout</button>
@@ -441,6 +454,7 @@ const state = {
 };
 
 const app = {
+    deferredInstallPrompt: null,
     init: function() {
         this.updateDateHeader();
         this.bindFileInputs();
@@ -946,6 +960,17 @@ const app = {
                 this.login();
             }
         });
+        const installBtn = document.getElementById('installBtn');
+        installBtn.addEventListener('click', async () => {
+            if (!this.deferredInstallPrompt) return;
+            this.deferredInstallPrompt.prompt();
+            try {
+                await this.deferredInstallPrompt.userChoice;
+            } finally {
+                this.deferredInstallPrompt = null;
+                installBtn.style.display = 'none';
+            }
+        });
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 const loginOpen = document.getElementById('loginModal').classList.contains('active');
@@ -961,6 +986,15 @@ const app = {
                     this.goHome();
                 }
             }
+        });
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            this.deferredInstallPrompt = e;
+            installBtn.style.display = 'block';
+        });
+        window.addEventListener('appinstalled', () => {
+            this.deferredInstallPrompt = null;
+            installBtn.style.display = 'none';
         });
 
         document.addEventListener('paste', (e) => {
