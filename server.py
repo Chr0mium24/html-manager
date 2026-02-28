@@ -2,12 +2,14 @@ import os
 import re
 import shutil
 import sqlite3
+import tempfile
 import uuid
+import zipfile
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from fastapi import FastAPI, File, Header, HTTPException, UploadFile
+from fastapi import BackgroundTasks, FastAPI, File, Header, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -37,6 +39,10 @@ class ProjectUpdate(BaseModel):
 
 class VersionUpdate(BaseModel):
     display_name: str
+
+
+class VersionContentUpdate(BaseModel):
+    html: str
 
 
 class AdminCheck(BaseModel):
@@ -111,6 +117,14 @@ def validate_html_file(file: UploadFile) -> None:
 def safe_basename(filename: str) -> str:
     base = os.path.basename(filename)
     return re.sub(r"[^A-Za-z0-9._-]+", "_", base)
+
+
+def safe_archive_component(value: str, fallback: str = "untitled") -> str:
+    cleaned = re.sub(r'[\\/:*?"<>|]+', "_", (value or "").strip())
+    cleaned = re.sub(r"\s+", " ", cleaned).strip(" .")
+    if not cleaned:
+        return fallback
+    return cleaned[:80]
 
 
 def extract_title(html_text: str) -> Optional[str]:
@@ -210,6 +224,75 @@ def verify_admin(payload: AdminCheck) -> Dict[str, Any]:
     if payload.password != ADMIN_PASSWORD:
         raise HTTPException(status_code=401, detail="Invalid password")
     return {"ok": True}
+
+
+@app.get("/api/admin/backup")
+def download_backup(
+    background_tasks: BackgroundTasks,
+    x_admin_password: Optional[str] = Header(None),
+) -> FileResponse:
+    require_admin(x_admin_password)
+
+    with get_conn() as conn:
+        rows = conn.execute(
+            """
+            SELECT
+                p.id AS project_id,
+                p.name AS project_name,
+                v.id AS version_id,
+                v.stored_filename,
+                v.original_filename,
+                v.display_name
+            FROM projects p
+            JOIN versions v ON v.project_id = p.id
+            ORDER BY p.updated_at DESC, v.created_at DESC
+            """
+        ).fetchall()
+
+    tmp = tempfile.NamedTemporaryFile(prefix="html-backup-", suffix=".zip", delete=False)
+    zip_path = tmp.name
+    tmp.close()
+
+    try:
+        used_paths: set[str] = set()
+        with zipfile.ZipFile(zip_path, mode="w", compression=zipfile.ZIP_DEFLATED) as archive:
+            for row in rows:
+                source_path = os.path.join(DATA_DIR, row["project_id"], row["stored_filename"])
+                if not os.path.isfile(source_path):
+                    continue
+
+                folder = f"{safe_archive_component(row['project_name'], 'project')}_{row['project_id'][:8]}"
+                file_label = (
+                    row["display_name"]
+                    or row["original_filename"]
+                    or f"{row['version_id']}.html"
+                )
+                filename = safe_basename(file_label) or f"{row['version_id']}.html"
+                if not filename.lower().endswith(".html"):
+                    filename = f"{filename}.html"
+
+                archive_path = f"{folder}/{filename}"
+                if archive_path in used_paths:
+                    stem, ext = os.path.splitext(filename)
+                    ext = ext or ".html"
+                    archive_path = f"{folder}/{stem}_{row['version_id'][:8]}{ext}"
+
+                used_paths.add(archive_path)
+                archive.write(source_path, arcname=archive_path)
+
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+        download_name = f"html-backup-{stamp}.zip"
+        background_tasks.add_task(os.remove, zip_path)
+        return FileResponse(
+            zip_path,
+            media_type="application/zip",
+            filename=download_name,
+            background=background_tasks,
+        )
+    except Exception:
+        if os.path.isfile(zip_path):
+            os.remove(zip_path)
+        raise
 
 
 @app.get("/api/projects")
@@ -467,6 +550,47 @@ def update_version(
         )
 
     return {"ok": True}
+
+
+@app.put("/api/projects/{project_id}/versions/{version_id}/content")
+def update_version_content(
+    project_id: str,
+    version_id: str,
+    payload: VersionContentUpdate,
+    x_admin_password: Optional[str] = Header(None),
+) -> Dict[str, Any]:
+    require_admin(x_admin_password)
+    html = payload.html or ""
+    if not html.strip():
+        raise HTTPException(status_code=400, detail="HTML content required")
+
+    with get_conn() as conn:
+        ver = conn.execute(
+            """
+            SELECT stored_filename
+            FROM versions
+            WHERE id = ? AND project_id = ?
+            """,
+            (version_id, project_id),
+        ).fetchone()
+        if not ver:
+            raise HTTPException(status_code=404, detail="Version not found")
+
+    file_path = os.path.join(DATA_DIR, project_id, ver["stored_filename"])
+    if not os.path.isfile(file_path):
+        raise HTTPException(status_code=404, detail="File missing")
+
+    with open(file_path, "wb") as f:
+        f.write(html.encode("utf-8"))
+
+    updated_at = now_iso()
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE projects SET updated_at = ? WHERE id = ?",
+            (updated_at, project_id),
+        )
+
+    return {"ok": True, "updated_at": updated_at}
 
 
 @app.delete("/api/projects/{project_id}")

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>iOS Style Manager</title>
+    <title>HTML Manager</title>
     <meta name="theme-color" content="#F2F2F7">
     <link rel="manifest" href="/manifest.webmanifest">
     <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
@@ -270,10 +270,33 @@
             font-size: 14px;
             font-weight: 700;
         }
+        .download-btn {
+            position: absolute;
+            right: 100px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: var(--primary);
+            color: white;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+            font-size: 13px;
+            font-weight: 700;
+        }
+        .version-card .project-item { padding-right: 150px; }
         .card:hover .delete-btn,
-        .card:hover .edit-btn { opacity: 1; pointer-events: auto; }
+        .card:hover .edit-btn,
+        .card:hover .download-btn { opacity: 1; pointer-events: auto; }
         body.is-admin .delete-btn,
-        body.is-admin .edit-btn { opacity: 1; pointer-events: auto; }
+        body.is-admin .edit-btn,
+        body.is-admin .download-btn { opacity: 1; pointer-events: auto; }
 
         /* Toast 通知 */
         .toast {
@@ -367,6 +390,70 @@
             padding: 40px;
             color: var(--text-sub);
         }
+
+        .editor-modal-card {
+            width: min(96vw, 1080px);
+            max-width: none;
+            height: min(90vh, 860px);
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            text-align: left;
+        }
+        .editor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+        .editor-header .modal-title {
+            margin: 0;
+            font-size: 17px;
+        }
+        .editor-file-name {
+            color: var(--text-sub);
+            font-size: 12px;
+            margin-top: 4px;
+            max-width: 70vw;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .editor-close {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: none;
+            background: #E5E5EA;
+            color: #111111;
+            font-size: 16px;
+            line-height: 30px;
+            cursor: pointer;
+            flex: none;
+        }
+        #aceContainer {
+            flex: 1;
+            border: 1px solid #d1d1d6;
+            border-radius: 12px;
+            overflow: hidden;
+            background: white;
+            margin-bottom: 12px;
+            min-height: 320px;
+        }
+        #aceEditor {
+            width: 100%;
+            height: 100%;
+            min-height: 320px;
+        }
+
+        @media (max-width: 768px) {
+            .editor-modal-card {
+                width: 96vw;
+                height: 92vh;
+                padding: 10px;
+            }
+            .version-card .project-item { padding-right: 140px; }
+        }
     </style>
 </head>
 <body>
@@ -409,6 +496,7 @@
             <div class="modal-title">Settings</div>
             <input type="text" class="ios-input" id="apiKeyInput" placeholder="Gemini API Key (optional)">
             <button class="install-btn" id="installBtn" style="display:none;">Install App</button>
+            <button class="install-btn" onclick="app.downloadBackup()">Download HTML Backup</button>
             <div class="modal-actions">
                 <button class="ios-btn btn-cancel" onclick="app.saveApiKey()">Save Key</button>
                 <button class="ios-btn btn-danger" onclick="app.logoutAdmin()">Logout</button>
@@ -431,11 +519,33 @@
         </div>
     </div>
 
+    <!-- HTML Editor Modal -->
+    <div class="modal-overlay" id="htmlEditorModal">
+        <div class="modal-card editor-modal-card">
+            <div class="editor-header">
+                <div>
+                    <div class="modal-title">Edit HTML</div>
+                    <div class="editor-file-name" id="editorFileName">index.html</div>
+                </div>
+                <button class="editor-close" onclick="app.closeHtmlEditor()">×</button>
+            </div>
+            <div id="aceContainer">
+                <div id="aceEditor"></div>
+            </div>
+            <div class="modal-actions">
+                <button class="ios-btn btn-cancel" onclick="app.closeHtmlEditor()">Cancel</button>
+                <button class="ios-btn btn-cancel" onclick="app.downloadEditingHtml()">Download</button>
+                <button class="ios-btn btn-primary" onclick="app.saveHtmlEdits()">Save</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast -->
     <div class="toast" id="toast">Message</div>
     <input type="file" id="newProjectFile" accept=".html" style="display:none;">
     <input type="file" id="versionFile" accept=".html" style="display:none;">
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.42.0/ace.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script>
 const CONFIG = {
     adminPwdKey: "ios_admin_pwd",
@@ -450,7 +560,10 @@ const state = {
     projects: [],
     activeProject: null,
     apiKey: "",
-    editingProjectId: null
+    editingProjectId: null,
+    editingVersionId: null,
+    editingVersionName: "",
+    editorInstance: null
 };
 
 const app = {
@@ -488,6 +601,74 @@ const app = {
             return resp.json();
         }
         return {};
+    },
+
+    getAdminHeaders: function() {
+        const headers = {};
+        if (state.adminPassword) {
+            headers['X-Admin-Password'] = state.adminPassword;
+        }
+        return headers;
+    },
+
+    extractFileName: function(contentDisposition, fallbackName) {
+        const fallback = fallbackName || 'download.bin';
+        const value = contentDisposition || '';
+        const utfMatch = value.match(/filename\*=UTF-8''([^;]+)/i);
+        if (utfMatch && utfMatch[1]) {
+            try {
+                return decodeURIComponent(utfMatch[1]).replace(/[\\/]/g, '_');
+            } catch (err) {
+                return fallback;
+            }
+        }
+        const plainMatch = value.match(/filename="?([^";]+)"?/i);
+        if (plainMatch && plainMatch[1]) {
+            return plainMatch[1].replace(/[\\/]/g, '_');
+        }
+        return fallback;
+    },
+
+    normalizeHtmlFilename: function(name, fallback = 'index.html') {
+        const raw = String(name || fallback).trim();
+        const cleaned = raw.replace(/[\\/:*?"<>|]+/g, '_').replace(/\s+/g, ' ').trim();
+        if (!cleaned) return fallback;
+        if (cleaned.toLowerCase().endsWith('.html')) return cleaned;
+        return `${cleaned}.html`;
+    },
+
+    downloadBlob: function(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = filename || 'download.bin';
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1500);
+    },
+
+    fetchDownload: async function(path, options = {}, admin = false, fallbackName = 'download.bin') {
+        const opts = { ...options };
+        const headers = { ...(opts.headers || {}) };
+        if (admin) {
+            Object.assign(headers, this.getAdminHeaders());
+        }
+        opts.headers = headers;
+
+        const resp = await fetch(path, opts);
+        if (resp.status === 401 && admin) {
+            this.forceLogout();
+            throw new Error('Unauthorized');
+        }
+        if (!resp.ok) {
+            const msg = await resp.text();
+            throw new Error(msg || 'Download failed');
+        }
+
+        const blob = await resp.blob();
+        const fileName = this.extractFileName(resp.headers.get('content-disposition'), fallbackName);
+        this.downloadBlob(blob, fileName);
     },
 
     // ---- Auth ----
@@ -687,7 +868,7 @@ const app = {
         } else {
             versions.forEach((ver) => {
                 const vCard = document.createElement('div');
-                vCard.className = 'card';
+                vCard.className = 'card version-card';
                 const dateStr = new Date(ver.created_at).toLocaleString();
                 const displayName = ver.display_name || ver.original_filename || 'Version';
                 const original = ver.original_filename && ver.original_filename !== displayName
@@ -695,7 +876,10 @@ const app = {
                     : '';
 
                 const editBtn = state.isAdmin
-                    ? `<button class="edit-btn" onclick="event.stopPropagation(); app.renameVersion('${ver.id}')">✎</button>`
+                    ? `<button class="edit-btn" onclick="event.stopPropagation(); app.editHtmlVersion('${ver.id}')">✎</button>`
+                    : '';
+                const downloadBtn = state.isAdmin
+                    ? `<button class="download-btn" onclick="event.stopPropagation(); app.downloadVersion('${ver.id}')">↓</button>`
                     : '';
                 const deleteBtn = state.isAdmin
                     ? `<button class="delete-btn" onclick="event.stopPropagation(); app.deleteVersion('${ver.id}')">×</button>`
@@ -709,6 +893,7 @@ const app = {
                             <div class="project-desc">Uploaded: ${dateStr}</div>
                             <div class="project-meta">${this.escapeHtml(original)}</div>
                         </div>
+                        ${downloadBtn}
                         ${editBtn}
                         ${deleteBtn}
                     </div>
@@ -885,6 +1070,128 @@ const app = {
         }
     },
 
+    getActiveVersion: function(versionId) {
+        if (!state.activeProject || !state.activeProject.versions) return null;
+        return state.activeProject.versions.find((v) => v.id === versionId) || null;
+    },
+
+    ensureAceEditor: function() {
+        if (state.editorInstance) return state.editorInstance;
+        if (!window.ace) throw new Error('Ace not loaded');
+        const editor = window.ace.edit('aceEditor');
+        editor.setTheme('ace/theme/chrome');
+        editor.session.setMode('ace/mode/html');
+        editor.session.setUseWrapMode(true);
+        editor.setShowPrintMargin(false);
+        editor.setOptions({
+            tabSize: 2,
+            useSoftTabs: true,
+            fontSize: '14px'
+        });
+        state.editorInstance = editor;
+        return editor;
+    },
+
+    editHtmlVersion: async function(versionId) {
+        if (!state.isAdmin || !state.activeProjectId) return;
+        const ver = this.getActiveVersion(versionId);
+        if (!ver) return;
+
+        state.editingVersionId = versionId;
+        state.editingVersionName = this.normalizeHtmlFilename(
+            ver.display_name || ver.original_filename || `${versionId}.html`
+        );
+        document.getElementById('editorFileName').innerText = state.editingVersionName;
+        document.getElementById('htmlEditorModal').classList.add('active');
+
+        try {
+            const resp = await fetch(`/projects/${state.activeProjectId}/versions/${versionId}`);
+            if (!resp.ok) throw new Error('Load failed');
+            const html = await resp.text();
+            const editor = this.ensureAceEditor();
+            editor.setValue(html, -1);
+            setTimeout(() => {
+                editor.resize();
+                editor.focus();
+            }, 0);
+        } catch (err) {
+            this.closeHtmlEditor();
+            this.showToast('Load HTML failed');
+        }
+    },
+
+    closeHtmlEditor: function() {
+        document.getElementById('htmlEditorModal').classList.remove('active');
+        state.editingVersionId = null;
+        state.editingVersionName = '';
+    },
+
+    saveHtmlEdits: async function() {
+        if (!state.isAdmin || !state.activeProjectId || !state.editingVersionId || !state.editorInstance) return;
+        const html = state.editorInstance.getValue();
+        if (!html.trim()) {
+            this.showToast('HTML is empty');
+            return;
+        }
+
+        try {
+            await this.apiRequest(
+                `/api/projects/${state.activeProjectId}/versions/${state.editingVersionId}/content`,
+                {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ html })
+                },
+                true
+            );
+            this.closeHtmlEditor();
+            this.showToast('HTML Saved');
+            await this.openProject(state.activeProjectId);
+            await this.loadProjects();
+        } catch (err) {
+            this.showToast('Save failed');
+        }
+    },
+
+    downloadEditingHtml: function() {
+        if (!state.editorInstance) return;
+        const html = state.editorInstance.getValue();
+        const filename = this.normalizeHtmlFilename(state.editingVersionName || 'edited.html');
+        const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+        this.downloadBlob(blob, filename);
+        this.showToast('Downloaded');
+    },
+
+    downloadVersion: async function(versionId) {
+        if (!state.activeProjectId) return;
+        const ver = this.getActiveVersion(versionId);
+        const fallback = this.normalizeHtmlFilename(
+            (ver && (ver.display_name || ver.original_filename)) || `${versionId}.html`
+        );
+
+        try {
+            await this.fetchDownload(
+                `/projects/${state.activeProjectId}/versions/${versionId}`,
+                {},
+                false,
+                fallback
+            );
+            this.showToast('Downloaded');
+        } catch (err) {
+            this.showToast('Download failed');
+        }
+    },
+
+    downloadBackup: async function() {
+        if (!state.isAdmin) return;
+        try {
+            await this.fetchDownload('/api/admin/backup', {}, true, 'html-backup.zip');
+            this.showToast('Backup Downloaded');
+        } catch (err) {
+            this.showToast('Backup failed');
+        }
+    },
+
     renameVersion: async function(versionId) {
         if (!state.activeProject || !state.activeProject.versions) return;
         const ver = state.activeProject.versions.find((v) => v.id === versionId);
@@ -976,10 +1283,12 @@ const app = {
                 const loginOpen = document.getElementById('loginModal').classList.contains('active');
                 const settingsOpen = document.getElementById('settingsModal').classList.contains('active');
                 const editOpen = document.getElementById('editProjectModal').classList.contains('active');
-                if (loginOpen || settingsOpen || editOpen) {
+                const htmlEditorOpen = document.getElementById('htmlEditorModal').classList.contains('active');
+                if (loginOpen || settingsOpen || editOpen || htmlEditorOpen) {
                     this.closeModal('loginModal');
                     this.closeModal('settingsModal');
                     this.closeModal('editProjectModal');
+                    this.closeHtmlEditor();
                     return;
                 }
                 if (state.currentView === 'detail') {
@@ -999,6 +1308,7 @@ const app = {
 
         document.addEventListener('paste', (e) => {
             if (!state.isAdmin) return;
+            if (document.getElementById('htmlEditorModal').classList.contains('active')) return;
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
             const html = e.clipboardData.getData('text/html');
@@ -1034,10 +1344,12 @@ const app = {
         // Allow dropping HTML anywhere on the page.
         document.addEventListener('dragover', (e) => {
             if (!state.isAdmin) return;
+            if (document.getElementById('htmlEditorModal').classList.contains('active')) return;
             e.preventDefault();
         });
         document.addEventListener('drop', (e) => {
             if (!state.isAdmin) return;
+            if (document.getElementById('htmlEditorModal').classList.contains('active')) return;
             e.preventDefault();
             const file = e.dataTransfer.files[0];
             if (!file) return;
