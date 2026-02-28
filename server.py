@@ -209,6 +209,16 @@ def index_html() -> FileResponse:
     return FileResponse(os.path.join(BASE_DIR, "index.html"))
 
 
+@app.get("/styles.css")
+def styles_css() -> FileResponse:
+    return FileResponse(os.path.join(BASE_DIR, "styles.css"), media_type="text/css")
+
+
+@app.get("/app.js")
+def app_js() -> FileResponse:
+    return FileResponse(os.path.join(BASE_DIR, "app.js"), media_type="application/javascript")
+
+
 @app.get("/manifest.webmanifest")
 def manifest() -> FileResponse:
     return FileResponse(os.path.join(BASE_DIR, "manifest.webmanifest"), media_type="application/manifest+json")

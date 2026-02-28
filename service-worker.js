@@ -1,7 +1,9 @@
-const CACHE_NAME = "html-manager-v2";
+const CACHE_NAME = "html-manager-v3";
 const ASSETS = [
   "/",
   "/index.html",
+  "/styles.css",
+  "/app.js",
   "/manifest.webmanifest",
   "/icons/icon.svg"
 ];
