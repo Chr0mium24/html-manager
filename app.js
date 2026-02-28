@@ -361,7 +361,7 @@ const app = {
 
                 vCard.innerHTML = `
                     <div class="project-item" onclick="app.previewHtml('${proj.id}', '${ver.id}')">
-                        <div class="project-icon" style="background:#34C759; font-size:14px; font-weight:bold;">HTML</div>
+                        <div class="project-icon" style="background:#306db9; font-size:14px; font-weight:bold;">HTML</div>
                         <div class="project-info">
                             <div class="project-name">${this.escapeHtml(displayName)}</div>
                             <div class="project-desc">Uploaded: ${dateStr}</div>

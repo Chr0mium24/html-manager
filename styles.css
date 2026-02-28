@@ -1,7 +1,7 @@
 :root {
     --bg-light-blue: #eef6ff;
     --grid-line: #d0e3ff;
-    --navy-text: #1a365d;
+    --navy-text: #092c5c;
     --steel-blue: #4a90e2;
     --steel-blue-strong: #2f6db8;
     --card-white: rgba(255, 255, 255, 0.84);
@@ -255,7 +255,7 @@ body {
     margin-left: 10px;
     padding: 3px 8px;
     border-radius: 999px;
-    background: var(--success);
+    background: #006bff;
     color: #ffffff;
     font-size: 10px;
     font-weight: 800;
