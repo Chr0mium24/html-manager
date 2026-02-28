@@ -344,6 +344,13 @@
             color: #6B7280;
             line-height: 1.3;
         }
+        .upload-cta-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
         .upload-cta-text strong {
             color: #111827;
             font-weight: 700;
@@ -361,6 +368,10 @@
             font-weight: 700;
             cursor: pointer;
             white-space: nowrap;
+        }
+        .upload-cta-btn.upload-cta-btn-secondary {
+            background: #E5E5EA;
+            color: #111827;
         }
 
         /* 面包屑导航 */
@@ -436,6 +447,16 @@
         }
 
         @media (max-width: 768px) {
+            .upload-cta {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .upload-cta-actions {
+                justify-content: flex-start;
+            }
+            .upload-cta-btn {
+                flex: 1;
+            }
             .editor-modal-card {
                 width: 96vw;
                 height: 92vh;

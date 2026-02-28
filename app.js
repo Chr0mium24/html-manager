@@ -130,7 +130,12 @@ const app = {
 
     // ---- Auth ----
     restoreAdmin: function() {
-        const saved = sessionStorage.getItem(CONFIG.adminPwdKey);
+        const persistent = localStorage.getItem(CONFIG.adminPwdKey);
+        const legacy = sessionStorage.getItem(CONFIG.adminPwdKey);
+        const saved = persistent || legacy;
+        if (!persistent && legacy) {
+            localStorage.setItem(CONFIG.adminPwdKey, legacy);
+        }
         if (saved) {
             this.verifyAdmin(saved, true);
         }
@@ -145,7 +150,8 @@ const app = {
             });
             state.isAdmin = true;
             state.adminPassword = password;
-            sessionStorage.setItem(CONFIG.adminPwdKey, password);
+            localStorage.setItem(CONFIG.adminPwdKey, password);
+            sessionStorage.removeItem(CONFIG.adminPwdKey);
             this.updateAdminUI();
             if (!silent) this.showToast('Admin Enabled');
             this.loadProjects();
@@ -158,6 +164,7 @@ const app = {
     forceLogout: function() {
         state.isAdmin = false;
         state.adminPassword = '';
+        localStorage.removeItem(CONFIG.adminPwdKey);
         sessionStorage.removeItem(CONFIG.adminPwdKey);
         this.updateAdminUI();
         if (state.currentView === 'detail') {
@@ -251,9 +258,14 @@ const app = {
                     <strong>Upload HTML</strong>
                     Drag & drop or paste HTML (Ctrl+V) anywhere, or click to choose a file.
                 </div>
-                <button class="upload-cta-btn">Choose File</button>
+                <div class="upload-cta-actions">
+                    <button class="upload-cta-btn">Choose File</button>
+                    <button class="upload-cta-btn upload-cta-btn-secondary">Paste File</button>
+                </div>
             `;
-            cta.querySelector('button').addEventListener('click', () => this.triggerNewProject());
+            const [chooseBtn, pasteBtn] = cta.querySelectorAll('button');
+            chooseBtn.addEventListener('click', () => this.triggerNewProject());
+            pasteBtn.addEventListener('click', () => this.pasteHtmlFromClipboard());
             container.appendChild(cta);
         }
 
@@ -312,9 +324,14 @@ const app = {
                     <strong>Upload Version</strong>
                     Drag & drop or paste HTML (Ctrl+V) anywhere, or click to choose a file.
                 </div>
-                <button class="upload-cta-btn">Choose File</button>
+                <div class="upload-cta-actions">
+                    <button class="upload-cta-btn">Choose File</button>
+                    <button class="upload-cta-btn upload-cta-btn-secondary">Paste File</button>
+                </div>
             `;
-            cta.querySelector('button').addEventListener('click', () => this.triggerVersionUpload());
+            const [chooseBtn, pasteBtn] = cta.querySelectorAll('button');
+            chooseBtn.addEventListener('click', () => this.triggerVersionUpload());
+            pasteBtn.addEventListener('click', () => this.pasteHtmlFromClipboard());
             container.appendChild(cta);
         }
 
@@ -394,6 +411,85 @@ const app = {
     triggerVersionUpload: function() {
         if (!state.isAdmin) return;
         byId('versionFile').click();
+    },
+
+    isHtmlLike: function(text) {
+        const lower = String(text || '').toLowerCase();
+        return (
+            lower.includes('<!doctype html') ||
+            lower.includes('<html') ||
+            lower.includes('<body') ||
+            lower.includes('<head')
+        );
+    },
+
+    createPastedHtmlFile: function(text) {
+        const blob = new Blob([text], { type: 'text/html' });
+        return new File([blob], 'pasted.html', { type: 'text/html' });
+    },
+
+    processPastedHtml: function(text) {
+        if (!this.isHtmlLike(text)) return false;
+
+        if (state.currentView === 'detail' && state.activeProjectId) {
+            if (confirm('HTML detected. Create new version?')) {
+                this.addVersionToProject(state.activeProjectId, this.createPastedHtmlFile(text));
+            }
+            return true;
+        }
+
+        if (state.currentView === 'list') {
+            if (confirm('HTML detected. Create new project?')) {
+                this.createProjectFromFile(this.createPastedHtmlFile(text));
+            }
+            return true;
+        }
+
+        return false;
+    },
+
+    readClipboardHtmlText: async function() {
+        if (navigator.clipboard && navigator.clipboard.read) {
+            const items = await navigator.clipboard.read();
+            for (const item of items) {
+                if (item.types.includes('text/html')) {
+                    const htmlBlob = await item.getType('text/html');
+                    return await htmlBlob.text();
+                }
+            }
+            for (const item of items) {
+                if (item.types.includes('text/plain')) {
+                    const textBlob = await item.getType('text/plain');
+                    return await textBlob.text();
+                }
+            }
+        }
+
+        if (navigator.clipboard && navigator.clipboard.readText) {
+            return await navigator.clipboard.readText();
+        }
+
+        throw new Error('Clipboard API unavailable');
+    },
+
+    pasteHtmlFromClipboard: async function() {
+        if (!state.isAdmin) return;
+
+        let text = '';
+        try {
+            text = await this.readClipboardHtmlText();
+        } catch (err) {
+            text = prompt('Unable to read clipboard directly. Paste HTML below:') || '';
+        }
+
+        if (!text.trim()) {
+            this.showToast('No clipboard content');
+            return;
+        }
+
+        if (!this.processPastedHtml(text)) {
+            this.showToast('Clipboard is not HTML');
+        }
     },
 
     createProjectFromFile: async function(file) {
@@ -770,32 +866,9 @@ const app = {
 
             const html = e.clipboardData.getData('text/html');
             const text = html || e.clipboardData.getData('text');
-            const lower = (text || '').toLowerCase();
-            const isHtml =
-                lower.includes('<!doctype html') ||
-                lower.includes('<html') ||
-                lower.includes('<body') ||
-                lower.includes('<head');
-
-            if (!isHtml) return;
+            if (!this.isHtmlLike(text)) return;
             e.preventDefault();
-
-            if (state.currentView === 'detail' && state.activeProjectId) {
-                if (confirm('HTML detected. Create new version?')) {
-                    const blob = new Blob([text], { type: 'text/html' });
-                    const file = new File([blob], 'pasted.html', { type: 'text/html' });
-                    this.addVersionToProject(state.activeProjectId, file);
-                }
-                return;
-            }
-
-            if (state.currentView === 'list') {
-                if (confirm('HTML detected. Create new project?')) {
-                    const blob = new Blob([text], { type: 'text/html' });
-                    const file = new File([blob], 'pasted.html', { type: 'text/html' });
-                    this.createProjectFromFile(file);
-                }
-            }
+            this.processPastedHtml(text);
         });
 
         // Allow dropping HTML anywhere on the page.
