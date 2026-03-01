@@ -9,7 +9,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from fastapi import BackgroundTasks, FastAPI, File, Header, HTTPException, UploadFile
+from fastapi import BackgroundTasks, FastAPI, File, Header, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -94,6 +94,9 @@ def init_db() -> None:
         )
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_versions_project ON versions(project_id)"
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_versions_project_created ON versions(project_id, created_at DESC)"
         )
 
 
@@ -347,7 +350,12 @@ def list_projects(x_admin_password: Optional[str] = Header(None)) -> Dict[str, A
 
 
 @app.get("/api/projects/{project_id}")
-def get_project(project_id: str, x_admin_password: Optional[str] = Header(None)) -> Dict[str, Any]:
+def get_project(
+    project_id: str,
+    versions_limit: Optional[int] = Query(default=None, ge=1, le=200),
+    versions_offset: int = Query(default=0, ge=0),
+    x_admin_password: Optional[str] = Header(None),
+) -> Dict[str, Any]:
     admin = is_admin(x_admin_password)
     with get_conn() as conn:
         proj = conn.execute(
@@ -378,16 +386,42 @@ def get_project(project_id: str, x_admin_password: Optional[str] = Header(None))
         }
 
         if admin:
-            versions = conn.execute(
-                """
-                SELECT id, display_name, original_filename, created_at
-                FROM versions
-                WHERE project_id = ?
-                ORDER BY created_at DESC
-                """,
-                (project_id,),
-            ).fetchall()
-            data["versions"] = rows_to_list(versions)
+            if versions_limit is None:
+                versions = conn.execute(
+                    """
+                    SELECT id, display_name, original_filename, created_at
+                    FROM versions
+                    WHERE project_id = ?
+                    ORDER BY created_at DESC
+                    """,
+                    (project_id,),
+                ).fetchall()
+                versions_list = rows_to_list(versions)
+                data["versions"] = versions_list
+                data["versions_total"] = len(versions_list)
+                data["versions_has_more"] = False
+            else:
+                total_row = conn.execute(
+                    "SELECT COUNT(1) AS c FROM versions WHERE project_id = ?",
+                    (project_id,),
+                ).fetchone()
+                total = int(total_row["c"]) if total_row else 0
+                versions = conn.execute(
+                    """
+                    SELECT id, display_name, original_filename, created_at
+                    FROM versions
+                    WHERE project_id = ?
+                    ORDER BY created_at DESC
+                    LIMIT ? OFFSET ?
+                    """,
+                    (project_id, versions_limit, versions_offset),
+                ).fetchall()
+                versions_list = rows_to_list(versions)
+                data["versions"] = versions_list
+                data["versions_total"] = total
+                data["versions_limit"] = versions_limit
+                data["versions_offset"] = versions_offset
+                data["versions_has_more"] = versions_offset + len(versions_list) < total
 
         return data
 

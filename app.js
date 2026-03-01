@@ -16,7 +16,13 @@ const state = {
     editingProjectId: null,
     editingVersionId: null,
     editingVersionName: "",
-    editorInstance: null
+    editorInstance: null,
+    versionsPageSize: 40,
+    versionsOffset: 0,
+    versionsHasMore: false,
+    isOpeningProject: false,
+    isLoadingMoreVersions: false,
+    activeProjectRequestToken: 0
 };
 
 const app = {
@@ -234,6 +240,14 @@ const app = {
         }
     },
 
+    buildProjectDetailPath: function(projectId, offset = 0) {
+        const params = new URLSearchParams({
+            versions_limit: String(state.versionsPageSize),
+            versions_offset: String(Math.max(0, offset))
+        });
+        return `/api/projects/${projectId}?${params.toString()}`;
+    },
+
     // ---- Views ----
     render: function() {
         const container = byId('contentArea');
@@ -315,7 +329,7 @@ const app = {
         const proj = state.activeProject;
         if (!proj) return this.goHome();
 
-        byId('headerTitleText').innerText = proj.name;
+        byId('headerTitleText').innerText = proj.name || 'Project';
         if (state.isAdmin) {
             const cta = document.createElement('div');
             cta.className = 'upload-cta';
@@ -338,7 +352,9 @@ const app = {
         const versionsDiv = document.createElement('div');
         const versions = proj.versions || [];
         if (!versions.length) {
-            versionsDiv.innerHTML = '<div class="empty-state">No HTML versions uploaded yet.</div>';
+            versionsDiv.innerHTML = state.isOpeningProject
+                ? '<div class="empty-state">Loading versions...</div>'
+                : '<div class="empty-state">No HTML versions uploaded yet.</div>';
         } else {
             versions.forEach((ver) => {
                 const vCard = document.createElement('div');
@@ -349,11 +365,14 @@ const app = {
                     ? `Original: ${ver.original_filename}`
                     : '';
 
-                const editBtn = state.isAdmin
-                    ? `<button class="edit-btn" onclick="event.stopPropagation(); app.editHtmlVersion('${ver.id}')">✎</button>`
-                    : '';
                 const downloadBtn = state.isAdmin
                     ? `<button class="download-btn" onclick="event.stopPropagation(); app.downloadVersion('${ver.id}')">↓</button>`
+                    : '';
+                const renameBtn = state.isAdmin
+                    ? `<button class="rename-btn" title="Rename Version" onclick="event.stopPropagation(); app.renameVersion('${ver.id}')">✎</button>`
+                    : '';
+                const editBtn = state.isAdmin
+                    ? `<button class="edit-btn" title="Edit HTML" onclick="event.stopPropagation(); app.editHtmlVersion('${ver.id}')">&lt;/&gt;</button>`
                     : '';
                 const deleteBtn = state.isAdmin
                     ? `<button class="delete-btn" onclick="event.stopPropagation(); app.deleteVersion('${ver.id}')">×</button>`
@@ -368,6 +387,7 @@ const app = {
                             <div class="project-meta">${this.escapeHtml(original)}</div>
                         </div>
                         ${downloadBtn}
+                        ${renameBtn}
                         ${editBtn}
                         ${deleteBtn}
                     </div>
@@ -376,6 +396,18 @@ const app = {
             });
         }
         container.appendChild(versionsDiv);
+
+        if (state.versionsHasMore || state.isLoadingMoreVersions) {
+            const moreWrap = document.createElement('div');
+            moreWrap.className = 'versions-load-more';
+            const loadMoreBtn = document.createElement('button');
+            loadMoreBtn.className = 'upload-cta-btn upload-cta-btn-secondary';
+            loadMoreBtn.disabled = state.isLoadingMoreVersions || state.isOpeningProject;
+            loadMoreBtn.innerText = state.isLoadingMoreVersions ? 'Loading...' : 'Load More Versions';
+            loadMoreBtn.addEventListener('click', () => this.loadMoreVersions());
+            moreWrap.appendChild(loadMoreBtn);
+            container.appendChild(moreWrap);
+        }
     },
 
     // ---- Navigation ----
@@ -383,6 +415,11 @@ const app = {
         state.currentView = 'list';
         state.activeProjectId = null;
         state.activeProject = null;
+        state.versionsOffset = 0;
+        state.versionsHasMore = false;
+        state.isOpeningProject = false;
+        state.isLoadingMoreVersions = false;
+        state.activeProjectRequestToken += 1;
         this.render();
     },
 
@@ -391,14 +428,59 @@ const app = {
             window.location.href = `/projects/${id}/latest`;
             return;
         }
+        const preview = state.projects.find((p) => p.id === id);
+        state.activeProjectId = id;
+        state.activeProject = preview
+            ? { ...preview, versions: [] }
+            : { id, name: 'Project', description: '', icon: '📁', versions: [] };
+        state.currentView = 'detail';
+        state.versionsOffset = 0;
+        state.versionsHasMore = false;
+        state.isOpeningProject = true;
+        state.isLoadingMoreVersions = false;
+        const requestToken = ++state.activeProjectRequestToken;
+        this.render();
+
         try {
-            const data = await this.apiRequest(`/api/projects/${id}`, {}, true);
-            state.activeProjectId = id;
+            const data = await this.apiRequest(this.buildProjectDetailPath(id, 0), {}, true);
+            if (requestToken !== state.activeProjectRequestToken || state.activeProjectId !== id) return;
             state.activeProject = data;
-            state.currentView = 'detail';
+            state.versionsOffset = (data.versions || []).length;
+            state.versionsHasMore = Boolean(data.versions_has_more);
+            state.isOpeningProject = false;
             this.render();
         } catch (err) {
+            if (requestToken !== state.activeProjectRequestToken) return;
+            state.isOpeningProject = false;
             this.showToast('Failed to open');
+            this.render();
+        }
+    },
+
+    loadMoreVersions: async function() {
+        if (!state.isAdmin || !state.activeProjectId || !state.activeProject) return;
+        if (!state.versionsHasMore || state.isOpeningProject || state.isLoadingMoreVersions) return;
+
+        const requestToken = state.activeProjectRequestToken;
+        const projectId = state.activeProjectId;
+        const offset = state.versionsOffset;
+        state.isLoadingMoreVersions = true;
+        this.render();
+
+        try {
+            const data = await this.apiRequest(this.buildProjectDetailPath(projectId, offset), {}, true);
+            if (requestToken !== state.activeProjectRequestToken || state.activeProjectId !== projectId) return;
+            const existing = state.activeProject.versions || [];
+            const incoming = data.versions || [];
+            state.activeProject.versions = existing.concat(incoming);
+            state.versionsOffset = state.activeProject.versions.length;
+            state.versionsHasMore = Boolean(data.versions_has_more);
+        } catch (err) {
+            this.showToast('Load more failed');
+        } finally {
+            if (requestToken !== state.activeProjectRequestToken) return;
+            state.isLoadingMoreVersions = false;
+            this.render();
         }
     },
 
@@ -413,14 +495,70 @@ const app = {
         byId('versionFile').click();
     },
 
+    extractHtmlFromClipboardPayload: function(rawText) {
+        const raw = String(rawText || '');
+        if (!raw.trim()) return '';
+
+        const markerStart = '<!--StartFragment-->';
+        const markerEnd = '<!--EndFragment-->';
+        const markerStartIndex = raw.indexOf(markerStart);
+        const markerEndIndex = raw.indexOf(markerEnd);
+        if (markerStartIndex !== -1 && markerEndIndex > markerStartIndex) {
+            const fragment = raw
+                .slice(markerStartIndex + markerStart.length, markerEndIndex)
+                .trim();
+            if (fragment) return fragment;
+        }
+
+        const startFragmentMatch = raw.match(/StartFragment:(\d+)/i);
+        const endFragmentMatch = raw.match(/EndFragment:(\d+)/i);
+        if (startFragmentMatch && endFragmentMatch) {
+            const start = Number(startFragmentMatch[1]);
+            const end = Number(endFragmentMatch[1]);
+            if (Number.isInteger(start) && Number.isInteger(end) && start >= 0 && end > start && end <= raw.length) {
+                const fragment = raw.slice(start, end).trim();
+                if (fragment) return fragment;
+            }
+        }
+
+        const startHtmlMatch = raw.match(/StartHTML:(\d+)/i);
+        const endHtmlMatch = raw.match(/EndHTML:(\d+)/i);
+        if (startHtmlMatch && endHtmlMatch) {
+            const start = Number(startHtmlMatch[1]);
+            const end = Number(endHtmlMatch[1]);
+            if (Number.isInteger(start) && Number.isInteger(end) && start >= 0 && end > start && end <= raw.length) {
+                const fragment = raw.slice(start, end).trim();
+                if (fragment) return fragment;
+            }
+        }
+
+        return raw.trim();
+    },
+
     isHtmlLike: function(text) {
-        const lower = String(text || '').toLowerCase();
-        return (
+        const html = this.extractHtmlFromClipboardPayload(text);
+        if (!html) return false;
+
+        const lower = html.toLowerCase();
+        if (
             lower.includes('<!doctype html') ||
             lower.includes('<html') ||
             lower.includes('<body') ||
             lower.includes('<head')
-        );
+        ) {
+            return true;
+        }
+
+        if (!/<\/?[a-z][\w:-]*\b[^>]*>/i.test(html)) {
+            return false;
+        }
+
+        try {
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            return Boolean(doc.body && doc.body.querySelector('*'));
+        } catch (err) {
+            return false;
+        }
     },
 
     createPastedHtmlFile: function(text) {
@@ -429,18 +567,19 @@ const app = {
     },
 
     processPastedHtml: function(text) {
-        if (!this.isHtmlLike(text)) return false;
+        const html = this.extractHtmlFromClipboardPayload(text);
+        if (!this.isHtmlLike(html)) return false;
 
         if (state.currentView === 'detail' && state.activeProjectId) {
             if (confirm('HTML detected. Create new version?')) {
-                this.addVersionToProject(state.activeProjectId, this.createPastedHtmlFile(text));
+                this.addVersionToProject(state.activeProjectId, this.createPastedHtmlFile(html));
             }
             return true;
         }
 
         if (state.currentView === 'list') {
             if (confirm('HTML detected. Create new project?')) {
-                this.createProjectFromFile(this.createPastedHtmlFile(text));
+                this.createProjectFromFile(this.createPastedHtmlFile(html));
             }
             return true;
         }
@@ -748,8 +887,12 @@ const app = {
     renameVersion: async function(versionId) {
         if (!state.activeProject || !state.activeProject.versions) return;
         const ver = state.activeProject.versions.find((v) => v.id === versionId);
-        const current = ver ? ver.display_name || ver.original_filename : '';
-        const next = prompt('New file name:', current || '');
+        const current = this.normalizeHtmlFilename(
+            (ver && (ver.display_name || ver.original_filename)) || `${versionId}.html`
+        );
+        const nextRaw = prompt('New file name:', current || '');
+        if (nextRaw === null) return;
+        const next = this.normalizeHtmlFilename(nextRaw, current || `${versionId}.html`);
         if (!next || next === current) return;
         try {
             await this.apiRequest(
@@ -865,7 +1008,7 @@ const app = {
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
             const html = e.clipboardData.getData('text/html');
-            const text = html || e.clipboardData.getData('text');
+            const text = html || e.clipboardData.getData('text/plain') || e.clipboardData.getData('text');
             if (!this.isHtmlLike(text)) return;
             e.preventDefault();
             this.processPastedHtml(text);

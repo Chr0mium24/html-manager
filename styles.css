@@ -249,6 +249,18 @@ body {
     color: var(--navy-text);
 }
 
+.upload-cta-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.versions-load-more {
+    margin: 0 20px 18px;
+    display: flex;
+    justify-content: center;
+}
+
 /* Admin badge and row actions */
 .admin-badge {
     display: none;
@@ -264,6 +276,7 @@ body {
 }
 
 .edit-btn,
+.rename-btn,
 .delete-btn,
 .download-btn {
     position: absolute;
@@ -285,10 +298,17 @@ body {
 }
 
 .download-btn {
-    right: 100px;
+    right: 140px;
     color: #fff;
     border-color: var(--navy-text);
     background: var(--navy-text);
+}
+
+.rename-btn {
+    right: 100px;
+    color: var(--steel-blue-strong);
+    border-color: var(--steel-blue-strong);
+    background: rgba(255, 255, 255, 0.92);
 }
 
 .edit-btn {
@@ -296,6 +316,8 @@ body {
     color: var(--navy-text);
     border-color: var(--navy-text);
     background: rgba(255, 255, 255, 0.85);
+    font-size: 10px;
+    letter-spacing: -0.2px;
 }
 
 .delete-btn {
@@ -306,7 +328,7 @@ body {
 }
 
 .version-card .project-item {
-    padding-right: 150px;
+    padding-right: 190px;
 }
 
 .version-card .project-icon {
@@ -316,9 +338,11 @@ body {
 
 .card:hover .delete-btn,
 .card:hover .edit-btn,
+.card:hover .rename-btn,
 .card:hover .download-btn,
 body.is-admin .delete-btn,
 body.is-admin .edit-btn,
+body.is-admin .rename-btn,
 body.is-admin .download-btn {
     opacity: 1;
     pointer-events: auto;
@@ -611,6 +635,6 @@ body.is-admin .download-btn {
     }
 
     .version-card .project-item {
-        padding-right: 142px;
+        padding-right: 182px;
     }
 }
