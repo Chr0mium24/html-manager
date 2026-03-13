@@ -1,5 +1,6 @@
 (() => {
 const DEFAULTS = window.APP_DEFAULTS;
+const CONFIG = window.APP_CONFIG;
 const byId = window.byId;
 const state = window.appState;
 
@@ -277,6 +278,159 @@ Object.assign(window.app, {
         }
     },
 
+    requestAiText: async function(promptText) {
+        const payload = { contents: [{ parts: [{ text: String(promptText || '') }] }] };
+        const resp = await fetch(
+            'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent',
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-goog-api-key': state.apiKey
+                },
+                body: JSON.stringify(payload)
+            }
+        );
+
+        if (!resp.ok) {
+            let message = 'AI request failed';
+            try {
+                const errData = await resp.json();
+                if (errData && errData.error && errData.error.message) {
+                    message = errData.error.message;
+                }
+            } catch (err) {
+                // keep fallback message
+            }
+            throw new Error(message);
+        }
+
+        const data = await resp.json();
+        const text = data && data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0]
+            ? data.candidates[0].content.parts[0].text
+            : '';
+        if (!String(text || '').trim()) {
+            throw new Error('AI response empty');
+        }
+        return text;
+    },
+
+    extractHtmlFromAiText: function(rawText) {
+        const text = String(rawText || '').trim();
+        if (!text) return '';
+
+        const fenced = text.match(/```(?:html)?\s*([\s\S]*?)```/i);
+        const candidate = fenced && fenced[1] ? fenced[1].trim() : text;
+        if (candidate && /<\/?[a-z][\w:-]*\b[^>]*>/i.test(candidate)) {
+            return candidate;
+        }
+
+        const parsed = this.parseJsonFromText(text);
+        if (parsed && parsed.html) {
+            return String(parsed.html).trim();
+        }
+
+        return '';
+    },
+
+    buildAiVersionFilename: function(requirementText) {
+        const raw = String(requirementText || '').toLowerCase();
+        const slug = raw
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '')
+            .slice(0, 30);
+        const stamp = new Date().toISOString().slice(0, 19).replace(/[:t]/gi, '-');
+        const base = slug || 'ai-version';
+        return this.normalizeHtmlFilename(`${base}-${stamp}.html`);
+    },
+
+    openAiVersionModal: function() {
+        if (!state.isAdmin || !state.activeProjectId) return;
+        if (!state.apiKey) {
+            alert('Please set your Gemini API key in Settings first.');
+            return;
+        }
+
+        const promptInput = byId('aiVersionPrompt');
+        const createBtn = byId('aiVersionCreateBtn');
+        promptInput.value = '';
+        createBtn.disabled = false;
+        createBtn.innerText = 'Create Version';
+        byId('aiVersionModal').classList.add('active');
+        setTimeout(() => promptInput.focus(), 0);
+    },
+
+    closeAiVersionModal: function() {
+        byId('aiVersionModal').classList.remove('active');
+    },
+
+    createVersionWithAi: async function() {
+        if (!state.isAdmin || !state.activeProjectId) return;
+        if (!state.apiKey) {
+            alert('Please set your Gemini API key in Settings first.');
+            return;
+        }
+
+        const requirementInput = byId('aiVersionPrompt');
+        const createBtn = byId('aiVersionCreateBtn');
+        const requirement = requirementInput.value.trim();
+        if (!requirement) {
+            this.showToast('Please enter requirement');
+            requirementInput.focus();
+            return;
+        }
+
+        const targetProjectId = state.activeProjectId;
+        createBtn.disabled = true;
+        createBtn.innerText = 'Creating...';
+
+        try {
+            let referenceHtml = '';
+            const versions = (state.activeProject && Array.isArray(state.activeProject.versions))
+                ? state.activeProject.versions.slice()
+                : [];
+            versions.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
+            const latest = versions[0];
+            if (latest && latest.path) {
+                try {
+                    const latestFile = await this.readGitHubFile(latest.path, { required: true, requireAuth: true });
+                    referenceHtml = String(latestFile.text || '').slice(0, 16000);
+                } catch (err) {
+                    referenceHtml = '';
+                }
+            }
+
+            const prompt = [
+                'You are an expert web developer.',
+                'Create a complete standalone HTML file based on the requirement below.',
+                'Return HTML source only. Do not wrap with markdown code fences.',
+                'Use responsive layout and production-quality structure.',
+                '',
+                `Requirement: ${requirement}`,
+                '',
+                referenceHtml
+                    ? `Reference (latest version, optional to reuse):\n${referenceHtml}`
+                    : ''
+            ].join('\n');
+
+            const aiText = await this.requestAiText(prompt);
+            const aiHtml = this.extractHtmlFromAiText(aiText);
+            if (!aiHtml || !this.isHtmlLike(aiHtml)) {
+                throw new Error('AI did not return valid HTML');
+            }
+
+            const filename = this.buildAiVersionFilename(requirement);
+            const file = new File([new Blob([aiHtml], { type: 'text/html' })], filename, { type: 'text/html' });
+            this.closeAiVersionModal();
+            await this.addVersionToProject(targetProjectId, file);
+        } catch (err) {
+            this.showToast(err && err.message ? err.message : 'AI create failed');
+        } finally {
+            createBtn.disabled = false;
+            createBtn.innerText = 'Create Version';
+        }
+    },
+
     aiFillProject: async function() {
         const projId = state.editingProjectId;
         if (!projId) return;
@@ -303,23 +457,7 @@ Object.assign(window.app, {
                 htmlText.slice(0, 12000)
             );
 
-            const payload = { contents: [{ parts: [{ text: prompt }] }] };
-            const resp = await fetch(
-                'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent',
-                {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'x-goog-api-key': state.apiKey
-                    },
-                    body: JSON.stringify(payload)
-                }
-            );
-            if (!resp.ok) throw new Error('AI request failed');
-            const data = await resp.json();
-            const text = data && data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0]
-                ? data.candidates[0].content.parts[0].text
-                : '';
+            const text = await this.requestAiText(prompt);
             const parsed = this.parseJsonFromText(text);
             if (!parsed) throw new Error('AI response invalid');
 
@@ -550,27 +688,122 @@ Object.assign(window.app, {
         }
     },
 
-    previewHtml: async function(projId, verId) {
-        await this.loadIndex(false);
-        const project = (state.indexData.projects || []).find((p) => p.id === projId);
-        if (!project) return;
-        const version = (project.versions || []).find((v) => v.id === verId);
-        if (!version || !version.path) return;
+    handlePreviewRoute: function() {
+        const params = new URLSearchParams(window.location.search || '');
+        if (params.get('view') !== 'preview') {
+            return false;
+        }
 
-        if (!state.isAdmin) {
-            window.open(this.buildRawHtmlUrl(version.path), '_blank');
+        const projId = String(params.get('project') || '').trim();
+        const verId = String(params.get('version') || '').trim();
+        this.renderPreviewRouteShell();
+        this.loadPreviewRouteContent(projId, verId);
+        return true;
+    },
+
+    renderPreviewRouteShell: function() {
+        const content = byId('contentArea');
+        const headerTitle = byId('headerTitleText');
+        const date = byId('currentDate');
+        const backBtn = byId('backBtn');
+        const managerUrl = `${window.location.origin}${window.location.pathname}`;
+
+        if (headerTitle) headerTitle.innerText = 'Preview';
+        if (date) date.innerText = 'ROUTE PREVIEW';
+        if (backBtn) backBtn.style.display = 'none';
+
+        content.innerHTML = `
+            <div class="preview-route-card">
+                <div class="preview-route-toolbar">
+                    <div class="preview-route-head">
+                        <div class="preview-route-title" id="previewRouteTitle">Loading preview...</div>
+                        <div class="preview-route-meta" id="previewRouteMeta">Reading project index</div>
+                    </div>
+                    <a class="preview-route-link" href="${managerUrl}">Back to Manager</a>
+                </div>
+                <div class="preview-route-status" id="previewRouteStatus">Preparing content...</div>
+                <iframe class="preview-route-frame" id="previewRouteFrame" title="HTML Preview"></iframe>
+            </div>
+        `;
+    },
+
+    setPreviewRouteStatus: function(text, isError = false) {
+        const status = byId('previewRouteStatus');
+        if (!status) return;
+        status.innerText = text;
+        status.classList.toggle('is-error', Boolean(isError));
+    },
+
+    loadPreviewRouteContent: async function(projId, verId) {
+        if (!projId || !verId) {
+            this.setPreviewRouteStatus('Missing route params: project/version', true);
             return;
         }
 
         try {
-            const file = await this.readGitHubFile(version.path, { required: true, requireAuth: true });
-            const blob = new Blob([file.text || ''], { type: 'text/html;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            window.open(url, '_blank');
-            setTimeout(() => URL.revokeObjectURL(url), 60000);
+            const savedToken = localStorage.getItem(CONFIG.ghTokenKey) || sessionStorage.getItem(CONFIG.ghTokenKey) || '';
+            if (savedToken) {
+                state.ghToken = String(savedToken).trim();
+            }
+
+            await this.loadIndex(false);
+            const project = (state.indexData.projects || []).find((p) => p.id === projId);
+            if (!project) {
+                throw new Error('Project not found');
+            }
+            const version = (project.versions || []).find((v) => v.id === verId);
+            if (!version || !version.path) {
+                throw new Error('Version not found');
+            }
+
+            const title = byId('previewRouteTitle');
+            const meta = byId('previewRouteMeta');
+            const dateLabel = version.created_at ? new Date(version.created_at).toLocaleString() : '';
+            if (title) title.innerText = version.display_name || version.original_filename || 'Untitled HTML';
+            if (meta) {
+                meta.innerText = dateLabel
+                    ? `${project.name || 'Project'} · ${dateLabel}`
+                    : (project.name || 'Project');
+            }
+
+            const frame = byId('previewRouteFrame');
+            if (!frame) {
+                throw new Error('Preview frame unavailable');
+            }
+
+            const rawUrl = this.buildRawHtmlUrl(version.path);
+
+            if (state.ghToken) {
+                try {
+                    const file = await this.readGitHubFile(version.path, { required: true, requireAuth: true });
+                    frame.srcdoc = file.text || '';
+                    this.setPreviewRouteStatus('Loaded via GitHub API');
+                    return;
+                } catch (err) {
+                    if (!rawUrl) {
+                        throw err;
+                    }
+                }
+            }
+
+            if (!rawUrl) {
+                throw new Error('Invalid preview URL');
+            }
+
+            frame.src = rawUrl;
+            this.setPreviewRouteStatus('Loaded via raw route');
         } catch (err) {
-            this.showToast('Preview failed');
+            this.setPreviewRouteStatus(err && err.message ? err.message : 'Preview failed', true);
         }
+    },
+
+    previewHtml: async function(projId, verId) {
+        const previewUrl = this.buildPreviewRoute(projId, verId);
+        if (!previewUrl) {
+            this.showToast('Invalid preview route');
+            return;
+        }
+        window.open(previewUrl, '_blank');
     }
 });
 })();

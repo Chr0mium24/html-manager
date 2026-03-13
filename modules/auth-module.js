@@ -6,8 +6,10 @@ const state = window.appState;
 
 Object.assign(window.app, {
     restoreGitHubConfig: function() {
-        state.ghOwner = (localStorage.getItem(CONFIG.ghOwnerKey) || '').trim();
-        state.ghRepo = (localStorage.getItem(CONFIG.ghRepoKey) || '').trim();
+        const storedOwner = (localStorage.getItem(CONFIG.ghOwnerKey) || '').trim();
+        const storedRepo = (localStorage.getItem(CONFIG.ghRepoKey) || '').trim();
+        state.ghOwner = storedOwner || DEFAULTS.owner || '';
+        state.ghRepo = storedRepo || DEFAULTS.repo || '';
         state.ghBranch = (localStorage.getItem(CONFIG.ghBranchKey) || DEFAULTS.branch).trim() || DEFAULTS.branch;
         state.ghRoot = this.normalizeStorageRoot(localStorage.getItem(CONFIG.ghRootKey) || DEFAULTS.storageRoot);
 
@@ -25,8 +27,8 @@ Object.assign(window.app, {
 
     saveApiKey: function() {
         const apiKey = byId('apiKeyInput').value.trim();
-        const owner = byId('ghOwnerInput').value.trim();
-        const repo = byId('ghRepoInput').value.trim();
+        const owner = byId('ghOwnerInput').value.trim() || DEFAULTS.owner || '';
+        const repo = byId('ghRepoInput').value.trim() || DEFAULTS.repo || '';
         const branch = (byId('ghBranchInput').value.trim() || DEFAULTS.branch);
         const root = this.normalizeStorageRoot(byId('ghRootInput').value.trim() || DEFAULTS.storageRoot);
 
@@ -47,6 +49,9 @@ Object.assign(window.app, {
         localStorage.setItem(CONFIG.ghRepoKey, repo);
         localStorage.setItem(CONFIG.ghBranchKey, branch);
         localStorage.setItem(CONFIG.ghRootKey, root);
+
+        byId('ghOwnerInput').value = owner;
+        byId('ghRepoInput').value = repo;
 
         state.indexData = null;
         state.indexSha = null;
@@ -115,9 +120,12 @@ Object.assign(window.app, {
     },
 
     updateAdminUI: function() {
+        const authBtn = byId('authActionBtn');
         byId('adminBadge').style.display = state.isAdmin ? 'inline-block' : 'none';
         document.body.classList.toggle('is-admin', state.isAdmin);
-        byId('authActionBtn').innerText = state.isAdmin ? 'Logout' : 'Admin Login';
+        authBtn.innerText = state.isAdmin ? 'Logout' : 'Admin Login';
+        authBtn.classList.remove('btn-primary', 'btn-danger');
+        authBtn.classList.add(state.isAdmin ? 'btn-danger' : 'btn-primary');
     },
 
     toggleAdmin: function() {

@@ -12,6 +12,18 @@ Object.assign(window.app, {
             }
             const index = await this.loadIndex(false);
             state.projects = this.summarizeProjects(index);
+
+            if (!state.isAdmin && !state.ghToken) {
+                const latest = this.findLatestVersion(index);
+                if (latest && latest.path) {
+                    const latestUrl = this.buildRawHtmlUrl(latest.path);
+                    if (latestUrl) {
+                        window.location.replace(latestUrl);
+                        return;
+                    }
+                }
+            }
+
             this.render();
         } catch (err) {
             state.projects = [];
@@ -110,18 +122,21 @@ Object.assign(window.app, {
             cta.innerHTML = `
                 <div class="upload-cta-text">
                     <strong>Upload Version</strong>
-                    Drag & drop or paste HTML (Ctrl+V) anywhere, or click to choose a file.
+                    Drag & drop, paste HTML (Ctrl+V), or use AI to generate a new version.
                 </div>
                 <div class="upload-cta-actions">
                     <button class="upload-cta-btn">Choose File</button>
                     <button class="upload-cta-btn upload-cta-btn-secondary">Paste File</button>
+                    <button class="upload-cta-btn upload-cta-btn-secondary">AI Create</button>
                 </div>
             `;
             const buttons = cta.querySelectorAll('button');
             const chooseBtn = buttons[0];
             const pasteBtn = buttons[1];
+            const aiBtn = buttons[2];
             chooseBtn.addEventListener('click', () => this.triggerVersionUpload());
             pasteBtn.addEventListener('click', () => this.pasteHtmlFromClipboard());
+            aiBtn.addEventListener('click', () => this.openAiVersionModal());
             container.appendChild(cta);
         }
 

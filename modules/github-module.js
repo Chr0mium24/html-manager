@@ -262,11 +262,51 @@ Object.assign(window.app, {
         return projects;
     },
 
+    findLatestVersion: function(index) {
+        const projects = index && Array.isArray(index.projects) ? index.projects : [];
+        let latest = null;
+        let latestStamp = '';
+
+        projects.forEach((project) => {
+            const versions = Array.isArray(project.versions) ? project.versions : [];
+            versions.forEach((version) => {
+                const versionPath = String(version.path || '').trim();
+                if (!versionPath) return;
+                const stamp = String(version.created_at || project.updated_at || project.created_at || '');
+                if (!latest || stamp > latestStamp) {
+                    latest = {
+                        projectId: String(project.id || ''),
+                        projectName: String(project.name || ''),
+                        versionId: String(version.id || ''),
+                        path: versionPath,
+                        createdAt: stamp
+                    };
+                    latestStamp = stamp;
+                }
+            });
+        });
+
+        return latest;
+    },
+
     buildRawHtmlUrl: function(path) {
-        const owner = encodeURIComponent(state.ghOwner);
-        const repo = encodeURIComponent(state.ghRepo);
-        const branch = encodeURIComponent(state.ghBranch || DEFAULTS.branch);
-        const encodedPath = this.encodePathSegments(path);
+        const ownerRaw = String(state.ghOwner || '').trim();
+        const repoRaw = String(state.ghRepo || '').trim();
+        const branchRaw = String(state.ghBranch || DEFAULTS.branch).trim();
+        const cleanPath = String(path || '').replace(/^\/+/, '').trim();
+
+        if (!ownerRaw || !repoRaw || !branchRaw || !cleanPath) {
+            return '';
+        }
+
+        const owner = encodeURIComponent(ownerRaw);
+        const repo = encodeURIComponent(repoRaw);
+        const branch = encodeURIComponent(branchRaw);
+        const encodedPath = this.encodePathSegments(cleanPath);
+        if (!encodedPath) {
+            return '';
+        }
+
         return `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${encodedPath}`;
     }
 });

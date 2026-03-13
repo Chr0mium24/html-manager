@@ -29,18 +29,19 @@
     <div id="contentArea"></div>
 
     <div class="modal-overlay" id="loginModal">
-        <div class="modal-card">
-            <div class="modal-title">GitHub Admin Token</div>
-            <input type="password" class="ios-input" id="passwordInput" placeholder="Enter ghp_token">
+        <div class="modal-card auth-modal-card">
+            <div class="modal-title">Admin Login</div>
+            <div class="modal-subtitle">Use a GitHub PAT with repository `Contents: Read and write` permission.</div>
+            <input type="password" class="ios-input" id="passwordInput" placeholder="GitHub Personal Access Token">
             <div class="modal-actions">
                 <button class="ios-btn btn-cancel" onclick="app.closeModal('loginModal')">Cancel</button>
-                <button class="ios-btn btn-primary" onclick="app.login()">Verify</button>
+                <button class="ios-btn btn-primary" onclick="app.login()">Login</button>
             </div>
         </div>
     </div>
 
     <div class="modal-overlay" id="settingsModal">
-        <div class="modal-card">
+        <div class="modal-card settings-modal-card">
             <button class="modal-close" onclick="app.closeModal('settingsModal')">×</button>
             <div class="modal-title">Settings</div>
             <input type="text" class="ios-input" id="ghOwnerInput" placeholder="GitHub Owner (required)">
@@ -51,8 +52,8 @@
             <button class="install-btn" id="installBtn" style="display:none;">Install App</button>
             <button class="install-btn" onclick="app.downloadBackup()">Download Repo Backup</button>
             <div class="modal-actions">
-                <button class="ios-btn btn-cancel" onclick="app.saveApiKey()">Save Settings</button>
-                <button class="ios-btn btn-danger" id="authActionBtn" onclick="app.logoutAdmin()">Admin Login</button>
+                <button class="ios-btn btn-primary" onclick="app.saveApiKey()">Save Settings</button>
+                <button class="ios-btn btn-primary" id="authActionBtn" onclick="app.logoutAdmin()">Admin Login</button>
             </div>
         </div>
     </div>
@@ -87,6 +88,18 @@
                 <button class="ios-btn btn-cancel" onclick="app.closeHtmlEditor()">Cancel</button>
                 <button class="ios-btn btn-cancel" onclick="app.downloadEditingHtml()">Download</button>
                 <button class="ios-btn btn-primary" onclick="app.saveHtmlEdits()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="aiVersionModal">
+        <div class="modal-card ai-modal-card">
+            <div class="modal-title">AI Create Version</div>
+            <div class="modal-subtitle">Describe your requirement. AI will generate a full HTML file and save it as a new version.</div>
+            <textarea class="ios-textarea" id="aiVersionPrompt" placeholder="Example: Build a clean landing page for a coffee shop with hero, menu cards, and a contact form."></textarea>
+            <div class="modal-actions">
+                <button class="ios-btn btn-cancel" onclick="app.closeAiVersionModal()">Cancel</button>
+                <button class="ios-btn btn-primary" id="aiVersionCreateBtn" onclick="app.createVersionWithAi()">Create Version</button>
             </div>
         </div>
     </div>

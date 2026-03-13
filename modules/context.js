@@ -8,6 +8,8 @@ window.APP_CONFIG = {
 };
 
 window.APP_DEFAULTS = {
+    owner: "Chr0mium24",
+    repo: "html-manager",
     branch: "content",
     storageRoot: "html-projects"
 };
@@ -17,8 +19,8 @@ window.byId = (id) => document.getElementById(id);
 window.appState = {
     isAdmin: false,
     ghToken: "",
-    ghOwner: "",
-    ghRepo: "",
+    ghOwner: window.APP_DEFAULTS.owner,
+    ghRepo: window.APP_DEFAULTS.repo,
     ghBranch: window.APP_DEFAULTS.branch,
     ghRoot: window.APP_DEFAULTS.storageRoot,
     currentView: "list",

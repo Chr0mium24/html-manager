@@ -28,6 +28,13 @@ Object.assign(window.app, {
                 this.login();
             }
         });
+        const aiVersionPrompt = byId('aiVersionPrompt');
+        aiVersionPrompt.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                this.createVersionWithAi();
+            }
+        });
 
         const installBtn = byId('installBtn');
         installBtn.addEventListener('click', async () => {
@@ -46,11 +53,13 @@ Object.assign(window.app, {
                 const loginOpen = byId('loginModal').classList.contains('active');
                 const settingsOpen = byId('settingsModal').classList.contains('active');
                 const editOpen = byId('editProjectModal').classList.contains('active');
+                const aiVersionOpen = byId('aiVersionModal').classList.contains('active');
                 const htmlEditorOpen = this.isHtmlEditorOpen();
-                if (loginOpen || settingsOpen || editOpen || htmlEditorOpen) {
+                if (loginOpen || settingsOpen || editOpen || aiVersionOpen || htmlEditorOpen) {
                     this.closeModal('loginModal');
                     this.closeModal('settingsModal');
                     this.closeModal('editProjectModal');
+                    this.closeAiVersionModal();
                     this.closeHtmlEditor();
                     return;
                 }

@@ -11,9 +11,12 @@ Object.assign(window.app, {
 
     init: function() {
         this.updateDateHeader();
-        this.bindFileInputs();
         this.restoreApiKey();
         this.restoreGitHubConfig();
+        if (typeof this.handlePreviewRoute === 'function' && this.handlePreviewRoute()) {
+            return;
+        }
+        this.bindFileInputs();
         this.restoreAdmin();
         this.setupGlobalListeners();
         this.loadProjects();
@@ -60,6 +63,18 @@ Object.assign(window.app, {
             .filter(Boolean)
             .map((p) => encodeURIComponent(p))
             .join('/');
+    },
+
+    buildPreviewRoute: function(projectId, versionId) {
+        const proj = String(projectId || '').trim();
+        const ver = String(versionId || '').trim();
+        if (!proj || !ver) return '';
+
+        const url = new URL(window.location.origin + window.location.pathname);
+        url.searchParams.set('view', 'preview');
+        url.searchParams.set('project', proj);
+        url.searchParams.set('version', ver);
+        return url.toString();
     },
 
     encodeBase64Utf8: function(text) {
