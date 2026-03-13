@@ -12,18 +12,6 @@ Object.assign(window.app, {
             }
             const index = await this.loadIndex(false);
             state.projects = this.summarizeProjects(index);
-
-            if (!state.isAdmin && !state.ghToken) {
-                const latest = this.findLatestVersion(index);
-                if (latest && latest.projectId && latest.versionId) {
-                    const previewUrl = this.buildPreviewRoute(latest.projectId, latest.versionId);
-                    if (previewUrl) {
-                        window.location.replace(previewUrl);
-                        return;
-                    }
-                }
-            }
-
             this.render();
         } catch (err) {
             state.projects = [];
@@ -212,6 +200,17 @@ Object.assign(window.app, {
         const versions = (project.versions || [])
             .slice()
             .sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
+
+        if (!state.isAdmin) {
+            const latest = versions[0];
+            if (latest && latest.id) {
+                const previewUrl = this.buildPreviewRoute(id, latest.id);
+                if (previewUrl) {
+                    window.location.href = previewUrl;
+                    return;
+                }
+            }
+        }
 
         state.activeProjectId = id;
         state.activeProject = {
