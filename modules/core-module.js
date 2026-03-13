@@ -1,3 +1,4 @@
+(() => {
 const CONFIG = window.APP_CONFIG;
 const DEFAULTS = window.APP_DEFAULTS;
 const byId = window.byId;
@@ -159,3 +160,4 @@ Object.assign(window.app, {
         byId('currentDate').innerText = new Date().toLocaleDateString('en-US', options).toUpperCase();
     }
 });
+})();

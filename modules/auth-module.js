@@ -1,3 +1,4 @@
+(() => {
 const CONFIG = window.APP_CONFIG;
 const DEFAULTS = window.APP_DEFAULTS;
 const byId = window.byId;
@@ -142,3 +143,4 @@ Object.assign(window.app, {
         this.showToast('Logged Out');
     }
 });
+})();

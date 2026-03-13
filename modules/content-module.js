@@ -1,3 +1,4 @@
+(() => {
 const DEFAULTS = window.APP_DEFAULTS;
 const byId = window.byId;
 const state = window.appState;
@@ -572,3 +573,4 @@ Object.assign(window.app, {
         }
     }
 });
+})();

@@ -1,3 +1,4 @@
+(() => {
 const DEFAULTS = window.APP_DEFAULTS;
 const state = window.appState;
 
@@ -269,3 +270,4 @@ Object.assign(window.app, {
         return `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${encodedPath}`;
     }
 });
+})();

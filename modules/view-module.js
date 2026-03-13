@@ -1,3 +1,4 @@
+(() => {
 const byId = window.byId;
 const state = window.appState;
 
@@ -216,3 +217,4 @@ Object.assign(window.app, {
         this.showToast('Pagination is not needed in GitHub mode');
     }
 });
+})();
