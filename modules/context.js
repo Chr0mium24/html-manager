@@ -8,7 +8,7 @@ window.APP_CONFIG = {
 };
 
 window.APP_DEFAULTS = {
-    branch: "main",
+    branch: "content",
     storageRoot: "html-projects"
 };
 

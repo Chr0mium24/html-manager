@@ -40,7 +40,7 @@ http://localhost:18237
 
 - `GitHub Owner`：仓库所有者（例如 `Chr0mium24`）
 - `GitHub Repo`：仓库名（例如 `html-manager`）
-- `GitHub Branch`：分支名，默认 `main`
+- `GitHub Branch`：分支名，默认 `content`
 - `Storage Root`：存储根目录，默认 `html-projects`
 - `ghp_token`：管理员登录令牌（在登录弹窗输入）
 
