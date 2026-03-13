@@ -696,47 +696,64 @@ Object.assign(window.app, {
 
         const projId = String(params.get('project') || '').trim();
         const verId = String(params.get('version') || '').trim();
-        this.renderPreviewRouteShell();
+        this.renderPreviewLoadingState();
         this.loadPreviewRouteContent(projId, verId);
         return true;
     },
 
-    renderPreviewRouteShell: function() {
+    renderPreviewLoadingState: function() {
         const content = byId('contentArea');
         const headerTitle = byId('headerTitleText');
         const date = byId('currentDate');
         const backBtn = byId('backBtn');
-        const managerUrl = `${window.location.origin}${window.location.pathname}`;
 
         if (headerTitle) headerTitle.innerText = 'Preview';
         if (date) date.innerText = 'ROUTE PREVIEW';
         if (backBtn) backBtn.style.display = 'none';
 
+        content.innerHTML = '<div class="empty-state">Loading preview content...</div>';
+    },
+
+    renderPreviewRouteError: function(message) {
+        const content = byId('contentArea');
+        const managerUrl = `${window.location.origin}${window.location.pathname}`;
+        if (!content) return;
         content.innerHTML = `
-            <div class="preview-route-card">
-                <div class="preview-route-toolbar">
-                    <div class="preview-route-head">
-                        <div class="preview-route-title" id="previewRouteTitle">Loading preview...</div>
-                        <div class="preview-route-meta" id="previewRouteMeta">Reading project index</div>
-                    </div>
-                    <a class="preview-route-link" href="${managerUrl}">Back to Manager</a>
-                </div>
-                <div class="preview-route-status" id="previewRouteStatus">Preparing content...</div>
-                <iframe class="preview-route-frame" id="previewRouteFrame" title="HTML Preview"></iframe>
+            <div class="empty-state">
+                <div style="font-weight:700; margin-bottom:8px;">Failed to load preview</div>
+                <div style="margin-bottom:10px;">${this.escapeHtml(String(message || 'Unknown error'))}</div>
+                <a href="${managerUrl}">Back to Home</a>
             </div>
         `;
     },
 
-    setPreviewRouteStatus: function(text, isError = false) {
-        const status = byId('previewRouteStatus');
-        if (!status) return;
-        status.innerText = text;
-        status.classList.toggle('is-error', Boolean(isError));
+    injectBaseHrefIntoHtml: function(htmlText, versionPath) {
+        const rawUrl = this.buildRawHtmlUrl(versionPath);
+        const baseHref = rawUrl ? rawUrl.replace(/[^/]+$/, '') : '';
+        if (!baseHref) return String(htmlText || '');
+
+        const baseTag = `<base href="${this.escapeHtml(baseHref)}">`;
+        const html = String(htmlText || '');
+        if (/<base\s+href=/i.test(html)) return html;
+        if (/<head[^>]*>/i.test(html)) {
+            return html.replace(/<head([^>]*)>/i, `<head$1>${baseTag}`);
+        }
+        if (/<html[^>]*>/i.test(html)) {
+            return html.replace(/<html([^>]*)>/i, `<html$1><head>${baseTag}</head>`);
+        }
+        return `${baseTag}${html}`;
+    },
+
+    renderPreviewDocument: function(htmlText, versionPath) {
+        const finalHtml = this.injectBaseHrefIntoHtml(htmlText, versionPath);
+        document.open();
+        document.write(finalHtml);
+        document.close();
     },
 
     loadPreviewRouteContent: async function(projId, verId) {
         if (!projId || !verId) {
-            this.setPreviewRouteStatus('Missing route params: project/version', true);
+            this.renderPreviewRouteError('Missing route params: project/version');
             return;
         }
 
@@ -756,44 +773,17 @@ Object.assign(window.app, {
                 throw new Error('Version not found');
             }
 
-            const title = byId('previewRouteTitle');
-            const meta = byId('previewRouteMeta');
-            const dateLabel = version.created_at ? new Date(version.created_at).toLocaleString() : '';
-            if (title) title.innerText = version.display_name || version.original_filename || 'Untitled HTML';
-            if (meta) {
-                meta.innerText = dateLabel
-                    ? `${project.name || 'Project'} · ${dateLabel}`
-                    : (project.name || 'Project');
+            const file = await this.readGitHubFile(version.path, {
+                required: true,
+                requireAuth: false
+            });
+            const htmlText = String(file && file.text ? file.text : '');
+            if (!htmlText.trim()) {
+                throw new Error('HTML content is empty');
             }
-
-            const frame = byId('previewRouteFrame');
-            if (!frame) {
-                throw new Error('Preview frame unavailable');
-            }
-
-            const rawUrl = this.buildRawHtmlUrl(version.path);
-
-            if (state.ghToken) {
-                try {
-                    const file = await this.readGitHubFile(version.path, { required: true, requireAuth: true });
-                    frame.srcdoc = file.text || '';
-                    this.setPreviewRouteStatus('Loaded via GitHub API');
-                    return;
-                } catch (err) {
-                    if (!rawUrl) {
-                        throw err;
-                    }
-                }
-            }
-
-            if (!rawUrl) {
-                throw new Error('Invalid preview URL');
-            }
-
-            frame.src = rawUrl;
-            this.setPreviewRouteStatus('Loaded via raw route');
+            this.renderPreviewDocument(htmlText, version.path);
         } catch (err) {
-            this.setPreviewRouteStatus(err && err.message ? err.message : 'Preview failed', true);
+            this.renderPreviewRouteError(err && err.message ? err.message : 'Preview failed');
         }
     },
 
