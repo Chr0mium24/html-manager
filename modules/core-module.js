@@ -43,7 +43,7 @@ Object.assign(window.app, {
 
     getVersionPath: function(projectId, versionId) {
         const root = this.normalizeStorageRoot(state.ghRoot);
-        return `${root}/projects/${projectId}/versions/${versionId}.html`;
+        return `${root}/projects/${projectId}/${versionId}.html`;
     },
 
     normalizeHtmlFilename: function(name, fallback = 'index.html') {

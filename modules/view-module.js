@@ -96,11 +96,6 @@ Object.assign(window.app, {
     },
 
     renderProjectDetail: function(container) {
-        if (!state.isAdmin) {
-            this.goHome();
-            return;
-        }
-
         const proj = state.activeProject;
         if (!proj) {
             this.goHome();
@@ -109,24 +104,26 @@ Object.assign(window.app, {
 
         byId('headerTitleText').innerText = proj.name || 'Project';
 
-        const cta = document.createElement('div');
-        cta.className = 'upload-cta';
-        cta.innerHTML = `
-            <div class="upload-cta-text">
-                <strong>Upload Version</strong>
-                Drag & drop or paste HTML (Ctrl+V) anywhere, or click to choose a file.
-            </div>
-            <div class="upload-cta-actions">
-                <button class="upload-cta-btn">Choose File</button>
-                <button class="upload-cta-btn upload-cta-btn-secondary">Paste File</button>
-            </div>
-        `;
-        const buttons = cta.querySelectorAll('button');
-        const chooseBtn = buttons[0];
-        const pasteBtn = buttons[1];
-        chooseBtn.addEventListener('click', () => this.triggerVersionUpload());
-        pasteBtn.addEventListener('click', () => this.pasteHtmlFromClipboard());
-        container.appendChild(cta);
+        if (state.isAdmin) {
+            const cta = document.createElement('div');
+            cta.className = 'upload-cta';
+            cta.innerHTML = `
+                <div class="upload-cta-text">
+                    <strong>Upload Version</strong>
+                    Drag & drop or paste HTML (Ctrl+V) anywhere, or click to choose a file.
+                </div>
+                <div class="upload-cta-actions">
+                    <button class="upload-cta-btn">Choose File</button>
+                    <button class="upload-cta-btn upload-cta-btn-secondary">Paste File</button>
+                </div>
+            `;
+            const buttons = cta.querySelectorAll('button');
+            const chooseBtn = buttons[0];
+            const pasteBtn = buttons[1];
+            chooseBtn.addEventListener('click', () => this.triggerVersionUpload());
+            pasteBtn.addEventListener('click', () => this.pasteHtmlFromClipboard());
+            container.appendChild(cta);
+        }
 
         const versionsDiv = document.createElement('div');
         const versions = proj.versions || [];
@@ -143,12 +140,19 @@ Object.assign(window.app, {
                     : '';
 
                 const downloadBtn = `<button class="download-btn" onclick="event.stopPropagation(); app.downloadVersion('${ver.id}')">↓</button>`;
-                const editBtn = `<button class="edit-btn" title="Edit HTML" onclick="event.stopPropagation(); app.editHtmlVersion('${ver.id}')">&lt;/&gt;</button>`;
-                const deleteBtn = `<button class="delete-btn" onclick="event.stopPropagation(); app.deleteVersion('${ver.id}')">×</button>`;
+                const editBtn = state.isAdmin
+                    ? `<button class="edit-btn" title="Edit HTML" onclick="event.stopPropagation(); app.editHtmlVersion('${ver.id}')">&lt;/&gt;</button>`
+                    : '';
+                const deleteBtn = state.isAdmin
+                    ? `<button class="delete-btn" onclick="event.stopPropagation(); app.deleteVersion('${ver.id}')">×</button>`
+                    : '';
+                const versionIconAttrs = state.isAdmin
+                    ? `style="background:#306db9; font-size:14px; font-weight:bold; cursor:pointer;" title="Rename Version" onclick="event.stopPropagation(); app.renameVersion('${ver.id}')"`
+                    : 'style="background:#306db9; font-size:14px; font-weight:bold;"';
 
                 vCard.innerHTML = `
                     <div class="project-item" onclick="app.previewHtml('${proj.id}', '${ver.id}')">
-                        <div class="project-icon" style="background:#306db9; font-size:14px; font-weight:bold; cursor:pointer;" title="Rename Version" onclick="event.stopPropagation(); app.renameVersion('${ver.id}')">HTML</div>
+                        <div class="project-icon" ${versionIconAttrs}>HTML</div>
                         <div class="project-info">
                             <div class="project-name">${this.escapeHtml(displayName)}</div>
                             <div class="project-desc">Uploaded: ${dateStr}</div>
@@ -193,16 +197,6 @@ Object.assign(window.app, {
         const versions = (project.versions || [])
             .slice()
             .sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
-
-        if (!state.isAdmin) {
-            const latest = versions[0];
-            if (!latest || !latest.path) {
-                this.showToast('No versions to preview');
-                return;
-            }
-            window.location.href = this.buildRawHtmlUrl(latest.path);
-            return;
-        }
 
         state.activeProjectId = id;
         state.activeProject = {

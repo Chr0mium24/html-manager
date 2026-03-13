@@ -65,6 +65,7 @@ Object.assign(window.app, {
         if (saved) {
             this.verifyAdmin(saved, true);
         }
+        this.updateAdminUI();
     },
 
     verifyAdmin: async function(token, silent = false) {
@@ -116,16 +117,12 @@ Object.assign(window.app, {
     updateAdminUI: function() {
         byId('adminBadge').style.display = state.isAdmin ? 'inline-block' : 'none';
         document.body.classList.toggle('is-admin', state.isAdmin);
+        byId('authActionBtn').innerText = state.isAdmin ? 'Logout' : 'Admin Login';
     },
 
     toggleAdmin: function() {
-        if (state.isAdmin) {
-            byId('settingsModal').classList.add('active');
-            byId('ghOwnerInput').focus();
-        } else {
-            byId('loginModal').classList.add('active');
-            byId('passwordInput').focus();
-        }
+        byId('settingsModal').classList.add('active');
+        byId('ghOwnerInput').focus();
     },
 
     login: function() {
@@ -137,7 +134,12 @@ Object.assign(window.app, {
     },
 
     logoutAdmin: function() {
-        if (!state.isAdmin) return;
+        if (!state.isAdmin) {
+            this.closeModal('settingsModal');
+            byId('loginModal').classList.add('active');
+            byId('passwordInput').focus();
+            return;
+        }
         this.forceLogout();
         this.closeModal('settingsModal');
         this.showToast('Logged Out');

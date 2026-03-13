@@ -65,14 +65,22 @@ html-projects/
   index.json
   projects/
     <projectId>/
-      versions/
-        <versionId>.html
+      <versionId>.html
 ```
 
 其中：
 
 - `index.json` 记录项目元数据与版本索引
-- HTML 文件是每个版本的实际内容
+- HTML 文件是每个版本的实际内容（路径为 `html-projects/projects/<projectId>/<versionId>.html`）
+
+可用脚本按目录自动重建索引：
+
+```bash
+node scripts/generate-index-json.js html-projects
+```
+
+- 默认扫描 `html-projects/projects/<projectId>/*.html`
+- 自动写回 `html-projects/index.json`
 
 ## 6. 主要功能
 
@@ -98,5 +106,6 @@ html-projects/
 ## 8. 注意事项
 
 - Token 目前保存在浏览器本地存储，请仅在可信环境使用。
+- 未登录只读访问依赖仓库可匿名读取（Public repo）；私有仓库仍需要 Token。
 - 多端并发修改同一索引时，应用会进行一次冲突重试，但仍建议避免高并发同时编辑。
 - 若使用 PWA，更新后若出现旧缓存，请刷新或清理 Service Worker 缓存。
