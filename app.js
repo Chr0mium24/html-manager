@@ -7,6 +7,6 @@ window.addEventListener('DOMContentLoaded', () => {
     window.app.init();
 
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/service-worker.js').catch(() => {});
+        navigator.serviceWorker.register('./service-worker.js').catch(() => {});
     }
 });

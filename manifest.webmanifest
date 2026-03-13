@@ -1,13 +1,14 @@
 {
   "name": "HTML Manager",
   "short_name": "Manager",
-  "start_url": "/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#F2F2F7",
   "theme_color": "#F2F2F7",
   "icons": [
     {
-      "src": "/icons/icon.svg",
+      "src": "./icons/icon.svg",
       "type": "image/svg+xml",
       "sizes": "any",
       "purpose": "any"
