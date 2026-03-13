@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "updated_at": "2026-03-13T06:52:15.870Z",
+  "projects": [
+    {
+      "id": "4a2b4c8084744ce5938b6d7cd3e8f47a",
+      "name": "YOLO 标签编辑器",
+      "description": "YOLO 标签编辑器 YOLO 标签编辑器 使用 File System Access API 和 Tailwind CSS 操作面板 选择标签文件夹 1. 替换选中文件的所有标签为: 执行替换 2. 将所有文件中的指定标签: → 执行替换 全选 文件名 标签 (Class ID) 请先选择一个文件夹...",
+      "icon": "📁",
+      "created_at": "2026-03-13T06:52:12.970Z",
+      "updated_at": "2026-03-13T06:52:12.970Z",
+      "versions": [
+        {
+          "id": "0ee62c34edcb40d88d9f211d51db09c8",
+          "display_name": "_.html",
+          "original_filename": "_.html",
+          "created_at": "2026-03-13T06:52:12.970Z",
+          "path": "html-projects/projects/4a2b4c8084744ce5938b6d7cd3e8f47a/versions/0ee62c34edcb40d88d9f211d51db09c8.html",
+          "sha": "1c7652384a8546ac002755e769b0ab769e49e9fb"
+        }
+      ]
+    }
+  ]
+}
