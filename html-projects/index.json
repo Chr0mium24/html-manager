@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-03-13T07:41:59.047Z",
+  "updated_at": "2026-03-13T07:42:18.612Z",
   "projects": [
     {
       "id": "93a9c8464ee0461e959cafafb71141f5",
@@ -17,6 +17,24 @@
           "created_at": "2026-03-13T07:41:55.316Z",
           "path": "html-projects/projects/93a9c8464ee0461e959cafafb71141f5/versions/c405bc6459cd43989b54cb8756b01b97.html",
           "sha": "4f133aa511a309469122494e1dcacbfd6f451284"
+        }
+      ]
+    },
+    {
+      "id": "4ad96912e31546a48708540f9b63b2fd",
+      "name": "Class Schedule Pro",
+      "description": "Class Schedule Pro -- -- Wait... --:-- --:-- - --:-- -- -- -- Full Schedule Scroll horizontally for details Setup Paste JSON to load your schedule 课程数据 JSON 支持自",
+      "icon": "📁",
+      "created_at": "2026-03-13T07:42:15.428Z",
+      "updated_at": "2026-03-13T07:42:15.428Z",
+      "versions": [
+        {
+          "id": "a3a799fe1bdd403bb4edb50f75308ef5",
+          "display_name": "5ba30b0b1d254c68add05a71e6aa4a27.html",
+          "original_filename": "5ba30b0b1d254c68add05a71e6aa4a27.html",
+          "created_at": "2026-03-13T07:42:15.428Z",
+          "path": "html-projects/projects/4ad96912e31546a48708540f9b63b2fd/versions/a3a799fe1bdd403bb4edb50f75308ef5.html",
+          "sha": "c4d7163b150ded70bdd03b752a8e98c62f541356"
         }
       ]
     }
