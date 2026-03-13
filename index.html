@@ -25,17 +25,13 @@
         </div>
     </div>
 
-    <!-- 面包屑 (返回) -->
     <div class="breadcrumb" id="backBtn" onclick="app.goHome()">← Back to Projects</div>
-
-    <!-- 内容区域 -->
     <div id="contentArea"></div>
 
-    <!-- Login Modal -->
     <div class="modal-overlay" id="loginModal">
         <div class="modal-card">
-            <div class="modal-title">Admin Access</div>
-            <input type="password" class="ios-input" id="passwordInput" placeholder="Enter Password">
+            <div class="modal-title">GitHub Admin Token</div>
+            <input type="password" class="ios-input" id="passwordInput" placeholder="Enter ghp_token">
             <div class="modal-actions">
                 <button class="ios-btn btn-cancel" onclick="app.closeModal('loginModal')">Cancel</button>
                 <button class="ios-btn btn-primary" onclick="app.login()">Verify</button>
@@ -43,22 +39,24 @@
         </div>
     </div>
 
-    <!-- Settings Modal -->
     <div class="modal-overlay" id="settingsModal">
         <div class="modal-card">
             <button class="modal-close" onclick="app.closeModal('settingsModal')">×</button>
             <div class="modal-title">Settings</div>
+            <input type="text" class="ios-input" id="ghOwnerInput" placeholder="GitHub Owner (required)">
+            <input type="text" class="ios-input" id="ghRepoInput" placeholder="GitHub Repo (required)">
+            <input type="text" class="ios-input" id="ghBranchInput" placeholder="GitHub Branch (default: main)">
+            <input type="text" class="ios-input" id="ghRootInput" placeholder="Storage Root (default: html-projects)">
             <input type="text" class="ios-input" id="apiKeyInput" placeholder="Gemini API Key (optional)">
             <button class="install-btn" id="installBtn" style="display:none;">Install App</button>
-            <button class="install-btn" onclick="app.downloadBackup()">Download HTML Backup</button>
+            <button class="install-btn" onclick="app.downloadBackup()">Download Repo Backup</button>
             <div class="modal-actions">
-                <button class="ios-btn btn-cancel" onclick="app.saveApiKey()">Save Key</button>
+                <button class="ios-btn btn-cancel" onclick="app.saveApiKey()">Save Settings</button>
                 <button class="ios-btn btn-danger" onclick="app.logoutAdmin()">Logout</button>
             </div>
         </div>
     </div>
 
-    <!-- Edit Project Modal -->
     <div class="modal-overlay" id="editProjectModal">
         <div class="modal-card">
             <div class="modal-title">Edit Project</div>
@@ -73,7 +71,6 @@
         </div>
     </div>
 
-    <!-- HTML Editor Modal -->
     <div class="modal-overlay" id="htmlEditorModal">
         <div class="modal-card editor-modal-card">
             <div class="editor-header">
@@ -94,12 +91,18 @@
         </div>
     </div>
 
-    <!-- Toast -->
     <div class="toast" id="toast">Message</div>
     <input type="file" id="newProjectFile" accept=".html" style="display:none;">
     <input type="file" id="versionFile" accept=".html" style="display:none;">
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.42.0/ace.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="/modules/context.js" defer></script>
+<script src="/modules/core-module.js" defer></script>
+<script src="/modules/github-module.js" defer></script>
+<script src="/modules/auth-module.js" defer></script>
+<script src="/modules/view-module.js" defer></script>
+<script src="/modules/content-module.js" defer></script>
+<script src="/modules/events-module.js" defer></script>
 <script src="/app.js" defer></script>
 </body>
 </html>

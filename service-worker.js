@@ -1,9 +1,16 @@
-const CACHE_NAME = "html-manager-v3";
+const CACHE_NAME = "html-manager-v4";
 const ASSETS = [
   "/",
   "/index.html",
   "/styles.css",
   "/app.js",
+  "/modules/context.js",
+  "/modules/core-module.js",
+  "/modules/github-module.js",
+  "/modules/auth-module.js",
+  "/modules/view-module.js",
+  "/modules/content-module.js",
+  "/modules/events-module.js",
   "/manifest.webmanifest",
   "/icons/icon.svg"
 ];
