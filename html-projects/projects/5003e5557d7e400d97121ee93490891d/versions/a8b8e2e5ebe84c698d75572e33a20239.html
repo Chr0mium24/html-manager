@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Doodle Jump - 陀螺仪版</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #fcfcf0; /* 经典的网格纸背景色 */
+            touch-action: none; /* 防止触摸滚动 */
+        }
+
+        #gameCanvas {
+            display: block;
+        }
+
+        /* UI 覆盖层 */
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #score-board {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            pointer-events: none;
+        }
+
+        /* 开始/结束 菜单 */
+        #menu {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            pointer-events: auto;
+            max-width: 80%;
+        }
+
+        h1 {
+            margin-top: 0;
+            color: #558b2f;
+        }
+
+        p {
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        button {
+            background: #558b2f;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.1s;
+            outline: none;
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        #debug-info {
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            font-size: 10px;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 游戏画布 -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- UI 层 -->
+    <div id="ui-layer">
+        <div id="score-board">得分: 0</div>
+        
+        <div id="menu">
+            <h1>Doodle Jump</h1>
+            <p id="menu-text">倾斜手机控制左右移动<br>或点击屏幕左右侧</p>
+            <button id="start-btn">开始游戏</button>
+        </div>
+    </div>
+
+    <div id="debug-info">Gyro: N/A</div>
+
+    <script>
+        // --- 游戏配置 ---
+        const config = {
+            gravity: 0.25,
+            jumpStrength: -9,
+            platformWidth: 60,
+            platformHeight: 15,
+            doodlerWidth: 40,
+            doodlerHeight: 40,
+            tiltSensitivity: 0.5, // 陀螺仪灵敏度
+            keyboardSpeed: 5      // 键盘控制速度
+        };
+
+        // --- 全局变量 ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const menu = document.getElementById('menu');
+        const startBtn = document.getElementById('start-btn');
+        const scoreEl = document.getElementById('score-board');
+        const menuText = document.getElementById('menu-text');
+        const debugEl = document.getElementById('debug-info');
+
+        let isGameRunning = false;
+        let score = 0;
+        let platforms = [];
+        let width, height;
+        
+        // 输入状态
+        let input = {
+            tiltX: 0,       // 陀螺仪 -90 到 90
+            keys: { left: false, right: false },
+            touchX: null    // 触摸位置
+        };
+
+        // --- 角色类 ---
+        class Doodler {
+            constructor() {
+                this.width = config.doodlerWidth;
+                this.height = config.doodlerHeight;
+                this.x = width / 2 - this.width / 2;
+                this.y = height / 2;
+                this.vx = 0;
+                this.vy = 0;
+                this.faceRight = true;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+                
+                // 简单的涂鸦怪物绘制
+                if (!this.faceRight) ctx.scale(-1, 1);
+
+                // 身体
+                ctx.fillStyle = '#8bc34a';
+                ctx.beginPath();
+                ctx.ellipse(0, 0, 20, 20, 0, 0, Math.PI * 2); // 圆形身体
+                ctx.fill();
+                
+                // 腿
+                ctx.strokeStyle = '#8bc34a';
+                ctx.lineWidth = 5;
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+                ctx.moveTo(-10, 10);
+                ctx.lineTo(-15, 20); // 左腿
+                ctx.moveTo(10, 10);
+                ctx.lineTo(15, 20); // 右腿
+                ctx.stroke();
+
+                // 眼睛
+                ctx.fillStyle = 'white';
+                ctx.beginPath();
+                ctx.arc(10, -5, 6, 0, Math.PI * 2);
+                ctx.arc(-5, -5, 6, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = 'black';
+                ctx.beginPath();
+                ctx.arc(12, -5, 2, 0, Math.PI * 2);
+                ctx.arc(-3, -5, 2, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 嘴巴
+                ctx.strokeStyle = '#33691e';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(5, 5, 5, 0, Math.PI);
+                ctx.stroke();
+
+                ctx.restore();
+            }
+
+            update() {
+                // 水平移动逻辑
+                if (input.keys.left) {
+                    this.vx = -config.keyboardSpeed;
+                    this.faceRight = false;
+                } else if (input.keys.right) {
+                    this.vx = config.keyboardSpeed;
+                    this.faceRight = true;
+                } else {
+                    // 陀螺仪控制 (gamma 是左右倾斜)
+                    // 限制最大速度
+                    let targetVx = input.tiltX * config.tiltSensitivity;
+                    this.vx = Math.max(-10, Math.min(10, targetVx));
+                    
+                    if (Math.abs(this.vx) > 0.5) {
+                         this.faceRight = this.vx > 0;
+                    }
+                }
+
+                // 物理更新
+                this.x += this.vx;
+                this.y += this.vy;
+                this.vy += config.gravity;
+
+                // 屏幕穿越 (左边出右边进)
+                if (this.x + this.width < 0) {
+                    this.x = width;
+                } else if (this.x > width) {
+                    this.x = -this.width;
+                }
+            }
+
+            jump() {
+                this.vy = config.jumpStrength;
+            }
+        }
+
+        // --- 平台类 ---
+        class Platform {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.width = config.platformWidth;
+                this.height = config.platformHeight;
+            }
+
+            draw() {
+                ctx.fillStyle = '#558b2f';
+                ctx.beginPath();
+                // 圆角矩形
+                ctx.roundRect(this.x, this.y, this.width, this.height, 5);
+                ctx.fill();
+                
+                // 顶部高光
+                ctx.fillStyle = '#7cb342';
+                ctx.fillRect(this.x + 2, this.y + 2, this.width - 4, 4);
+            }
+        }
+
+        let doodler;
+
+        // --- 初始化与调整大小 ---
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+            
+            // 重新绘制背景网格 (可选)
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // --- 游戏核心逻辑 ---
+        function initGame() {
+            doodler = new Doodler();
+            platforms = [];
+            score = 0;
+            scoreEl.innerText = "得分: 0";
+            
+            // 生成初始平台
+            let platformCount = Math.floor(height / 80); // 根据高度决定平台数量
+            for (let i = 0; i < platformCount; i++) {
+                let pWidth = config.platformWidth;
+                let px = Math.random() * (width - pWidth);
+                let py = height - 100 - i * (height / platformCount);
+                platforms.push(new Platform(px, py));
+            }
+            // 确保脚下有个平台
+            platforms[0].x = doodler.x;
+            platforms[0].y = doodler.y + 50;
+            
+            isGameRunning = true;
+            menu.style.display = 'none';
+            loop();
+        }
+
+        function gameOver() {
+            isGameRunning = false;
+            menu.style.display = 'block';
+            document.querySelector('#menu h1').innerText = "游戏结束";
+            menuText.innerText = `你的得分: ${Math.floor(score)}`;
+            startBtn.innerText = "再玩一次";
+        }
+
+        function loop() {
+            if (!isGameRunning) return;
+
+            // 1. 清空画布
+            ctx.clearRect(0, 0, width, height);
+
+            // 绘制网格背景
+            ctx.strokeStyle = 'rgba(200, 200, 200, 0.3)';
+            ctx.lineWidth = 1;
+            const gridSize = 30;
+            ctx.beginPath();
+            for(let x=0; x<width; x+=gridSize) { ctx.moveTo(x,0); ctx.lineTo(x,height); }
+            for(let y=0; y<height; y+=gridSize) { ctx.moveTo(0,y); ctx.lineTo(width,y); }
+            ctx.stroke();
+
+            // 2. 更新逻辑
+            doodler.update();
+
+            // 平台逻辑
+            // 碰撞检测 (只有下落时才检测)
+            if (doodler.vy > 0) {
+                platforms.forEach(p => {
+                    if (
+                        doodler.x < p.x + p.width &&
+                        doodler.x + doodler.width > p.x &&
+                        doodler.y + doodler.height > p.y &&
+                        doodler.y + doodler.height < p.y + p.height + 10 // 稍微宽容一点的判定
+                    ) {
+                        // 之前的帧必须在平台上方 (避免卡在平台中间)
+                        if ((doodler.y - doodler.vy) + doodler.height <= p.y + 10) {
+                            doodler.jump();
+                        }
+                    }
+                });
+            }
+
+            // 镜头滚动 (当角色到达屏幕上半部分)
+            if (doodler.y < height / 2) {
+                let delta = height / 2 - doodler.y;
+                doodler.y = height / 2; // 锁定角色在中间
+                
+                score += delta; // 增加分数
+                scoreEl.innerText = `得分: ${Math.floor(score)}`;
+
+                // 移动平台
+                platforms.forEach(p => {
+                    p.y += delta;
+                });
+            }
+
+            // 移除底部平台并生成新平台
+            platforms.forEach((p, index) => {
+                if (p.y > height) {
+                    platforms.splice(index, 1);
+                    // 在顶部生成新平台
+                    let pWidth = config.platformWidth;
+                    let px = Math.random() * (width - pWidth);
+                    let py = -10; // 从屏幕上方一点点生成
+                    platforms.push(new Platform(px, py));
+                }
+            });
+
+            // 游戏结束判定 (掉出屏幕)
+            if (doodler.y > height) {
+                gameOver();
+                return;
+            }
+
+            // 3. 绘制物体
+            platforms.forEach(p => p.draw());
+            doodler.draw();
+
+            requestAnimationFrame(loop);
+        }
+
+        // --- 输入事件处理 ---
+
+        // 1. 陀螺仪处理
+        function handleOrientation(event) {
+            // gamma 通常是左右倾斜 (-90 到 90)
+            // 部分设备可能需要根据 window.orientation 调整，这里做简化处理
+            let tilt = event.gamma; 
+            
+            if (tilt === null) return;
+            
+            // 简单的防抖动死区
+            if (Math.abs(tilt) < 2) tilt = 0;
+            
+            input.tiltX = tilt;
+            debugEl.innerText = `Gyro: ${Math.floor(tilt)}`;
+        }
+
+        // 2. 键盘处理 (桌面调试用)
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'a') input.keys.left = true;
+            if (e.key === 'ArrowRight' || e.key === 'd') input.keys.right = true;
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'a') input.keys.left = false;
+            if (e.key === 'ArrowRight' || e.key === 'd') input.keys.right = false;
+        });
+
+        // 3. 触摸处理 (备用方案：点击屏幕左右侧)
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const touchX = e.touches[0].clientX;
+            if (touchX < width / 2) {
+                input.keys.left = true;
+                input.keys.right = false;
+            } else {
+                input.keys.right = true;
+                input.keys.left = false;
+            }
+        }, {passive: false});
+
+        canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            input.keys.left = false;
+            input.keys.right = false;
+        });
+
+
+        // --- 启动流程 (处理 iOS 权限) ---
+        startBtn.addEventListener('click', () => {
+            // iOS 13+ 需要请求权限
+            if (typeof DeviceOrientationEvent !== 'undefined' && 
+                typeof DeviceOrientationEvent.requestPermission === 'function') {
+                
+                DeviceOrientationEvent.requestPermission()
+                    .then(permissionState => {
+                        if (permissionState === 'granted') {
+                            window.addEventListener('deviceorientation', handleOrientation);
+                            initGame();
+                        } else {
+                            alert("需要陀螺仪权限才能进行游戏，请刷新后允许，或使用触摸点击屏幕左右侧控制。");
+                            // 即使拒绝也开始游戏 (使用触摸)
+                            initGame();
+                        }
+                    })
+                    .catch(console.error);
+            } else {
+                // 非 iOS 13+ 或 Android
+                window.addEventListener('deviceorientation', handleOrientation);
+                initGame();
+            }
+        });
+
+        // 初始绘图以显示背景
+        resize();
+
+    </script>
+</body>
+</html>
