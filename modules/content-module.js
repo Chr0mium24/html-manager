@@ -746,9 +746,33 @@ Object.assign(window.app, {
 
     renderPreviewDocument: function(htmlText, versionPath) {
         const finalHtml = this.injectBaseHrefIntoHtml(htmlText, versionPath);
-        document.open();
-        document.write(finalHtml);
-        document.close();
+        const parsed = new DOMParser().parseFromString(finalHtml, 'text/html');
+
+        const htmlEl = document.documentElement;
+        const parsedHtmlEl = parsed.documentElement;
+        htmlEl.getAttributeNames().forEach((attr) => htmlEl.removeAttribute(attr));
+        parsedHtmlEl.getAttributeNames().forEach((attr) => {
+            htmlEl.setAttribute(attr, parsedHtmlEl.getAttribute(attr) || '');
+        });
+
+        document.head.innerHTML = parsed.head ? parsed.head.innerHTML : '';
+        document.body.innerHTML = parsed.body ? parsed.body.innerHTML : '';
+        document.title = parsed.title || document.title;
+
+        const scripts = Array.from(document.querySelectorAll('script'));
+        scripts.forEach((oldScript) => {
+            const newScript = document.createElement('script');
+            Array.from(oldScript.attributes).forEach((attr) => {
+                newScript.setAttribute(attr.name, attr.value);
+            });
+            if (!oldScript.hasAttribute('async')) {
+                newScript.async = false;
+            }
+            if (oldScript.textContent) {
+                newScript.textContent = oldScript.textContent;
+            }
+            oldScript.parentNode.replaceChild(newScript, oldScript);
+        });
     },
 
     loadPreviewRouteContent: async function(projId, verId) {
