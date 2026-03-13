@@ -1,0 +1,918 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calculate Shanten (Single HTML)</title>
+  <style>
+    :root {
+      --bg: #f4f7f2;
+      --panel: #ffffff;
+      --ink: #1f2a1f;
+      --sub: #4f5d4f;
+      --accent: #2f6f4f;
+      --danger: #b12626;
+      --line: #d9e2d6;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 24px;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      color: var(--ink);
+      background: radial-gradient(circle at 20% 10%, #e8f2e4, var(--bg) 45%);
+    }
+
+    .wrap {
+      max-width: 960px;
+      margin: 0 auto;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 20px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 22px;
+      line-height: 1.25;
+    }
+
+    .hint {
+      margin: 0 0 16px;
+      color: var(--sub);
+      font-size: 14px;
+    }
+
+    .row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    input {
+      flex: 1 1 520px;
+      min-width: 280px;
+      border: 1px solid #9fb29f;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 16px;
+      font-family: inherit;
+    }
+
+    button {
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+      font-size: 15px;
+      font-family: inherit;
+    }
+
+    button.secondary {
+      background: #5d7a66;
+    }
+
+    .msg {
+      min-height: 24px;
+      margin: 14px 0 10px;
+      font-size: 14px;
+    }
+
+    .msg.error {
+      color: var(--danger);
+      font-weight: 700;
+    }
+
+    .mode-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin: 12px 0 10px;
+      font-size: 14px;
+      color: var(--sub);
+      flex-wrap: wrap;
+    }
+
+    .mode-row label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--ink);
+      cursor: pointer;
+    }
+
+    pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: #f8faf7;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 14px;
+      line-height: 1.55;
+      font-size: 14px;
+      min-height: 240px;
+    }
+
+    pre.output-unicode {
+      font-size: 14px;
+      line-height: 1.55;
+      font-family: "Noto Sans Symbols2", "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", monospace;
+    }
+
+    pre.output-unicode .tile-u {
+      font-size: 1.45em;
+      line-height: 1;
+      vertical-align: -0.08em;
+    }
+
+    pre.output-unicode .tile-tag {
+      font-size: 0.86em;
+      color: var(--sub);
+    }
+
+    pre.output-text {
+      font-size: 14px;
+      line-height: 1.55;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Shanten / 切牌组合 (Single HTML)</h1>
+    <p class="hint">输入 14 张手牌字符，例如: <code>123m456s789p1234z0m</code> 或 <code>123m 456p 789s 55z 0m</code></p>
+
+    <div class="row">
+      <input id="handInput" type="text" value="123m456s789p1234z0m" autocomplete="off" />
+      <button id="calcBtn" type="button">计算</button>
+      <button id="sampleBtn" class="secondary" type="button">示例</button>
+    </div>
+
+    <div class="mode-row">
+      <span>牌面显示:</span>
+      <label><input type="radio" name="tileViewMode" value="unicode" checked /> Unicode</label>
+      <label><input type="radio" name="tileViewMode" value="text" /> 文字(1m)</label>
+    </div>
+
+    <div id="message" class="msg"></div>
+    <pre id="output" class="output-unicode"></pre>
+  </div>
+
+  <script>
+    class Shanten {
+      constructor() {
+        this.AGARI_STATE = -1;
+
+        this.tiles = [];
+        this.number_melds = 0;
+        this.number_tatsu = 0;
+        this.number_pairs = 0;
+        this.number_jidahai = 0;
+        this.number_characters = 0;
+        this.number_isolated_tiles = 0;
+        this.min_shanten = 0;
+      }
+
+      calculateShanten(tiles34, useChiitoitsu = true, useKokushi = true) {
+        const shantenResults = [this.calculateShantenForRegularHand(tiles34)];
+        if (useChiitoitsu) {
+          shantenResults.push(this.calculateShantenForChiitoitsuHand(tiles34));
+        }
+        if (useKokushi) {
+          shantenResults.push(this.calculateShantenForKokushiHand(tiles34));
+        }
+
+        return Math.min(...shantenResults);
+      }
+
+      calculateShantenForChiitoitsuHand(tiles34) {
+        let pairs = 0;
+        let uniquePairs = 0;
+        for (let i = 0; i < tiles34.length; i++) {
+          if (tiles34[i] >= 2) {
+            pairs++;
+            if (tiles34[i] === 2) {
+              uniquePairs++;
+            }
+          }
+        }
+
+        if (tiles34.filter((x) => x === 2).length === 4 && tiles34.filter((x) => x === 3).length === 2) {
+          return 1;
+        }
+
+        if (tiles34.filter((x) => x === 2).length === 5 && tiles34.filter((x) => x === 4).length === 1) {
+          return 1;
+        }
+
+        if (pairs === 7 && uniquePairs === 7) {
+          return this.AGARI_STATE;
+        }
+
+        return 6 - pairs;
+      }
+
+      calculateShantenForKokushiHand(tiles34) {
+        const indices = [...TERMINAL_INDICES, ...HONOR_INDICES];
+
+        let completedTerminals = 0;
+        for (const i of indices) {
+          completedTerminals += tiles34[i] >= 2 ? 1 : 0;
+        }
+
+        let terminals = 0;
+        for (const i of indices) {
+          terminals += tiles34[i] !== 0 ? 1 : 0;
+        }
+
+        return 13 - terminals - (completedTerminals ? 1 : 0);
+      }
+
+      calculateShantenForRegularHand(tiles34) {
+        tiles34 = [...tiles34];
+
+        this._init(tiles34);
+
+        const countOfTiles = tiles34.reduce((sum, x) => sum + x, 0);
+        if (countOfTiles > 14) {
+          throw new Error(`Too many tiles = ${countOfTiles}`);
+        }
+
+        this._removeCharacterTiles(countOfTiles);
+
+        const initMentsu = Math.floor((14 - countOfTiles) / 3);
+        this._scan(initMentsu);
+
+        return this.min_shanten;
+      }
+
+      _init(tiles) {
+        this.tiles = tiles;
+        this.number_melds = 0;
+        this.number_tatsu = 0;
+        this.number_pairs = 0;
+        this.number_jidahai = 0;
+        this.number_characters = 0;
+        this.number_isolated_tiles = 0;
+        this.min_shanten = 8;
+      }
+
+      _scan(initMentsu) {
+        this.number_characters = 0;
+        for (let i = 0; i < 27; i++) {
+          this.number_characters |= (this.tiles[i] === 4) << i;
+        }
+        this.number_melds += initMentsu;
+        this._run(0);
+      }
+
+      _run(depth) {
+        if (this.min_shanten === this.AGARI_STATE) {
+          return;
+        }
+
+        while (!this.tiles[depth]) {
+          depth++;
+          if (depth >= 27) {
+            break;
+          }
+        }
+
+        if (depth >= 27) {
+          return this._updateResult();
+        }
+
+        let i = depth;
+        if (i > 8) {
+          i -= 9;
+        }
+        if (i > 8) {
+          i -= 9;
+        }
+
+        if (this.tiles[depth] === 4) {
+          this._increaseSet(depth);
+          if (i < 7 && this.tiles[depth + 2]) {
+            if (this.tiles[depth + 1]) {
+              this._increaseSyuntsu(depth);
+              this._run(depth + 1);
+              this._decreaseSyuntsu(depth);
+            }
+            this._increaseTatsuSecond(depth);
+            this._run(depth + 1);
+            this._decreaseTatsuSecond(depth);
+          }
+
+          if (i < 8 && this.tiles[depth + 1]) {
+            this._increaseTatsuFirst(depth);
+            this._run(depth + 1);
+            this._decreaseTatsuFirst(depth);
+          }
+
+          this._increaseIsolatedTile(depth);
+          this._run(depth + 1);
+          this._decreaseIsolatedTile(depth);
+          this._decreaseSet(depth);
+          this._increasePair(depth);
+
+          if (i < 7 && this.tiles[depth + 2]) {
+            if (this.tiles[depth + 1]) {
+              this._increaseSyuntsu(depth);
+              this._run(depth);
+              this._decreaseSyuntsu(depth);
+            }
+            this._increaseTatsuSecond(depth);
+            this._run(depth + 1);
+            this._decreaseTatsuSecond(depth);
+          }
+
+          if (i < 8 && this.tiles[depth + 1]) {
+            this._increaseTatsuFirst(depth);
+            this._run(depth + 1);
+            this._decreaseTatsuFirst(depth);
+          }
+
+          this._decreasePair(depth);
+        }
+
+        if (this.tiles[depth] === 3) {
+          this._increaseSet(depth);
+          this._run(depth + 1);
+          this._decreaseSet(depth);
+          this._increasePair(depth);
+
+          if (i < 7 && this.tiles[depth + 1] && this.tiles[depth + 2]) {
+            this._increaseSyuntsu(depth);
+            this._run(depth + 1);
+            this._decreaseSyuntsu(depth);
+          } else {
+            if (i < 7 && this.tiles[depth + 2]) {
+              this._increaseTatsuSecond(depth);
+              this._run(depth + 1);
+              this._decreaseTatsuSecond(depth);
+            }
+
+            if (i < 8 && this.tiles[depth + 1]) {
+              this._increaseTatsuFirst(depth);
+              this._run(depth + 1);
+              this._decreaseTatsuFirst(depth);
+            }
+          }
+
+          this._decreasePair(depth);
+
+          if (i < 7 && this.tiles[depth + 2] >= 2 && this.tiles[depth + 1] >= 2) {
+            this._increaseSyuntsu(depth);
+            this._increaseSyuntsu(depth);
+            this._run(depth);
+            this._decreaseSyuntsu(depth);
+            this._decreaseSyuntsu(depth);
+          }
+        }
+
+        if (this.tiles[depth] === 2) {
+          this._increasePair(depth);
+          this._run(depth + 1);
+          this._decreasePair(depth);
+          if (i < 7 && this.tiles[depth + 2] && this.tiles[depth + 1]) {
+            this._increaseSyuntsu(depth);
+            this._run(depth);
+            this._decreaseSyuntsu(depth);
+          }
+        }
+
+        if (this.tiles[depth] === 1) {
+          if (i < 6 && this.tiles[depth + 1] === 1 && this.tiles[depth + 2] && this.tiles[depth + 3] !== 4) {
+            this._increaseSyuntsu(depth);
+            this._run(depth + 2);
+            this._decreaseSyuntsu(depth);
+          } else {
+            this._increaseIsolatedTile(depth);
+            this._run(depth + 1);
+            this._decreaseIsolatedTile(depth);
+
+            if (i < 7 && this.tiles[depth + 2]) {
+              if (this.tiles[depth + 1]) {
+                this._increaseSyuntsu(depth);
+                this._run(depth + 1);
+                this._decreaseSyuntsu(depth);
+              }
+              this._increaseTatsuSecond(depth);
+              this._run(depth + 1);
+              this._decreaseTatsuSecond(depth);
+            }
+
+            if (i < 8 && this.tiles[depth + 1]) {
+              this._increaseTatsuFirst(depth);
+              this._run(depth + 1);
+              this._decreaseTatsuFirst(depth);
+            }
+          }
+        }
+      }
+
+      _updateResult() {
+        let retShanten = 8 - this.number_melds * 2 - this.number_tatsu - this.number_pairs;
+        let nMentsuKouho = this.number_melds + this.number_tatsu;
+        if (this.number_pairs) {
+          nMentsuKouho += this.number_pairs - 1;
+        } else if (this.number_characters && this.number_isolated_tiles) {
+          if ((this.number_characters | this.number_isolated_tiles) === this.number_characters) {
+            retShanten += 1;
+          }
+        }
+
+        if (nMentsuKouho > 4) {
+          retShanten += nMentsuKouho - 4;
+        }
+
+        if (retShanten !== this.AGARI_STATE && retShanten < this.number_jidahai) {
+          retShanten = this.number_jidahai;
+        }
+
+        if (retShanten < this.min_shanten) {
+          this.min_shanten = retShanten;
+        }
+      }
+
+      _increaseSet(k) {
+        this.tiles[k] -= 3;
+        this.number_melds += 1;
+      }
+
+      _decreaseSet(k) {
+        this.tiles[k] += 3;
+        this.number_melds -= 1;
+      }
+
+      _increasePair(k) {
+        this.tiles[k] -= 2;
+        this.number_pairs += 1;
+      }
+
+      _decreasePair(k) {
+        this.tiles[k] += 2;
+        this.number_pairs -= 1;
+      }
+
+      _increaseSyuntsu(k) {
+        this.tiles[k] -= 1;
+        this.tiles[k + 1] -= 1;
+        this.tiles[k + 2] -= 1;
+        this.number_melds += 1;
+      }
+
+      _decreaseSyuntsu(k) {
+        this.tiles[k] += 1;
+        this.tiles[k + 1] += 1;
+        this.tiles[k + 2] += 1;
+        this.number_melds -= 1;
+      }
+
+      _increaseTatsuFirst(k) {
+        this.tiles[k] -= 1;
+        this.tiles[k + 1] -= 1;
+        this.number_tatsu += 1;
+      }
+
+      _decreaseTatsuFirst(k) {
+        this.tiles[k] += 1;
+        this.tiles[k + 1] += 1;
+        this.number_tatsu -= 1;
+      }
+
+      _increaseTatsuSecond(k) {
+        this.tiles[k] -= 1;
+        this.tiles[k + 2] -= 1;
+        this.number_tatsu += 1;
+      }
+
+      _decreaseTatsuSecond(k) {
+        this.tiles[k] += 1;
+        this.tiles[k + 2] += 1;
+        this.number_tatsu -= 1;
+      }
+
+      _increaseIsolatedTile(k) {
+        this.tiles[k] -= 1;
+        this.number_isolated_tiles |= 1 << k;
+      }
+
+      _decreaseIsolatedTile(k) {
+        this.tiles[k] += 1;
+        this.number_isolated_tiles |= 1 << k;
+      }
+
+      _removeCharacterTiles(nc) {
+        let number = 0;
+        let isolated = 0;
+
+        for (let i = 27; i < 34; i++) {
+          if (this.tiles[i] === 4) {
+            this.number_melds += 1;
+            this.number_jidahai += 1;
+            number |= 1 << (i - 27);
+            isolated |= 1 << (i - 27);
+          }
+
+          if (this.tiles[i] === 3) {
+            this.number_melds += 1;
+          }
+
+          if (this.tiles[i] === 2) {
+            this.number_pairs += 1;
+          }
+
+          if (this.tiles[i] === 1) {
+            isolated |= 1 << (i - 27);
+          }
+        }
+
+        if (this.number_jidahai && nc % 3 === 2) {
+          this.number_jidahai -= 1;
+        }
+
+        if (isolated) {
+          this.number_isolated_tiles |= 1 << 27;
+          if ((number | isolated) === number) {
+            this.number_characters |= 1 << 27;
+          }
+        }
+      }
+    }
+
+    const TERMINAL_INDICES = [0, 8, 9, 17, 18, 26];
+    const HONOR_INDICES = [27, 28, 29, 30, 31, 32, 33];
+
+    const typeOrder = { m: 0, p: 1, s: 2, z: 3 };
+
+    function tileToUnicode(tile) {
+      const suit = tile.slice(-1);
+      const rawNum = parseInt(tile.replace(/\D/g, ""), 10);
+      const num = rawNum === 0 ? 5 : rawNum;
+
+      if (suit === "m" && num >= 1 && num <= 9) {
+        return String.fromCodePoint(0x1f007 + (num - 1));
+      }
+      if (suit === "s" && num >= 1 && num <= 9) {
+        return String.fromCodePoint(0x1f010 + (num - 1));
+      }
+      if (suit === "p" && num >= 1 && num <= 9) {
+        return String.fromCodePoint(0x1f019 + (num - 1));
+      }
+      if (suit === "z" && num >= 1 && num <= 7) {
+        return String.fromCodePoint(0x1f000 + (num - 1));
+      }
+      return "□";
+    }
+
+    function formatTileText(tile) {
+      return tile;
+    }
+
+    function formatTileUnicodeHtml(tile) {
+      const unicode = tileToUnicode(tile);
+      if (tile[0] === "0") {
+        return `<span class="tile-u">${unicode}</span><span class="tile-tag">(0${tile.slice(-1)})</span>`;
+      }
+      return `<span class="tile-u">${unicode}</span>`;
+    }
+
+    function sortTiles(tiles) {
+      return [...tiles].sort((a, b) => {
+        const aType = a.slice(-1);
+        const bType = b.slice(-1);
+        const aNum = a.replace(/\D/g, "");
+        const bNum = b.replace(/\D/g, "");
+        const aSortNum = aNum === "0" ? 5.5 : parseInt(aNum, 10);
+        const bSortNum = bNum === "0" ? 5.5 : parseInt(bNum, 10);
+
+        if (typeOrder[aType] !== typeOrder[bType]) {
+          return typeOrder[aType] - typeOrder[bType];
+        }
+        return aSortNum - bSortNum;
+      });
+    }
+
+    function parseHandString(raw) {
+      const input = raw.toLowerCase().replace(/\s+/g, "");
+      if (!input) {
+        return { error: "请输入手牌。" };
+      }
+
+      const tokenRe = /(\d+)([mpsz])/g;
+      const tokens = [];
+      let rebuilt = "";
+      let match;
+      while ((match = tokenRe.exec(input)) !== null) {
+        tokens.push(match);
+        rebuilt += match[0];
+      }
+
+      if (rebuilt !== input) {
+        return { error: "牌谱格式错误，只支持数字加 m/p/s/z，例如 123m456p789s11z0m" };
+      }
+
+      const tiles = [];
+      for (const t of tokens) {
+        const numbers = t[1];
+        const suit = t[2];
+        for (const ch of numbers) {
+          const n = Number(ch);
+          if (!Number.isInteger(n)) {
+            return { error: `非法字符: ${ch}` };
+          }
+          if (suit === "z") {
+            if (n < 1 || n > 7) {
+              return { error: `字牌只能是 1-7z，发现: ${ch}${suit}` };
+            }
+          } else {
+            if (n < 0 || n > 9) {
+              return { error: `数牌只能是 0-9，发现: ${ch}${suit}` };
+            }
+          }
+          tiles.push(`${ch}${suit}`);
+        }
+      }
+
+      if (tiles.length !== 14) {
+        return { error: `手牌必须正好 14 张，当前 ${tiles.length} 张。` };
+      }
+
+      const count = {};
+      for (const tile of tiles) {
+        count[tile] = (count[tile] || 0) + 1;
+        if (count[tile] > 4) {
+          return { error: `${tile} 超过 4 张。` };
+        }
+      }
+
+      // 34-index 维度再校验一次，防止 0m/5m 合计超过 4 张等非法情况。
+      const tiles34 = convertToTiles34Arr(tiles);
+      if (tiles34.some((n) => n > 4)) {
+        return { error: "有牌超过 4 张（赤5与普通5按同一牌处理）。" };
+      }
+
+      return { tiles: sortTiles(tiles) };
+    }
+
+    function convertToTiles34Arr(handTiles) {
+      const tiles34Arr = new Array(34).fill(0);
+
+      handTiles.forEach((tile) => {
+        const num = tile.replace(/\D/g, "");
+        const type = tile.slice(-1);
+        let index;
+
+        if (type === "m") {
+          index = num === "0" ? 4 : parseInt(num, 10) - 1;
+        } else if (type === "p") {
+          index = 9 + (num === "0" ? 4 : parseInt(num, 10) - 1);
+        } else if (type === "s") {
+          index = 18 + (num === "0" ? 4 : parseInt(num, 10) - 1);
+        } else if (type === "z") {
+          index = 27 + (parseInt(num, 10) - 1);
+        }
+
+        if (index !== undefined) {
+          tiles34Arr[index]++;
+        }
+      });
+
+      return tiles34Arr;
+    }
+
+    function calculateShanten(tiles34Arr) {
+      const shanten = new Shanten();
+      return shanten.calculateShanten(tiles34Arr);
+    }
+
+    function generateTiles() {
+      const types = ["m", "p", "s"];
+      const tiles = [];
+
+      types.forEach((type) => {
+        for (let num = 1; num <= 9; num++) {
+          if (num === 5) {
+            tiles.push(...Array(3).fill(`${num}${type}`));
+            tiles.push(`0${type}`);
+          } else {
+            tiles.push(...Array(4).fill(`${num}${type}`));
+          }
+        }
+      });
+
+      for (let num = 1; num <= 7; num++) {
+        tiles.push(...Array(4).fill(`${num}z`));
+      }
+
+      return tiles;
+    }
+
+    function analyzeImprovement(currentHand, currentTiles34) {
+      const results = {};
+      const allTiles = generateTiles();
+      const initialCountMap = allTiles.reduce((acc, tile) => {
+        acc[tile] = (acc[tile] || 0) + 1;
+        return acc;
+      }, {});
+
+      for (const tile of currentHand) {
+        initialCountMap[tile] = (initialCountMap[tile] || 0) - 1;
+      }
+
+      const originalShanten = calculateShanten(currentTiles34);
+      const discardCandidates = [...new Set(currentHand)];
+
+      for (const tileToDiscard of discardCandidates) {
+        const removeAt = currentHand.indexOf(tileToDiscard);
+        const newHand = currentHand.filter((_, i) => i !== removeAt);
+
+        const improvements = {};
+        let totalCount = 0;
+
+        for (const tile of Object.keys(initialCountMap)) {
+          const available = initialCountMap[tile];
+          if (available <= 0) continue;
+
+          const tempHand = [...newHand, tile];
+          const tempTiles34 = convertToTiles34Arr(tempHand);
+          const newShanten = calculateShanten(tempTiles34);
+
+          if (newShanten < originalShanten) {
+            improvements[tile] = available;
+            totalCount += available;
+          }
+        }
+
+        if (Object.keys(improvements).length > 0) {
+          results[tileToDiscard] = {
+            improvements,
+            totalCount,
+          };
+        }
+      }
+
+      return { shanten: originalShanten, results };
+    }
+
+    function tileSortFn(a, b) {
+      const aType = a.slice(-1);
+      const bType = b.slice(-1);
+      const aNum = a.replace(/\D/g, "");
+      const bNum = b.replace(/\D/g, "");
+      const aSortNum = aNum === "0" ? 5.5 : parseInt(aNum, 10);
+      const bSortNum = bNum === "0" ? 5.5 : parseInt(bNum, 10);
+      if (typeOrder[aType] !== typeOrder[bType]) {
+        return typeOrder[aType] - typeOrder[bType];
+      }
+      return aSortNum - bSortNum;
+    }
+
+    function getSortedEntries(resultMap) {
+      return Object.entries(resultMap)
+        .map(([discarded, data]) => ({ discarded, data }))
+        .sort((a, b) => {
+          if (b.data.totalCount !== a.data.totalCount) return b.data.totalCount - a.data.totalCount;
+          return tileSortFn(a.discarded, b.discarded);
+        });
+    }
+
+    function renderTextOutput(handTiles, shantenNum, resultMap) {
+      const lines = [];
+      const handStr = sortTiles(handTiles).map((tile) => formatTileText(tile)).join("");
+
+      lines.push(`手牌:${handStr}`);
+      if (shantenNum === -1) {
+        lines.push("状态:和牌");
+      } else if (shantenNum === 0) {
+        lines.push("状态:听牌(0向听)");
+      } else {
+        lines.push(`状态:${shantenNum}向听`);
+      }
+      lines.push("");
+
+      const entries = getSortedEntries(resultMap);
+      if (entries.length === 0) {
+        lines.push("无可降低向听的切牌组合。");
+        return lines.join("\n");
+      }
+
+      lines.push(shantenNum === 0 ? "听牌列表:" : "进张列表:");
+      for (const { discarded, data } of entries) {
+        const improvementText = Object.entries(data.improvements)
+          .sort(([a], [b]) => tileSortFn(a, b))
+          .map(([tile, count]) => `${formatTileText(tile)}x${count}`)
+          .join("");
+
+        lines.push(`切${formatTileText(discarded)}->${shantenNum === 0 ? "听" : "摸"}${improvementText}(共${data.totalCount}张)`);
+      }
+
+      return lines.join("\n");
+    }
+
+    function renderUnicodeOutputHtml(handTiles, shantenNum, resultMap) {
+      const lines = [];
+      const handStr = sortTiles(handTiles).map((tile) => formatTileUnicodeHtml(tile)).join("");
+
+      lines.push(`手牌:${handStr}`);
+      if (shantenNum === -1) {
+        lines.push("状态:和牌");
+      } else if (shantenNum === 0) {
+        lines.push("状态:听牌(0向听)");
+      } else {
+        lines.push(`状态:${shantenNum}向听`);
+      }
+      lines.push("");
+
+      const entries = getSortedEntries(resultMap);
+      if (entries.length === 0) {
+        lines.push("无可降低向听的切牌组合。");
+        return lines.join("\n");
+      }
+
+      lines.push(shantenNum === 0 ? "听牌列表:" : "进张列表:");
+      for (const { discarded, data } of entries) {
+        const improvementText = Object.entries(data.improvements)
+          .sort(([a], [b]) => tileSortFn(a, b))
+          .map(([tile, count]) => `${formatTileUnicodeHtml(tile)}x${count}`)
+          .join("");
+
+        lines.push(`切${formatTileUnicodeHtml(discarded)}->${shantenNum === 0 ? "听" : "摸"}${improvementText}(共${data.totalCount}张)`);
+      }
+
+      return lines.join("\n");
+    }
+
+    function setMessage(text, isError = false) {
+      const el = document.getElementById("message");
+      el.textContent = text || "";
+      el.className = isError ? "msg error" : "msg";
+    }
+
+    function getDisplayMode() {
+      const checked = document.querySelector('input[name="tileViewMode"]:checked');
+      return checked ? checked.value : "unicode";
+    }
+
+    function applyOutputStyleByMode(mode) {
+      const outputEl = document.getElementById("output");
+      outputEl.classList.remove("output-unicode", "output-text");
+      outputEl.classList.add(mode === "unicode" ? "output-unicode" : "output-text");
+    }
+
+    function calculate() {
+      const inputEl = document.getElementById("handInput");
+      const outputEl = document.getElementById("output");
+      const displayMode = getDisplayMode();
+      applyOutputStyleByMode(displayMode);
+      const parsed = parseHandString(inputEl.value);
+
+      if (parsed.error) {
+        setMessage(parsed.error, true);
+        outputEl.textContent = "";
+        return;
+      }
+
+      try {
+        const tiles34 = convertToTiles34Arr(parsed.tiles);
+        const { shanten, results } = analyzeImprovement(parsed.tiles, tiles34);
+        setMessage("计算完成");
+        if (displayMode === "unicode") {
+          outputEl.innerHTML = renderUnicodeOutputHtml(parsed.tiles, shanten, results);
+        } else {
+          outputEl.textContent = renderTextOutput(parsed.tiles, shanten, results);
+        }
+      } catch (err) {
+        setMessage(`计算失败: ${err.message}`, true);
+        outputEl.textContent = "";
+      }
+    }
+
+    document.getElementById("calcBtn").addEventListener("click", calculate);
+    document.getElementById("sampleBtn").addEventListener("click", () => {
+      document.getElementById("handInput").value = "123m456s789p1234z0m";
+      calculate();
+    });
+    document.getElementById("handInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        calculate();
+      }
+    });
+    document.querySelectorAll('input[name="tileViewMode"]').forEach((node) => {
+      node.addEventListener("change", calculate);
+    });
+
+    calculate();
+  </script>
+</body>
+</html>

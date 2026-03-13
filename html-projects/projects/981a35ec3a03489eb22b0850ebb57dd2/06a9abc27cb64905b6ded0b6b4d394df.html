@@ -1,0 +1,2470 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mahjong Recognize + Shanten</title>
+  <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
+  <style>
+    :root {
+      --bg: #f5f8ff;
+      --panel: #ffffff;
+      --text: #1b2233;
+      --muted: #5d677e;
+      --border: #d8e0ef;
+      --primary: #2f6feb;
+      --ok: #2f8f4e;
+      --warn: #b26c00;
+      --danger: #c92a2a;
+      --light-detect: #a8dafd;
+      --best: #ff5a1f;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 20px;
+      color: var(--text);
+      background: linear-gradient(180deg, #edf4ff 0%, #f7f9fe 100%);
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+
+    .page {
+      max-width: 1280px;
+      margin: 0 auto;
+      display: grid;
+      gap: 14px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      box-shadow: 0 6px 20px rgba(18, 23, 38, 0.06);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.2;
+    }
+
+    .hint {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+
+    label {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .checkline {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .checkline input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--primary);
+      flex: 0 0 auto;
+    }
+
+    input[type="file"],
+    input[type="number"],
+    button {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 10px;
+      font-size: 14px;
+      background: #fff;
+    }
+
+    input[type="range"] {
+      width: 100%;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    button {
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    button.primary {
+      border-color: var(--primary);
+      background: var(--primary);
+      color: #fff;
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .status {
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .status.ok { color: var(--ok); }
+    .status.mid { color: var(--warn); }
+    .status.err { color: var(--danger); }
+
+    .viewer {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 12px;
+      align-items: start;
+    }
+
+    canvas {
+      width: 100%;
+      height: auto;
+      border-radius: 10px;
+      border: 1px solid #2f3950;
+      background: #0f1420;
+    }
+
+    .side {
+      display: grid;
+      gap: 10px;
+      align-content: start;
+    }
+
+    pre {
+      margin: 0;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #f9fbff;
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.5;
+      font-size: 12px;
+      min-height: 72px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .block-title {
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .coord-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .coord-grid input[type="number"] {
+      width: 100%;
+      text-align: center;
+    }
+
+    .screen-preview {
+      margin-top: 12px;
+      display: grid;
+      gap: 6px;
+    }
+
+    .screen-video-wrap {
+      position: relative;
+      width: 100%;
+      overflow: hidden;
+      border-radius: 10px;
+      border: 1px solid #2f3950;
+      background: #0f1420;
+    }
+
+    #screenVideo {
+      display: block;
+      width: 100%;
+      height: auto;
+      background: #0f1420;
+      cursor: crosshair;
+    }
+
+    #screenOverlayBox {
+      position: absolute;
+      border: 2px solid rgba(255, 80, 80, 0.95);
+      background: rgba(255, 80, 80, 0.2);
+      box-sizing: border-box;
+      pointer-events: none;
+      display: none;
+    }
+
+    .pick-active {
+      border-color: var(--primary);
+      background: #eaf1ff;
+      color: var(--primary);
+    }
+
+    .screen-hint {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    @media (max-width: 1000px) {
+      .grid,
+      .viewer {
+        grid-template-columns: 1fr;
+      }
+
+      .coord-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="card">
+      <h1>麻将图像识别 + 向听计算（单文件）</h1>
+      <div class="hint">
+        使用方式：先上传项目中的 <code>weight.onnx</code>，再在页面内按 <code>Ctrl+V</code>/<code>Cmd+V</code> 粘贴截图（或上传图片）。<br>
+        粘贴后会自动识别并计算。识别框统一浅色显示；最佳/次优/第三切牌会在图上按递减颜色高亮。
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="grid">
+        <div class="field" style="grid-column: 1 / -1;">
+          <label for="modelFile">ONNX 模型文件（请上传项目中的 weight.onnx）</label>
+          <input id="modelFile" type="file" accept=".onnx">
+        </div>
+
+        <div class="field">
+          <label for="imageFile">图片文件（可选，粘贴更方便）</label>
+          <input id="imageFile" type="file" accept="image/*">
+        </div>
+
+        <div class="field">
+          <label for="minConf">最低阈值（自动降阈下限） <span id="minConfText">0.10</span></label>
+          <input id="minConf" type="range" min="0.01" max="0.95" step="0.01" value="0.10">
+        </div>
+
+        <div class="field">
+          <label for="iou">NMS IoU 阈值 <span id="iouText">0.30</span></label>
+          <input id="iou" type="range" min="0.05" max="0.9" step="0.01" value="0.30">
+        </div>
+
+        <div class="field">
+          <label for="maxBoxes">NMS 最大候选框</label>
+          <input id="maxBoxes" type="number" min="20" max="500" step="10" value="180">
+        </div>
+
+        <div class="field">
+          <label for="autoClipboard">剪贴板图片自动监听（可选）</label>
+          <label class="checkline">
+            <input id="autoClipboard" type="checkbox">
+            <span>开启后自动检测新图片（需浏览器授权，默认关闭）</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button id="btnLoadModel" class="primary">加载模型</button>
+        <button id="btnRun">对当前图片重新计算</button>
+        <button id="btnOpenImageWindow">弹出纯图片窗口</button>
+        <span id="status" class="status mid">请先加载模型。</span>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="grid">
+        <div class="field">
+          <label for="screenFps">读屏帧率（FPS）</label>
+          <input id="screenFps" type="number" min="1" max="30" step="1" value="3">
+        </div>
+
+        <div class="field">
+          <label>点 A（左上角，百分比）</label>
+          <div class="coord-grid">
+            <input id="cropX1" type="number" min="0" max="100" step="0.1" value="0" title="X1">
+            <input id="cropY1" type="number" min="0" max="100" step="0.1" value="80" title="Y1">
+            <input id="cropX2" type="number" min="0" max="100" step="0.1" value="100" title="X2">
+            <input id="cropY2" type="number" min="0" max="100" step="0.1" value="100" title="Y2">
+          </div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button id="btnPickA">设置点A（点击预览）</button>
+        <button id="btnPickB">设置点B（点击预览）</button>
+        <button id="btnStartScreen" class="primary">启动读屏截图</button>
+        <button id="btnStopScreen" disabled>停止读屏</button>
+      </div>
+      <p class="screen-hint">读屏启动后会按裁剪区域持续截图，并对每帧自动识别与向听计算。</p>
+
+      <div class="screen-preview">
+        <div class="block-title">读屏预览（可点击取点）</div>
+        <div class="screen-video-wrap">
+          <video id="screenVideo" autoplay playsinline muted></video>
+          <div id="screenOverlayBox"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card viewer">
+      <canvas id="canvas" width="960" height="540"></canvas>
+      <div class="side">
+        <div>
+          <div class="block-title">识别手牌</div>
+          <pre id="recognized">暂无</pre>
+        </div>
+        <div>
+          <div class="block-title">向听与最佳切牌</div>
+          <pre id="calc">暂无</pre>
+        </div>
+        <div>
+          <div class="block-title">调试信息</div>
+          <pre id="meta">暂无</pre>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const MODEL_CLASS_NAMES = [
+      "1B", "1C", "1D", "1F", "1S",
+      "2B", "2C", "2D", "2F", "2S",
+      "3B", "3C", "3D", "3F", "3S",
+      "4B", "4C", "4D", "4F", "4S",
+      "5B", "5C", "5D",
+      "6B", "6C", "6D",
+      "7B", "7C", "7D",
+      "8B", "8C", "8D",
+      "9B", "9C", "9D",
+      "EW", "GD", "NW", "RD", "SW", "WD", "WW"
+    ];
+
+    const YOLO_TO_MPSZ_MAPPING = {
+      "1B": "1s", "2B": "2s", "3B": "3s", "4B": "4s", "5B": "5s", "6B": "6s", "7B": "7s", "8B": "8s", "9B": "9s",
+      "1C": "1m", "2C": "2m", "3C": "3m", "4C": "4m", "5C": "5m", "6C": "6m", "7C": "7m", "8C": "8m", "9C": "9m",
+      "1D": "1p", "2D": "2p", "3D": "3p", "4D": "4p", "5D": "5p", "6D": "6p", "7D": "7p", "8D": "8p", "9D": "9p",
+      "EW": "1z", "SW": "2z", "WW": "3z", "NW": "4z", "WD": "5z", "GD": "6z", "RD": "7z",
+      "1F": "f1", "2F": "f2", "3F": "f3", "4F": "f4",
+      "1S": "s1", "2S": "s2", "3S": "s3", "4S": "s4"
+    };
+
+    const MODEL_SIZE = 640;
+    const typeOrder = { m: 0, p: 1, s: 2, z: 3 };
+    const SUIT_BASE_OFFSET = { m: 0, p: 9, s: 18, z: 27 };
+
+    let session = null;
+    let loadedImage = null;
+    let autoClipboardTimer = null;
+    let autoClipboardBusy = false;
+    let autoClipboardHintShown = false;
+    let lastClipboardImageFingerprint = "";
+    let imageOnlyWindow = null;
+    let screenStream = null;
+    let screenCaptureTimer = null;
+    let screenCaptureBusy = false;
+    let pickingPointMode = "";
+    const IMAGE_ONLY_WINDOW_NAME = "MahjongImageOnlyWindow";
+    const screenFrameCanvas = document.createElement("canvas");
+    const screenFrameCtx = screenFrameCanvas.getContext("2d");
+
+    const modelFileEl = document.getElementById("modelFile");
+    const imageFileEl = document.getElementById("imageFile");
+    const minConfEl = document.getElementById("minConf");
+    const iouEl = document.getElementById("iou");
+    const maxBoxesEl = document.getElementById("maxBoxes");
+    const autoClipboardEl = document.getElementById("autoClipboard");
+    const minConfTextEl = document.getElementById("minConfText");
+    const iouTextEl = document.getElementById("iouText");
+    const btnLoadModel = document.getElementById("btnLoadModel");
+    const btnRun = document.getElementById("btnRun");
+    const btnOpenImageWindow = document.getElementById("btnOpenImageWindow");
+    const btnPickA = document.getElementById("btnPickA");
+    const btnPickB = document.getElementById("btnPickB");
+    const btnStartScreen = document.getElementById("btnStartScreen");
+    const btnStopScreen = document.getElementById("btnStopScreen");
+    const statusEl = document.getElementById("status");
+    const recognizedEl = document.getElementById("recognized");
+    const calcEl = document.getElementById("calc");
+    const metaEl = document.getElementById("meta");
+    const screenFpsEl = document.getElementById("screenFps");
+    const cropX1El = document.getElementById("cropX1");
+    const cropY1El = document.getElementById("cropY1");
+    const cropX2El = document.getElementById("cropX2");
+    const cropY2El = document.getElementById("cropY2");
+    const screenVideoEl = document.getElementById("screenVideo");
+    const screenOverlayBoxEl = document.getElementById("screenOverlayBox");
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+
+    bindRangeValueAndRerun(minConfEl, minConfTextEl);
+    bindRangeValueAndRerun(iouEl, iouTextEl);
+
+    btnLoadModel.addEventListener("click", async () => {
+      const f = modelFileEl.files && modelFileEl.files[0];
+      if (!f) {
+        setStatus("请先上传 ONNX 文件（项目中的 weight.onnx）。", "err");
+        return;
+      }
+      try {
+        setStatus("正在加载模型...", "mid");
+        const modelBuffer = await f.arrayBuffer();
+        await createSession(modelBuffer);
+        setStatus("模型加载成功。", "ok");
+        if (loadedImage) {
+          await processCurrentImage();
+        }
+      } catch (err) {
+        setStatus("模型加载失败: " + err.message, "err");
+      }
+      updateRunButton();
+    });
+
+    btnRun.addEventListener("click", async () => {
+      await processCurrentImage();
+    });
+
+    btnOpenImageWindow.addEventListener("click", () => {
+      const win = openImageOnlyWindow();
+      if (!win) return;
+      syncImageOnlyWindow();
+      setStatus("纯图片窗口已打开。", "mid");
+    });
+
+    btnPickA.addEventListener("click", () => {
+      togglePickingPointMode("A");
+    });
+
+    btnPickB.addEventListener("click", () => {
+      togglePickingPointMode("B");
+    });
+
+    btnStartScreen.addEventListener("click", async () => {
+      await startScreenCapture();
+    });
+
+    btnStopScreen.addEventListener("click", () => {
+      stopScreenCapture("已停止读屏。");
+    });
+
+    imageFileEl.addEventListener("change", async () => {
+      const f = imageFileEl.files && imageFileEl.files[0];
+      if (!f) return;
+      await loadImageBlob(f, "图片已加载。");
+      await rerunIfReady("图片已加载，请先加载模型。");
+    });
+
+    autoClipboardEl.addEventListener("change", () => {
+      if (autoClipboardEl.checked) {
+        startAutoClipboardWatch();
+      } else {
+        stopAutoClipboardWatch();
+        setStatus("已关闭自动剪贴板监听。", "mid");
+      }
+    });
+
+    document.addEventListener("paste", async (event) => {
+      const blob = extractFirstImageBlobFromItems(event.clipboardData && event.clipboardData.items);
+      if (!blob) return;
+      event.preventDefault();
+      await handleClipboardImage(blob, "已从剪贴板读取图片。", "图片已粘贴，请先加载模型。");
+    });
+
+    [cropX1El, cropY1El, cropX2El, cropY2El].forEach((el) => {
+      el.addEventListener("input", updateScreenOverlayBox);
+    });
+    screenVideoEl.addEventListener("click", onScreenVideoClick);
+
+    updateScreenOverlayBox();
+
+    window.handlePopupPastedImage = (blob) => {
+      void onPopupPastedImage(blob);
+    };
+
+    async function onPopupPastedImage(blob) {
+      if (!blob) return;
+      await handleClipboardImage(blob, "已从纯图片窗口粘贴读取图片。", "图片已粘贴，请先加载模型。");
+    }
+
+    function extractFirstImageBlobFromItems(items) {
+      if (!items || !items.length) return null;
+      for (let i = 0; i < items.length; i++) {
+        const it = items[i];
+        if (!it.type || !it.type.startsWith("image/")) continue;
+        const blob = it.getAsFile();
+        if (blob) return blob;
+      }
+      return null;
+    }
+
+    function readPercentInput(el, fallback) {
+      const value = Number(el.value);
+      return Number.isFinite(value) ? clamp(value, 0, 100) : fallback;
+    }
+
+    function getScreenCropPercent() {
+      return {
+        x1: readPercentInput(cropX1El, 0),
+        y1: readPercentInput(cropY1El, 80),
+        x2: readPercentInput(cropX2El, 100),
+        y2: readPercentInput(cropY2El, 100)
+      };
+    }
+
+    function updateScreenOverlayBox() {
+      const { x1, y1, x2, y2 } = getScreenCropPercent();
+      const left = Math.min(x1, x2);
+      const top = Math.min(y1, y2);
+      const width = Math.abs(x2 - x1);
+      const height = Math.abs(y2 - y1);
+
+      screenOverlayBoxEl.style.left = left + "%";
+      screenOverlayBoxEl.style.top = top + "%";
+      screenOverlayBoxEl.style.width = width + "%";
+      screenOverlayBoxEl.style.height = height + "%";
+
+      const visible = !!screenStream && width > 0 && height > 0;
+      screenOverlayBoxEl.style.display = visible ? "block" : "none";
+    }
+
+    function refreshPickingButtons() {
+      btnPickA.classList.toggle("pick-active", pickingPointMode === "A");
+      btnPickB.classList.toggle("pick-active", pickingPointMode === "B");
+    }
+
+    function togglePickingPointMode(mode) {
+      pickingPointMode = pickingPointMode === mode ? "" : mode;
+      refreshPickingButtons();
+      if (pickingPointMode) {
+        setStatus("请在读屏预览中点击以设置点" + pickingPointMode + "。", "mid");
+      }
+    }
+
+    function onScreenVideoClick(event) {
+      if (!pickingPointMode) return;
+      if (!screenVideoEl.videoWidth || !screenVideoEl.videoHeight) {
+        setStatus("请先启动读屏，再点击预览设置点位。", "mid");
+        return;
+      }
+
+      const rect = screenVideoEl.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+
+      const xPct = clamp(((event.clientX - rect.left) / rect.width) * 100, 0, 100);
+      const yPct = clamp(((event.clientY - rect.top) / rect.height) * 100, 0, 100);
+      const xEl = pickingPointMode === "A" ? cropX1El : cropX2El;
+      const yEl = pickingPointMode === "A" ? cropY1El : cropY2El;
+
+      xEl.value = xPct.toFixed(2);
+      yEl.value = yPct.toFixed(2);
+      updateScreenOverlayBox();
+      setStatus("已设置点" + pickingPointMode + "：(" + xEl.value + "%, " + yEl.value + "%)", "ok");
+      pickingPointMode = "";
+      refreshPickingButtons();
+    }
+
+    function canvasToBlob(targetCanvas, type) {
+      return new Promise((resolve) => {
+        targetCanvas.toBlob((blob) => resolve(blob || null), type || "image/png");
+      });
+    }
+
+    async function captureScreenCropBlob() {
+      if (!screenFrameCtx) return null;
+      if (!screenVideoEl.videoWidth || !screenVideoEl.videoHeight) return null;
+
+      const sw = screenVideoEl.videoWidth;
+      const sh = screenVideoEl.videoHeight;
+      const { x1, y1, x2, y2 } = getScreenCropPercent();
+
+      const leftPct = Math.min(x1, x2) / 100;
+      const topPct = Math.min(y1, y2) / 100;
+      const widthPct = Math.abs(x2 - x1) / 100;
+      const heightPct = Math.abs(y2 - y1) / 100;
+
+      let sx = Math.floor(leftPct * sw);
+      let sy = Math.floor(topPct * sh);
+      let sWidth = Math.floor(widthPct * sw);
+      let sHeight = Math.floor(heightPct * sh);
+
+      sx = clamp(sx, 0, sw);
+      sy = clamp(sy, 0, sh);
+      sWidth = clamp(sWidth, 1, sw - sx);
+      sHeight = clamp(sHeight, 1, sh - sy);
+      if (sWidth <= 0 || sHeight <= 0) return null;
+
+      screenFrameCanvas.width = sWidth;
+      screenFrameCanvas.height = sHeight;
+      screenFrameCtx.clearRect(0, 0, sWidth, sHeight);
+      screenFrameCtx.drawImage(screenVideoEl, sx, sy, sWidth, sHeight, 0, 0, sWidth, sHeight);
+      return await canvasToBlob(screenFrameCanvas, "image/png");
+    }
+
+    async function onScreenCaptureTick() {
+      if (!screenStream || screenCaptureBusy) return;
+      if (screenVideoEl.readyState < screenVideoEl.HAVE_CURRENT_DATA) return;
+
+      screenCaptureBusy = true;
+      try {
+        const blob = await captureScreenCropBlob();
+        if (!blob) return;
+
+        await loadImageBlob(blob, "", false);
+        if (session) {
+          await processCurrentImage();
+        } else {
+          setStatus("读屏截图中，请先加载模型。", "mid");
+        }
+      } catch (err) {
+        setStatus("读屏帧处理失败: " + err.message, "err");
+      } finally {
+        screenCaptureBusy = false;
+      }
+    }
+
+    async function startScreenCapture() {
+      if (screenStream) return;
+      if (!navigator.mediaDevices || typeof navigator.mediaDevices.getDisplayMedia !== "function") {
+        setStatus("当前环境不支持读屏截图（getDisplayMedia）。", "err");
+        return;
+      }
+
+      const fps = Math.round(clamp(Number(screenFpsEl.value) || 3, 1, 30));
+      screenFpsEl.value = String(fps);
+
+      try {
+        setStatus("正在请求屏幕共享权限...", "mid");
+        const stream = await navigator.mediaDevices.getDisplayMedia({
+          video: {
+            frameRate: { ideal: fps, max: fps },
+            cursor: "never"
+          },
+          audio: false
+        });
+
+        screenStream = stream;
+        screenVideoEl.srcObject = stream;
+        await screenVideoEl.play();
+
+        btnStartScreen.disabled = true;
+        btnStopScreen.disabled = false;
+        updateScreenOverlayBox();
+
+        const intervalMs = Math.max(60, Math.round(1000 / fps));
+        screenCaptureTimer = window.setInterval(() => {
+          void onScreenCaptureTick();
+        }, intervalMs);
+        void onScreenCaptureTick();
+
+        const videoTrack = stream.getVideoTracks && stream.getVideoTracks()[0];
+        if (videoTrack) {
+          videoTrack.onended = () => {
+            stopScreenCapture("屏幕共享已结束。");
+          };
+        }
+        setStatus("读屏已启动，正在持续识别。", "ok");
+      } catch (err) {
+        stopScreenCapture();
+        setStatus("启动读屏失败: " + err.message, "err");
+      }
+    }
+
+    function stopScreenCapture(statusText) {
+      if (screenCaptureTimer !== null) {
+        window.clearInterval(screenCaptureTimer);
+        screenCaptureTimer = null;
+      }
+
+      if (screenStream) {
+        screenStream.getTracks().forEach((t) => {
+          t.onended = null;
+          t.stop();
+        });
+        screenStream = null;
+      }
+
+      if (screenVideoEl.srcObject) {
+        screenVideoEl.srcObject = null;
+      }
+
+      screenCaptureBusy = false;
+      pickingPointMode = "";
+      refreshPickingButtons();
+      btnStartScreen.disabled = false;
+      btnStopScreen.disabled = true;
+      updateScreenOverlayBox();
+
+      if (statusText) {
+        setStatus(statusText, "mid");
+      }
+    }
+
+    function buildImageOnlyWindowHtml() {
+      return `
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>图片窗口</title>
+  <style>
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      overflow: hidden;
+    }
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    img {
+      display: block;
+      max-width: 100vw;
+      max-height: 100vh;
+      object-fit: contain;
+    }
+  </style>
+</head>
+<body>
+  <img id="pureImage" alt="clipboard-image">
+  <script>
+    (function () {
+      var autoTimer = null;
+      var autoBusy = false;
+      var lastClipboardImageFingerprint = "";
+
+      function pickImageBlob(items) {
+        if (!items || !items.length) return null;
+        for (let i = 0; i < items.length; i++) {
+          const it = items[i];
+          if (!it.type || !it.type.startsWith("image/")) continue;
+          const blob = it.getAsFile();
+          if (blob) return blob;
+        }
+        return null;
+      }
+
+      function sendBlobToOpener(blob) {
+        if (!blob) return;
+        if (window.opener && !window.opener.closed && typeof window.opener.handlePopupPastedImage === "function") {
+          window.opener.handlePopupPastedImage(blob);
+        }
+      }
+
+      function isMainAutoClipboardEnabled() {
+        try {
+          if (!window.opener || window.opener.closed || !window.opener.document) return false;
+          var checkbox = window.opener.document.getElementById("autoClipboard");
+          return !!(checkbox && checkbox.checked);
+        } catch (_err) {
+          return false;
+        }
+      }
+
+      function supportsAutoClipboardRead() {
+        return (
+          window.isSecureContext &&
+          navigator.clipboard &&
+          typeof navigator.clipboard.read === "function"
+        );
+      }
+
+      async function queryClipboardReadPermission() {
+        if (!navigator.permissions || typeof navigator.permissions.query !== "function") {
+          return null;
+        }
+        try {
+          var permissionStatus = await navigator.permissions.query({
+            name: "clipboard-read",
+            allowWithoutGesture: false
+          });
+          return permissionStatus && permissionStatus.state ? permissionStatus.state : null;
+        } catch (_err) {
+          return null;
+        }
+      }
+
+      async function buildClipboardImageFingerprint(blob) {
+        try {
+          var head = new Uint8Array(await blob.slice(0, 64).arrayBuffer());
+          var tail = blob.size > 64
+            ? new Uint8Array(await blob.slice(Math.max(0, blob.size - 64)).arrayBuffer())
+            : new Uint8Array(0);
+          var hash = 2166136261;
+          for (var i = 0; i < head.length; i++) {
+            hash ^= head[i];
+            hash = Math.imul(hash, 16777619);
+          }
+          for (var j = 0; j < tail.length; j++) {
+            hash ^= tail[j];
+            hash = Math.imul(hash, 16777619);
+          }
+          return [blob.type || "image", blob.size, (hash >>> 0).toString(16)].join(":");
+        } catch (_err) {
+          return [blob.type || "image", blob.size].join(":");
+        }
+      }
+
+      async function autoReadClipboardImage() {
+        if (!isMainAutoClipboardEnabled() || autoBusy || !supportsAutoClipboardRead()) return;
+        autoBusy = true;
+
+        try {
+          var permissionState = await queryClipboardReadPermission();
+          if (permissionState === "denied") return;
+
+          var clipboardItems = await navigator.clipboard.read();
+          if (!clipboardItems || !clipboardItems.length) return;
+
+          for (var i = 0; i < clipboardItems.length; i++) {
+            var item = clipboardItems[i];
+            var imageType = item.types.find(function (t) {
+              return t.startsWith("image/");
+            });
+            if (!imageType) continue;
+
+            var blob = await item.getType(imageType);
+            var fingerprint = await buildClipboardImageFingerprint(blob);
+            if (fingerprint && fingerprint === lastClipboardImageFingerprint) {
+              return;
+            }
+            lastClipboardImageFingerprint = fingerprint;
+            sendBlobToOpener(blob);
+            return;
+          }
+        } catch (_err) {
+          // 忽略异常，避免弹窗频繁报错；主窗口会继续处理状态展示。
+        } finally {
+          autoBusy = false;
+        }
+      }
+
+      function onAutoClipboardTrigger() {
+        void autoReadClipboardImage();
+      }
+
+      document.addEventListener("paste", async function (event) {
+        const blob = pickImageBlob(event.clipboardData && event.clipboardData.items);
+        if (!blob) return;
+        event.preventDefault();
+        lastClipboardImageFingerprint = await buildClipboardImageFingerprint(blob);
+        sendBlobToOpener(blob);
+      });
+
+      window.addEventListener("focus", onAutoClipboardTrigger);
+      window.addEventListener("click", onAutoClipboardTrigger);
+      autoTimer = window.setInterval(onAutoClipboardTrigger, 1000);
+      onAutoClipboardTrigger();
+      window.addEventListener("beforeunload", function () {
+        if (autoTimer !== null) {
+          window.clearInterval(autoTimer);
+          autoTimer = null;
+        }
+      });
+    })();
+  <\/script>
+</body>
+</html>`.trim();
+    }
+
+    function openImageOnlyWindow() {
+      const features = "popup=yes,width=420,height=720,left=200,top=160";
+      const win = window.open("", IMAGE_ONLY_WINDOW_NAME, features);
+      if (!win) {
+        setStatus("弹窗被浏览器拦截，请允许弹窗后重试。", "err");
+        return null;
+      }
+      win.document.open();
+      win.document.write(buildImageOnlyWindowHtml());
+      win.document.close();
+      imageOnlyWindow = win;
+      return win;
+    }
+
+    function canvasToDataUrl() {
+      try {
+        return canvas.toDataURL("image/png");
+      } catch (_err) {
+        return "";
+      }
+    }
+
+    function syncImageOnlyWindow() {
+      if (!imageOnlyWindow || imageOnlyWindow.closed) return;
+      const imgEl = imageOnlyWindow.document.getElementById("pureImage");
+      if (!imgEl) return;
+      const src = canvasToDataUrl();
+      if (!src) return;
+      imgEl.src = src;
+    }
+
+    function supportsAutoClipboardRead() {
+      return (
+        typeof window !== "undefined" &&
+        window.isSecureContext &&
+        navigator.clipboard &&
+        typeof navigator.clipboard.read === "function"
+      );
+    }
+
+    async function queryClipboardReadPermission() {
+      if (!navigator.permissions || typeof navigator.permissions.query !== "function") {
+        return null;
+      }
+      try {
+        const permissionStatus = await navigator.permissions.query({
+          name: "clipboard-read",
+          allowWithoutGesture: false
+        });
+        return permissionStatus && permissionStatus.state ? permissionStatus.state : null;
+      } catch (_err) {
+        return null;
+      }
+    }
+
+    function startAutoClipboardWatch() {
+      if (!supportsAutoClipboardRead()) {
+        autoClipboardEl.checked = false;
+        setStatus("当前环境不支持自动读取剪贴板图片，请使用 Ctrl+V/Cmd+V 粘贴。", "err");
+        return;
+      }
+      if (autoClipboardTimer !== null) return;
+
+      window.addEventListener("focus", onAutoClipboardTrigger);
+      window.addEventListener("click", onAutoClipboardTrigger);
+      autoClipboardTimer = window.setInterval(onAutoClipboardTrigger, 1000);
+      setStatus("已开启自动剪贴板监听。", "mid");
+      void autoReadClipboardImage();
+    }
+
+    function stopAutoClipboardWatch() {
+      if (autoClipboardTimer !== null) {
+        window.clearInterval(autoClipboardTimer);
+        autoClipboardTimer = null;
+      }
+      window.removeEventListener("focus", onAutoClipboardTrigger);
+      window.removeEventListener("click", onAutoClipboardTrigger);
+      autoClipboardBusy = false;
+      autoClipboardHintShown = false;
+    }
+
+    function onAutoClipboardTrigger() {
+      void autoReadClipboardImage();
+    }
+
+    async function autoReadClipboardImage() {
+      if (!autoClipboardEl.checked || autoClipboardBusy) return;
+      autoClipboardBusy = true;
+
+      try {
+        const permissionState = await queryClipboardReadPermission();
+        if (permissionState === "denied") {
+          setStatus("剪贴板读取权限被拒绝，请在浏览器中开启权限。", "err");
+          autoClipboardEl.checked = false;
+          stopAutoClipboardWatch();
+          return;
+        }
+
+        const clipboardItems = await navigator.clipboard.read();
+        if (!clipboardItems || !clipboardItems.length) return;
+
+        for (const item of clipboardItems) {
+          const imageType = item.types.find((t) => t.startsWith("image/"));
+          if (!imageType) continue;
+
+          const blob = await item.getType(imageType);
+          const fingerprint = await buildClipboardImageFingerprint(blob);
+          if (fingerprint && fingerprint === lastClipboardImageFingerprint) {
+            return;
+          }
+          autoClipboardHintShown = false;
+          await handleClipboardImage(
+            blob,
+            "检测到剪贴板新图片，已自动读取。",
+            "检测到剪贴板图片，请先加载模型。",
+            fingerprint
+          );
+          return;
+        }
+      } catch (err) {
+        if (!autoClipboardEl.checked) return;
+        const permissionErr =
+          err && (err.name === "NotAllowedError" || err.name === "SecurityError");
+        if (permissionErr && !autoClipboardHintShown) {
+          autoClipboardHintShown = true;
+          setStatus("自动监听需要先点击页面以授权剪贴板读取。", "mid");
+        }
+      } finally {
+        autoClipboardBusy = false;
+      }
+    }
+
+    function updateRunButton() {
+      btnRun.disabled = !(session && loadedImage);
+    }
+
+    function bindRangeValueAndRerun(rangeEl, textEl) {
+      const updateText = () => {
+        textEl.textContent = Number(rangeEl.value).toFixed(2);
+      };
+      rangeEl.addEventListener("input", updateText);
+      rangeEl.addEventListener("change", async () => {
+        updateText();
+        await rerunIfReady();
+      });
+      updateText();
+    }
+
+    async function rerunIfReady(waitModelText) {
+      if (session && loadedImage) {
+        await processCurrentImage();
+        return true;
+      }
+      if (waitModelText) {
+        setStatus(waitModelText, "mid");
+      }
+      return false;
+    }
+
+    function setStatus(text, level) {
+      statusEl.textContent = text;
+      statusEl.className = "status " + level;
+    }
+
+    function setWaitingOutputs(text) {
+      const content = text || "正在等待计算...";
+      recognizedEl.textContent = content;
+      calcEl.textContent = content;
+      metaEl.textContent = content;
+    }
+
+    function clearOutputs() {
+      recognizedEl.textContent = "暂无";
+      calcEl.textContent = "暂无";
+      metaEl.textContent = "暂无";
+    }
+
+    function drawBaseImage(img) {
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    }
+
+    function readImageFromFile(file) {
+      return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+          URL.revokeObjectURL(url);
+          resolve(img);
+        };
+        img.onerror = () => {
+          URL.revokeObjectURL(url);
+          reject(new Error("图片解码失败"));
+        };
+        img.src = url;
+      });
+    }
+
+    async function buildClipboardImageFingerprint(blob) {
+      try {
+        const head = new Uint8Array(await blob.slice(0, 64).arrayBuffer());
+        const tail = blob.size > 64
+          ? new Uint8Array(await blob.slice(Math.max(0, blob.size - 64)).arrayBuffer())
+          : new Uint8Array(0);
+        let hash = 2166136261;
+        for (const b of head) {
+          hash ^= b;
+          hash = Math.imul(hash, 16777619);
+        }
+        for (const b of tail) {
+          hash ^= b;
+          hash = Math.imul(hash, 16777619);
+        }
+        return [blob.type || "image", blob.size, (hash >>> 0).toString(16)].join(":");
+      } catch (_err) {
+        return [blob.type || "image", blob.size].join(":");
+      }
+    }
+
+    async function handleClipboardImage(blob, statusText, waitModelText, fingerprint) {
+      await loadImageBlob(blob, statusText);
+      lastClipboardImageFingerprint = fingerprint || await buildClipboardImageFingerprint(blob);
+      await rerunIfReady(waitModelText || "图片已读取，请先加载模型。");
+    }
+
+    async function loadImageBlob(blob, statusText, shouldSetStatus = true) {
+      loadedImage = await readImageFromFile(blob);
+      drawBaseImage(loadedImage);
+      syncImageOnlyWindow();
+      setWaitingOutputs();
+      if (shouldSetStatus && statusText) {
+        setStatus(statusText, "ok");
+      }
+      updateRunButton();
+    }
+
+    async function createSession(modelBuffer) {
+      ort.env.wasm.simd = true;
+      const eps = (typeof navigator !== "undefined" && "gpu" in navigator)
+        ? ["webgpu", "wasm"]
+        : ["wasm"];
+      session = await ort.InferenceSession.create(modelBuffer, {
+        executionProviders: eps,
+        graphOptimizationLevel: "all"
+      });
+    }
+
+    async function processCurrentImage() {
+      if (!session) {
+        setStatus("请先加载模型。", "err");
+        return;
+      }
+      if (!loadedImage) {
+        setStatus("请先粘贴或上传图片。", "err");
+        return;
+      }
+
+      try {
+        setStatus("识别与计算中...", "mid");
+
+        const minConf = Number(minConfEl.value);
+        const iouThreshold = Number(iouEl.value);
+        const maxBoxes = Math.max(20, Number(maxBoxesEl.value) || 180);
+
+        const t0 = performance.now();
+        const prep = preprocessToSquare(loadedImage, MODEL_SIZE);
+        const runOut = await runOnnx(prep.gray, session);
+        const raw = extractCandidates(runOut.data, runOut.type, runOut.dims, prep.padding);
+        const pick = pickDetectionsForHand(raw.candidates, minConf, iouThreshold, maxBoxes);
+
+        if (!pick.ok) {
+          drawDetectionsOverlay(loadedImage, pick.displayDetections || [], []);
+          recognizedEl.textContent = "未能识别到可计算手牌张数（优先 14，其次 11/8/5）。\n" +
+            "已自动降阈到下限后仍不满足，请尝试：\n" +
+            "1) 使用更清晰截图  2) 保证手牌区域完整  3) 调整最低阈值";
+          calcEl.textContent = "无法计算：当前仅支持摸牌后手牌张数 14 / 11 / 8 / 5。";
+          renderMeta(runOut, prep, raw, pick, performance.now() - t0);
+          setStatus(pick.message, "err");
+          return;
+        }
+
+        const ordered = sortDetectionsReadingOrder(pick.handDetections);
+        const handTiles = ordered.map((d) => d.className);
+        const compact = toCompactTileString(handTiles);
+
+        const analysis = analyzeHandTiles(handTiles);
+        drawDetectionsOverlay(loadedImage, pick.displayDetections, analysis.discardTierSets);
+        renderRecognized(handTiles, compact, pick);
+        calcEl.textContent = analysis.text;
+        renderMeta(runOut, prep, raw, pick, performance.now() - t0);
+
+        setStatus(
+          pick.warning ? "已完成（" + pick.warning + "）" : "识别与计算完成。",
+          pick.warning ? "mid" : "ok"
+        );
+      } catch (err) {
+        setStatus("推理失败: " + err.message, "err");
+      }
+    }
+
+    function renderRecognized(handTiles, compact, pick) {
+      const unicodeLine = handTiles.map((t) => tileToUnicode(t)).join("");
+      const indexed = handTiles.map((t, i) => String(i + 1).padStart(2, "0") + ":" + t).join(" ");
+      const lines = [
+        "紧凑: " + compact,
+        "牌码: " + handTiles.join(" "),
+        "字符: " + unicodeLine,
+        "序号: " + indexed,
+        "",
+        "模式: " + (pick.targetCount ? (pick.targetCount + "张（摸牌后）") : "未知"),
+        "阈值: " + pick.usedConf.toFixed(2),
+        "识别张数: " + pick.handDetections.length + " (用于计算)"
+      ];
+      if (pick.warning) {
+        lines.push("提示: " + pick.warning);
+      }
+      recognizedEl.textContent = lines.join("\n");
+    }
+
+    function drawDetectionsOverlay(img, detections, discardTierSets) {
+      drawBaseImage(img);
+      if (!detections || !detections.length) {
+        syncImageOnlyWindow();
+        return;
+      }
+
+      // 统一浅色高亮所有识别到的牌
+      const baseStroke = "rgba(168, 218, 253, 0.95)";
+      const baseFill = "rgba(168, 218, 253, 0.25)";
+
+      ctx.font = "13px Segoe UI";
+      ctx.textBaseline = "top";
+
+      for (const d of detections) {
+        const { w, h } = detectionSize(d);
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = baseStroke;
+        ctx.fillStyle = baseFill;
+        ctx.strokeRect(d.x1, d.y1, w, h);
+        ctx.fillRect(d.x1, d.y1, w, h);
+      }
+
+      const highlightStyles = [
+        {
+          labelPrefix: "BEST",
+          strokeStyle: "rgba(255, 90, 31, 1)",
+          fillStyle: "rgba(255, 90, 31, 0.96)",
+          shadowColor: "rgba(255, 90, 31, 0.85)",
+          lineWidth: 4,
+          shadowBlur: 14
+        },
+        {
+          labelPrefix: "2ND",
+          strokeStyle: "rgba(255, 140, 70, 0.95)",
+          fillStyle: "rgba(255, 140, 70, 0.9)",
+          shadowColor: "rgba(255, 140, 70, 0.55)",
+          lineWidth: 3,
+          shadowBlur: 10
+        },
+        {
+          labelPrefix: "3RD",
+          strokeStyle: "rgba(255, 186, 110, 0.9)",
+          fillStyle: "rgba(255, 186, 110, 0.86)",
+          shadowColor: "rgba(255, 186, 110, 0.35)",
+          lineWidth: 2,
+          shadowBlur: 6
+        }
+      ];
+
+      const tierSets = Array.isArray(discardTierSets) ? discardTierSets.slice(0, 3) : [];
+      const tierMap = new Map();
+      tierSets.forEach((set, tierIdx) => {
+        if (!(set instanceof Set)) return;
+        set.forEach((tile) => {
+          if (!tierMap.has(tile)) tierMap.set(tile, tierIdx);
+        });
+      });
+
+      // 最佳/次佳/第三建议切牌递减高亮
+      if (!tierMap.size) {
+        syncImageOnlyWindow();
+        return;
+      }
+
+      for (const d of detections) {
+        const tierIdx = tierMap.get(d.className);
+        if (tierIdx === undefined) continue;
+        const style = highlightStyles[tierIdx] || highlightStyles[highlightStyles.length - 1];
+
+        const { w, h } = detectionSize(d);
+        ctx.save();
+        ctx.shadowColor = style.shadowColor;
+        ctx.shadowBlur = style.shadowBlur;
+        ctx.lineWidth = style.lineWidth;
+        ctx.strokeStyle = style.strokeStyle;
+        ctx.strokeRect(d.x1, d.y1, w, h);
+        ctx.restore();
+
+        const label = style.labelPrefix + " " + d.className;
+        const tw = ctx.measureText(label).width + 10;
+        const th = 18;
+        const tx = d.x1;
+        const ty = Math.max(0, d.y1 - th - 2);
+
+        ctx.fillStyle = style.fillStyle;
+        ctx.fillRect(tx, ty, tw, th);
+        ctx.fillStyle = "#fff";
+        ctx.fillText(label, tx + 5, ty + 2);
+      }
+      syncImageOnlyWindow();
+    }
+
+    function detectionSize(d) {
+      return { w: d.x2 - d.x1, h: d.y2 - d.y1 };
+    }
+
+    function preprocessToSquare(img, size) {
+      const srcW = img.naturalWidth;
+      const srcH = img.naturalHeight;
+      const scale = size / Math.max(srcW, srcH);
+      const scaledW = Math.round(srcW * scale);
+      const scaledH = Math.round(srcH * scale);
+      const padX = Math.floor((size - scaledW) / 2);
+      const padY = Math.floor((size - scaledH) / 2);
+
+      // 1) 原图灰度 + 对比度拉伸
+      const srcCanvas = document.createElement("canvas");
+      srcCanvas.width = srcW;
+      srcCanvas.height = srcH;
+      const sctx = srcCanvas.getContext("2d", { willReadFrequently: true });
+      sctx.drawImage(img, 0, 0, srcW, srcH);
+
+      const srcData = sctx.getImageData(0, 0, srcW, srcH);
+      const srcRgba = srcData.data;
+      const srcTotal = srcW * srcH;
+      const srcGray = new Uint8Array(srcTotal);
+
+      let minL = 255;
+      let maxL = 0;
+      for (let i = 0, p = 0; i < srcTotal; i++, p += 4) {
+        const r = srcRgba[p];
+        const g = srcRgba[p + 1];
+        const b = srcRgba[p + 2];
+        const lum = Math.round(r * 0.299 + g * 0.587 + b * 0.114);
+        srcGray[i] = lum;
+        if (lum < minL) minL = lum;
+        if (lum > maxL) maxL = lum;
+      }
+
+      if (maxL > minL) {
+        const range = maxL - minL;
+        for (let i = 0; i < srcTotal; i++) {
+          srcGray[i] = Math.max(0, Math.min(255, Math.round((srcGray[i] - minL) * 255 / range)));
+        }
+      }
+
+      const grayCanvas = document.createElement("canvas");
+      grayCanvas.width = srcW;
+      grayCanvas.height = srcH;
+      const gctx = grayCanvas.getContext("2d");
+      const grayImage = gctx.createImageData(srcW, srcH);
+      const grayRgba = grayImage.data;
+      for (let i = 0, p = 0; i < srcTotal; i++, p += 4) {
+        const v = srcGray[i];
+        grayRgba[p] = v;
+        grayRgba[p + 1] = v;
+        grayRgba[p + 2] = v;
+        grayRgba[p + 3] = 255;
+      }
+      gctx.putImageData(grayImage, 0, 0);
+
+      // 2) 缩放 + 黑边填充到 640
+      const tempCanvas = document.createElement("canvas");
+      tempCanvas.width = size;
+      tempCanvas.height = size;
+      const tctx = tempCanvas.getContext("2d", { willReadFrequently: true });
+      tctx.fillStyle = "black";
+      tctx.fillRect(0, 0, size, size);
+      tctx.drawImage(grayCanvas, padX, padY, scaledW, scaledH);
+
+      const imageData = tctx.getImageData(0, 0, size, size);
+      const rgba = imageData.data;
+      const total = size * size;
+      const gray = new Uint8Array(total);
+      for (let i = 0, p = 0; i < total; i++, p += 4) {
+        gray[i] = rgba[p];
+      }
+
+      return {
+        gray,
+        padding: {
+          scale,
+          padX,
+          padY,
+          originWidth: srcW,
+          originHeight: srcH
+        }
+      };
+    }
+
+    async function runOnnx(gray, sess) {
+      const inputNames = Array.isArray(sess.inputNames) ? sess.inputNames : [];
+      const inputMetaMap = sess.inputMetadata || {};
+      const inputName = inputNames[0] || Object.keys(inputMetaMap)[0];
+      if (!inputName) {
+        throw new Error("模型未提供输入节点");
+      }
+
+      const inputMeta = inputMetaMap[inputName] || null;
+      const declaredType = normalizeTensorType(inputMeta && inputMeta.type);
+
+      const candidateTypes = [];
+      if (declaredType) candidateTypes.push(declaredType);
+      if (!candidateTypes.includes("float16")) candidateTypes.push("float16");
+      if (!candidateTypes.includes("float32")) candidateTypes.push("float32");
+
+      let lastErr = null;
+      for (const t of candidateTypes) {
+        if (t !== "float16" && t !== "float32") continue;
+        try {
+          const inputTensor = createInputTensorFromGray(gray, t);
+          const outputs = await sess.run({ [inputName]: inputTensor });
+          const outputName = (Array.isArray(sess.outputNames) && sess.outputNames[0]) || Object.keys(outputs)[0];
+          const out = outputs[outputName];
+          if (!out) {
+            throw new Error("输出节点为空，可用输出: " + Object.keys(outputs).join(","));
+          }
+
+          return {
+            name: outputName,
+            type: normalizeTensorType(out.type) || "float32",
+            dims: out.dims,
+            data: out.data,
+            dataCtor: out.data && out.data.constructor ? out.data.constructor.name : "unknown",
+            inputName,
+            inputType: t,
+            declaredInputType: declaredType || "unknown"
+          };
+        } catch (err) {
+          lastErr = err;
+        }
+      }
+
+      throw new Error(
+        "模型推理失败，无法确定输入类型。declared=" +
+        (declaredType || "unknown") +
+        ", lastError=" +
+        (lastErr && lastErr.message ? lastErr.message : String(lastErr))
+      );
+    }
+
+    function createInputTensorFromGray(gray, inputType) {
+      const hw = MODEL_SIZE * MODEL_SIZE;
+      const tensorSpecByType = {
+        float16: {
+          ortType: "float16",
+          ctor: Uint16Array,
+          toTensorValue: (v) => float32ToFloat16Bits(v)
+        },
+        float32: {
+          ortType: "float32",
+          ctor: Float32Array,
+          toTensorValue: (v) => v
+        }
+      };
+      const spec = tensorSpecByType[inputType];
+      if (!spec) throw new Error("不支持的输入类型: " + inputType);
+
+      const chw = new spec.ctor(3 * hw);
+      for (let i = 0; i < hw; i++) {
+        const value = spec.toTensorValue(gray[i] / 255);
+        chw[i] = value;
+        chw[hw + i] = value;
+        chw[2 * hw + i] = value;
+      }
+      return new ort.Tensor(spec.ortType, chw, [1, 3, MODEL_SIZE, MODEL_SIZE]);
+    }
+
+    function normalizeTensorType(t) {
+      if (!t) return "";
+      if (t.startsWith("tensor(") && t.endsWith(")")) {
+        return t.slice(7, -1);
+      }
+      return t;
+    }
+
+    function tensorValue(arr, type, idx) {
+      const v = arr[idx];
+      if (type === "float16") {
+        if (arr instanceof Uint16Array) {
+          return float16BitsToFloat32(v);
+        }
+        return Number(v);
+      }
+      return Number(v);
+    }
+
+    function yoloToMpsz(code) {
+      return YOLO_TO_MPSZ_MAPPING[code] || code;
+    }
+
+    function isStandardMpszTile(code) {
+      return /^[1-9][mpsz]$/.test(code);
+    }
+
+    function extractCandidates(data, outType, dims, padding) {
+      if (!Array.isArray(dims) || dims.length !== 3) {
+        throw new Error("输出形状异常，预期 [1,C,N] 或 [1,N,C]，实际: " + JSON.stringify(dims));
+      }
+
+      const expectedChannels = 4 + MODEL_CLASS_NAMES.length;
+      const d1 = dims[1];
+      const d2 = dims[2];
+
+      let channels;
+      let anchors;
+      let channelFirst;
+
+      if (d1 === expectedChannels) {
+        channels = d1;
+        anchors = d2;
+        channelFirst = true;
+      } else if (d2 === expectedChannels) {
+        channels = d2;
+        anchors = d1;
+        channelFirst = false;
+      } else {
+        throw new Error(
+          "无法识别输出布局，预期 [1," + expectedChannels + ",N] 或 [1,N," + expectedChannels + "]，实际: " +
+          JSON.stringify(dims)
+        );
+      }
+
+      const at = (c, i) => {
+        if (channelFirst) return tensorValue(data, outType, c * anchors + i);
+        return tensorValue(data, outType, i * channels + c);
+      };
+
+      const candidates = [];
+      let maxScore = Number.NEGATIVE_INFINITY;
+
+      for (let i = 0; i < anchors; i++) {
+        let bestScore = 0;
+        let bestClass = -1;
+
+        for (let c = 0; c < MODEL_CLASS_NAMES.length; c++) {
+          const score = at(4 + c, i);
+          if (score > bestScore) {
+            bestScore = score;
+            bestClass = c;
+          }
+        }
+
+        if (bestScore > maxScore) maxScore = bestScore;
+        if (bestClass < 0) continue;
+
+        const cx = at(0, i);
+        const cy = at(1, i);
+        const w = at(2, i);
+        const h = at(3, i);
+
+        const box = restoreBoxFromModelOutput(cx, cy, w, h, padding);
+        if (!box.valid) continue;
+
+        const yoloClassName = MODEL_CLASS_NAMES[bestClass];
+        const mpszClassName = yoloToMpsz(yoloClassName);
+        if (!isStandardMpszTile(mpszClassName)) {
+          continue;
+        }
+
+        candidates.push({
+          x1: box.x1,
+          y1: box.y1,
+          x2: box.x2,
+          y2: box.y2,
+          score: bestScore,
+          classId: bestClass,
+          className: mpszClassName,
+          rawClassName: yoloClassName
+        });
+      }
+
+      candidates.sort((a, b) => b.score - a.score);
+
+      return {
+        candidates,
+        maxScore: Number.isFinite(maxScore) ? maxScore : 0,
+        anchors,
+        layout: channelFirst ? "[1,C,N]" : "[1,N,C]"
+      };
+    }
+
+    function restoreBoxFromModelOutput(cx, cy, w, h, padding) {
+      const x1 = clamp((cx - w / 2 - padding.padX) / padding.scale, 0, padding.originWidth);
+      const y1 = clamp((cy - h / 2 - padding.padY) / padding.scale, 0, padding.originHeight);
+      const x2 = clamp((cx + w / 2 - padding.padX) / padding.scale, 0, padding.originWidth);
+      const y2 = clamp((cy + h / 2 - padding.padY) / padding.scale, 0, padding.originHeight);
+      return { x1, y1, x2, y2, valid: x2 > x1 && y2 > y1 };
+    }
+
+    function applyThresholdNms(candidates, confThreshold, iouThreshold, maxBoxes) {
+      const selected = [];
+
+      for (const cand of candidates) {
+        if (cand.score < confThreshold) break;
+
+        let keep = true;
+        for (const picked of selected) {
+          if (iou(cand, picked) > iouThreshold) {
+            keep = false;
+            break;
+          }
+        }
+
+        if (keep) {
+          selected.push(cand);
+          if (selected.length >= maxBoxes) break;
+        }
+      }
+
+      return selected;
+    }
+
+    function shouldReplaceDetectionCandidate(currentBest, count, conf, preferUnder) {
+      if (!currentBest) return true;
+      if (preferUnder) {
+        return count > currentBest.count || (count === currentBest.count && conf < currentBest.conf);
+      }
+      return count < currentBest.count || (count === currentBest.count && conf > currentBest.conf);
+    }
+
+    function scanForFallbackPostDrawCount(candidates, fallbackCounts, minThreshold, iouThreshold, maxBoxes) {
+      for (let conf = 0.95; conf >= minThreshold - 1e-9; conf -= 0.01) {
+        const useConf = Number(conf.toFixed(2));
+        const dets = applyThresholdNms(candidates, useConf, iouThreshold, maxBoxes);
+        const count = dets.length;
+        if (fallbackCounts.includes(count)) {
+          return { conf: useConf, dets, targetCount: count };
+        }
+      }
+      return null;
+    }
+
+    function pickDetectionsForHand(candidates, minConf, iouThreshold, maxBoxes) {
+      const minThreshold = clamp(minConf, 0.01, 0.95);
+      const step = 0.01;
+      const fallbackPostDrawCounts = [11, 8, 5];
+
+      let bestUnder = null;
+      let bestOver = null;
+
+      for (let conf = 0.95; conf >= minThreshold - 1e-9; conf -= step) {
+        const useConf = Number(conf.toFixed(2));
+        const dets = applyThresholdNms(candidates, useConf, iouThreshold, maxBoxes);
+        const count = dets.length;
+
+        if (count === 14) {
+          return {
+            ok: true,
+            mode: "exact14",
+            targetCount: 14,
+            usedConf: useConf,
+            handDetections: dets,
+            displayDetections: dets,
+            warning: ""
+          };
+        }
+
+        if (count < 14) {
+          if (shouldReplaceDetectionCandidate(bestUnder, count, useConf, true)) {
+            bestUnder = { conf: useConf, count, dets };
+          }
+        } else {
+          if (shouldReplaceDetectionCandidate(bestOver, count, useConf, false)) {
+            bestOver = { conf: useConf, count, dets };
+          }
+        }
+      }
+
+      if (bestOver) {
+        const hand = bestOver.dets.slice(0, 14);
+        return {
+          ok: true,
+          mode: "trim_over",
+          targetCount: 14,
+          usedConf: bestOver.conf,
+          handDetections: hand,
+          displayDetections: bestOver.dets,
+          warning: "未找到精确14张，已从" + bestOver.count + "张中按置信度取前14张"
+        };
+      }
+
+      const fallbackHit = scanForFallbackPostDrawCount(
+        candidates,
+        fallbackPostDrawCounts,
+        minThreshold,
+        iouThreshold,
+        maxBoxes
+      );
+      if (fallbackHit) {
+        return {
+          ok: true,
+          mode: "fallback_exact_" + fallbackHit.targetCount,
+          targetCount: fallbackHit.targetCount,
+          usedConf: fallbackHit.conf,
+          handDetections: fallbackHit.dets,
+          displayDetections: fallbackHit.dets,
+          warning: "未凑到14张，已降级匹配摸牌后" + fallbackHit.targetCount + "张模式"
+        };
+      }
+
+      if (bestUnder) {
+        return {
+          ok: false,
+          mode: "too_few",
+          usedConf: bestUnder.conf,
+          handDetections: bestUnder.dets,
+          displayDetections: bestUnder.dets,
+          message:
+            "最低阈值 " +
+            minThreshold.toFixed(2) +
+            " 下仅识别到 " +
+            bestUnder.count +
+            " 张，未匹配摸牌后张数 14/11/8/5"
+        };
+      }
+
+      return {
+        ok: false,
+        mode: "none",
+        usedConf: minThreshold,
+        handDetections: [],
+        displayDetections: [],
+        message: "未检测到有效牌框"
+      };
+    }
+
+    function sortDetectionsReadingOrder(detections) {
+      const items = detections.map((d) => {
+        const cy = (d.y1 + d.y2) / 2;
+        const cx = (d.x1 + d.x2) / 2;
+        const h = Math.max(1, d.y2 - d.y1);
+        return { d, cx, cy, h };
+      }).sort((a, b) => a.cy - b.cy);
+
+      const rows = [];
+      for (const item of items) {
+        if (rows.length === 0) {
+          rows.push({ avgY: item.cy, avgH: item.h, items: [item] });
+          continue;
+        }
+
+        const last = rows[rows.length - 1];
+        const threshold = Math.max(10, last.avgH * 0.6);
+        if (Math.abs(item.cy - last.avgY) <= threshold) {
+          last.items.push(item);
+          const n = last.items.length;
+          last.avgY = (last.avgY * (n - 1) + item.cy) / n;
+          last.avgH = (last.avgH * (n - 1) + item.h) / n;
+        } else {
+          rows.push({ avgY: item.cy, avgH: item.h, items: [item] });
+        }
+      }
+
+      return rows
+        .sort((a, b) => a.avgY - b.avgY)
+        .flatMap((row) => row.items.sort((a, b) => a.cx - b.cx).map((it) => it.d));
+    }
+
+    function toCompactTileString(codes) {
+      if (!codes || codes.length === 0) return "";
+      let result = "";
+      let digits = "";
+      let suit = "";
+      const flush = () => {
+        if (!digits || !suit) return;
+        result += digits + suit;
+        digits = "";
+        suit = "";
+      };
+
+      for (const code of codes) {
+        const m = /^([1-9])([mpsz])$/.exec(code);
+        if (!m) {
+          flush();
+          result += code;
+          continue;
+        }
+
+        const d = m[1];
+        const s = m[2];
+        if (!suit || suit === s) {
+          digits += d;
+          suit = s;
+        } else {
+          flush();
+          digits = d;
+          suit = s;
+        }
+      }
+
+      flush();
+      return result;
+    }
+
+    function parseTileCode(tile) {
+      const suit = tile.slice(-1);
+      const rawNum = parseInt(tile.replace(/\D/g, ""), 10);
+      if (!Number.isFinite(rawNum)) return null;
+      return { suit, rawNum };
+    }
+
+    function tileToUnicode(tile) {
+      const parsed = parseTileCode(tile);
+      if (!parsed) return "□";
+      const { suit, rawNum } = parsed;
+      const num = rawNum === 0 ? 5 : rawNum;
+
+      if (suit === "m" && num >= 1 && num <= 9) return String.fromCodePoint(0x1f007 + (num - 1));
+      if (suit === "s" && num >= 1 && num <= 9) return String.fromCodePoint(0x1f010 + (num - 1));
+      if (suit === "p" && num >= 1 && num <= 9) return String.fromCodePoint(0x1f019 + (num - 1));
+      if (suit === "z" && num >= 1 && num <= 7) return String.fromCodePoint(0x1f000 + (num - 1));
+      return "□";
+    }
+
+    function buildDiscardTierSets(entries, maxTiers) {
+      const tiers = [];
+      let currentTotal = null;
+      let currentSet = null;
+
+      for (const entry of entries) {
+        const total = entry.data.totalCount;
+        if (currentTotal !== total) {
+          if (tiers.length >= maxTiers) break;
+          currentTotal = total;
+          currentSet = new Set();
+          tiers.push(currentSet);
+        }
+        currentSet.add(entry.discarded);
+      }
+      return tiers;
+    }
+
+    function analyzeHandTiles(handTiles) {
+      const count = Array.isArray(handTiles) ? handTiles.length : 0;
+      const allowedPostDrawCounts = [14, 11, 8, 5];
+
+      if (!Array.isArray(handTiles) || !allowedPostDrawCounts.includes(count)) {
+        return {
+          text: "无法计算：当前仅支持摸牌后手牌数量 14 / 11 / 8 / 5 张。",
+          bestDiscardSet: new Set(),
+          discardTierSets: []
+        };
+      }
+
+      const tiles34 = convertToTiles34Arr(handTiles);
+      if (tiles34.some((n) => n > 4)) {
+        return {
+          text: "无法计算：存在同一种牌超过 4 张（识别结果异常）。",
+          bestDiscardSet: new Set(),
+          discardTierSets: []
+        };
+      }
+
+      const { shanten, results } = analyzeImprovement(handTiles, tiles34);
+      const entries = getSortedEntries(results);
+
+      const lines = [];
+      lines.push("手牌: " + handTiles.join(" "));
+      lines.push("手牌字符: " + handTiles.map((t) => tileToUnicode(t)).join(""));
+      if (shanten === -1) {
+        lines.push("状态: 和牌");
+      } else if (shanten === 0) {
+        lines.push("状态: 听牌 (0向听)");
+      } else {
+        lines.push("状态: " + shanten + " 向听");
+      }
+      lines.push("");
+
+      const bestDiscardSet = new Set();
+      const discardTierSets = [];
+
+      if (!entries.length) {
+        lines.push("无可降低向听的切牌组合。");
+        return { text: lines.join("\n"), bestDiscardSet, discardTierSets };
+      }
+
+      const topTierSets = buildDiscardTierSets(entries, 3);
+      topTierSets.forEach((set) => discardTierSets.push(set));
+      const topSet = discardTierSets[0] || new Set();
+      topSet.forEach((t) => bestDiscardSet.add(t));
+
+      const bestTotal = entries[0].data.totalCount;
+      const bestTiles = entries.filter((e) => e.data.totalCount === bestTotal).map((e) => e.discarded);
+
+      lines.push("最佳切牌: " + bestTiles.map((t) => t + tileToUnicode(t)).join(" / ") + " (共" + bestTotal + "张)");
+      if (discardTierSets[1] && discardTierSets[1].size) {
+        const secondTiles = [...discardTierSets[1]].sort(tileSortFn);
+        lines.push("次优切牌: " + secondTiles.map((t) => t + tileToUnicode(t)).join(" / "));
+      }
+      if (discardTierSets[2] && discardTierSets[2].size) {
+        const thirdTiles = [...discardTierSets[2]].sort(tileSortFn);
+        lines.push("第三切牌: " + thirdTiles.map((t) => t + tileToUnicode(t)).join(" / "));
+      }
+      lines.push("");
+      lines.push(shanten === 0 ? "听牌列表:" : "进张列表:");
+
+      for (const { discarded, data } of entries) {
+        const improvementText = Object.entries(data.improvements)
+          .sort(([a], [b]) => tileSortFn(a, b))
+          .map(([tile, count]) => tile + tileToUnicode(tile) + "x" + count)
+          .join(" ");
+
+        lines.push(
+          "切 " + discarded + tileToUnicode(discarded) +
+          " -> " + (shanten === 0 ? "听" : "摸") + " " +
+          improvementText +
+          " (共" + data.totalCount + "张)"
+        );
+      }
+
+      return {
+        text: lines.join("\n"),
+        bestDiscardSet,
+        discardTierSets
+      };
+    }
+
+    function renderMeta(runOut, prep, raw, pick, elapsedMs) {
+      const lines = [
+        "input shape: [1,3,640,640]",
+        "input name: " + (runOut.inputName || "unknown"),
+        "input type used: " + (runOut.inputType || "unknown"),
+        "input type declared: " + (runOut.declaredInputType || "unknown"),
+        "output name: " + runOut.name,
+        "output type: " + runOut.type,
+        "output data ctor: " + (runOut.dataCtor || "unknown"),
+        "output dims: " + JSON.stringify(runOut.dims),
+        "layout: " + raw.layout,
+        "anchors: " + raw.anchors,
+        "score max(raw): " + Number(raw.maxScore).toFixed(4),
+        "raw candidate count: " + raw.candidates.length,
+        "threshold mode: " + pick.mode,
+        "threshold used: " + pick.usedConf.toFixed(2),
+        "detections shown: " + (pick.displayDetections ? pick.displayDetections.length : 0),
+        "detections for hand: " + (pick.handDetections ? pick.handDetections.length : 0),
+        "padding scale: " + prep.padding.scale.toFixed(6),
+        "padding (x,y): (" + prep.padding.padX + ", " + prep.padding.padY + ")",
+        "origin (w,h): (" + prep.padding.originWidth + ", " + prep.padding.originHeight + ")",
+        "elapsed: " + elapsedMs.toFixed(2) + " ms"
+      ];
+      metaEl.textContent = lines.join("\n");
+    }
+
+    function clamp(v, lo, hi) {
+      return Math.max(lo, Math.min(hi, v));
+    }
+
+    function iou(a, b) {
+      const x1 = Math.max(a.x1, b.x1);
+      const y1 = Math.max(a.y1, b.y1);
+      const x2 = Math.min(a.x2, b.x2);
+      const y2 = Math.min(a.y2, b.y2);
+      const w = Math.max(0, x2 - x1);
+      const h = Math.max(0, y2 - y1);
+      const inter = w * h;
+      if (inter <= 0) return 0;
+      const areaA = (a.x2 - a.x1) * (a.y2 - a.y1);
+      const areaB = (b.x2 - b.x1) * (b.y2 - b.y1);
+      return inter / (areaA + areaB - inter);
+    }
+
+    function float32ToFloat16Bits(value) {
+      const floatView = new Float32Array(1);
+      const intView = new Uint32Array(floatView.buffer);
+      floatView[0] = value;
+      const x = intView[0];
+      const sign = (x >> 16) & 0x8000;
+      let mantissa = x & 0x007fffff;
+      let exp = (x >> 23) & 0xff;
+
+      if (exp === 0xff) {
+        if (mantissa !== 0) return sign | 0x7e00;
+        return sign | 0x7c00;
+      }
+
+      exp = exp - 127 + 15;
+
+      if (exp >= 0x1f) return sign | 0x7c00;
+
+      if (exp <= 0) {
+        if (exp < -10) return sign;
+        mantissa = (mantissa | 0x00800000) >> (1 - exp);
+        if (mantissa & 0x00001000) mantissa += 0x00002000;
+        return sign | (mantissa >> 13);
+      }
+
+      if (mantissa & 0x00001000) {
+        mantissa += 0x00002000;
+        if (mantissa & 0x00800000) {
+          mantissa = 0;
+          exp += 1;
+          if (exp >= 0x1f) return sign | 0x7c00;
+        }
+      }
+
+      return sign | (exp << 10) | (mantissa >> 13);
+    }
+
+    function float16BitsToFloat32(h) {
+      const sign = (h & 0x8000) ? -1 : 1;
+      const exp = (h >> 10) & 0x1f;
+      const frac = h & 0x03ff;
+
+      if (exp === 0) {
+        if (frac === 0) return sign * 0;
+        return sign * Math.pow(2, -14) * (frac / 1024);
+      }
+      if (exp === 31) {
+        return frac === 0 ? sign * Infinity : NaN;
+      }
+      return sign * Math.pow(2, exp - 15) * (1 + frac / 1024);
+    }
+
+    class Shanten {
+      constructor() {
+        this.AGARI_STATE = -1;
+        this.tiles = [];
+        this.number_melds = 0;
+        this.number_tatsu = 0;
+        this.number_pairs = 0;
+        this.number_jidahai = 0;
+        this.number_characters = 0;
+        this.number_isolated_tiles = 0;
+        this.min_shanten = 0;
+      }
+
+      calculateShanten(tiles34, useChiitoitsu = true, useKokushi = true) {
+        const shantenResults = [this.calculateShantenForRegularHand(tiles34)];
+        if (useChiitoitsu) shantenResults.push(this.calculateShantenForChiitoitsuHand(tiles34));
+        if (useKokushi) shantenResults.push(this.calculateShantenForKokushiHand(tiles34));
+        return Math.min(...shantenResults);
+      }
+
+      calculateShantenForChiitoitsuHand(tiles34) {
+        let pairs = 0;
+        let uniquePairs = 0;
+        for (let i = 0; i < tiles34.length; i++) {
+          if (tiles34[i] >= 2) {
+            pairs++;
+            if (tiles34[i] === 2) uniquePairs++;
+          }
+        }
+
+        if (tiles34.filter((x) => x === 2).length === 4 && tiles34.filter((x) => x === 3).length === 2) return 1;
+        if (tiles34.filter((x) => x === 2).length === 5 && tiles34.filter((x) => x === 4).length === 1) return 1;
+        if (pairs === 7 && uniquePairs === 7) return this.AGARI_STATE;
+        return 6 - pairs;
+      }
+
+      calculateShantenForKokushiHand(tiles34) {
+        const indices = [...TERMINAL_INDICES, ...HONOR_INDICES];
+        let completedTerminals = 0;
+        for (const i of indices) completedTerminals += tiles34[i] >= 2 ? 1 : 0;
+        let terminals = 0;
+        for (const i of indices) terminals += tiles34[i] !== 0 ? 1 : 0;
+        return 13 - terminals - (completedTerminals ? 1 : 0);
+      }
+
+      calculateShantenForRegularHand(tiles34) {
+        tiles34 = [...tiles34];
+        this._init(tiles34);
+
+        const countOfTiles = tiles34.reduce((sum, x) => sum + x, 0);
+        if (countOfTiles > 14) throw new Error("Too many tiles = " + countOfTiles);
+
+        this._removeCharacterTiles(countOfTiles);
+        const initMentsu = Math.floor((14 - countOfTiles) / 3);
+        this._scan(initMentsu);
+
+        return this.min_shanten;
+      }
+
+      _init(tiles) {
+        this.tiles = tiles;
+        this.number_melds = 0;
+        this.number_tatsu = 0;
+        this.number_pairs = 0;
+        this.number_jidahai = 0;
+        this.number_characters = 0;
+        this.number_isolated_tiles = 0;
+        this.min_shanten = 8;
+      }
+
+      _scan(initMentsu) {
+        this.number_characters = 0;
+        for (let i = 0; i < 27; i++) {
+          this.number_characters |= (this.tiles[i] === 4) << i;
+        }
+        this.number_melds += initMentsu;
+        this._run(0);
+      }
+
+      _run(depth) {
+        if (this.min_shanten === this.AGARI_STATE) return;
+
+        while (!this.tiles[depth]) {
+          depth++;
+          if (depth >= 27) break;
+        }
+
+        if (depth >= 27) return this._updateResult();
+
+        let i = depth;
+        if (i > 8) i -= 9;
+        if (i > 8) i -= 9;
+
+        if (this.tiles[depth] === 4) {
+          this._increaseSet(depth);
+          if (i < 7 && this.tiles[depth + 2]) {
+            if (this.tiles[depth + 1]) {
+              this._increaseSyuntsu(depth);
+              this._run(depth + 1);
+              this._decreaseSyuntsu(depth);
+            }
+            this._increaseTatsuSecond(depth);
+            this._run(depth + 1);
+            this._decreaseTatsuSecond(depth);
+          }
+
+          if (i < 8 && this.tiles[depth + 1]) {
+            this._increaseTatsuFirst(depth);
+            this._run(depth + 1);
+            this._decreaseTatsuFirst(depth);
+          }
+
+          this._increaseIsolatedTile(depth);
+          this._run(depth + 1);
+          this._decreaseIsolatedTile(depth);
+          this._decreaseSet(depth);
+          this._increasePair(depth);
+
+          if (i < 7 && this.tiles[depth + 2]) {
+            if (this.tiles[depth + 1]) {
+              this._increaseSyuntsu(depth);
+              this._run(depth);
+              this._decreaseSyuntsu(depth);
+            }
+            this._increaseTatsuSecond(depth);
+            this._run(depth + 1);
+            this._decreaseTatsuSecond(depth);
+          }
+
+          if (i < 8 && this.tiles[depth + 1]) {
+            this._increaseTatsuFirst(depth);
+            this._run(depth + 1);
+            this._decreaseTatsuFirst(depth);
+          }
+
+          this._decreasePair(depth);
+        }
+
+        if (this.tiles[depth] === 3) {
+          this._increaseSet(depth);
+          this._run(depth + 1);
+          this._decreaseSet(depth);
+          this._increasePair(depth);
+
+          if (i < 7 && this.tiles[depth + 1] && this.tiles[depth + 2]) {
+            this._increaseSyuntsu(depth);
+            this._run(depth + 1);
+            this._decreaseSyuntsu(depth);
+          } else {
+            if (i < 7 && this.tiles[depth + 2]) {
+              this._increaseTatsuSecond(depth);
+              this._run(depth + 1);
+              this._decreaseTatsuSecond(depth);
+            }
+
+            if (i < 8 && this.tiles[depth + 1]) {
+              this._increaseTatsuFirst(depth);
+              this._run(depth + 1);
+              this._decreaseTatsuFirst(depth);
+            }
+          }
+
+          this._decreasePair(depth);
+
+          if (i < 7 && this.tiles[depth + 2] >= 2 && this.tiles[depth + 1] >= 2) {
+            this._increaseSyuntsu(depth);
+            this._increaseSyuntsu(depth);
+            this._run(depth);
+            this._decreaseSyuntsu(depth);
+            this._decreaseSyuntsu(depth);
+          }
+        }
+
+        if (this.tiles[depth] === 2) {
+          this._increasePair(depth);
+          this._run(depth + 1);
+          this._decreasePair(depth);
+          if (i < 7 && this.tiles[depth + 2] && this.tiles[depth + 1]) {
+            this._increaseSyuntsu(depth);
+            this._run(depth);
+            this._decreaseSyuntsu(depth);
+          }
+        }
+
+        if (this.tiles[depth] === 1) {
+          if (i < 6 && this.tiles[depth + 1] === 1 && this.tiles[depth + 2] && this.tiles[depth + 3] !== 4) {
+            this._increaseSyuntsu(depth);
+            this._run(depth + 2);
+            this._decreaseSyuntsu(depth);
+          } else {
+            this._increaseIsolatedTile(depth);
+            this._run(depth + 1);
+            this._decreaseIsolatedTile(depth);
+
+            if (i < 7 && this.tiles[depth + 2]) {
+              if (this.tiles[depth + 1]) {
+                this._increaseSyuntsu(depth);
+                this._run(depth + 1);
+                this._decreaseSyuntsu(depth);
+              }
+              this._increaseTatsuSecond(depth);
+              this._run(depth + 1);
+              this._decreaseTatsuSecond(depth);
+            }
+
+            if (i < 8 && this.tiles[depth + 1]) {
+              this._increaseTatsuFirst(depth);
+              this._run(depth + 1);
+              this._decreaseTatsuFirst(depth);
+            }
+          }
+        }
+      }
+
+      _updateResult() {
+        let retShanten = 8 - this.number_melds * 2 - this.number_tatsu - this.number_pairs;
+        let nMentsuKouho = this.number_melds + this.number_tatsu;
+
+        if (this.number_pairs) {
+          nMentsuKouho += this.number_pairs - 1;
+        } else if (this.number_characters && this.number_isolated_tiles) {
+          if ((this.number_characters | this.number_isolated_tiles) === this.number_characters) retShanten += 1;
+        }
+
+        if (nMentsuKouho > 4) retShanten += nMentsuKouho - 4;
+
+        if (retShanten !== this.AGARI_STATE && retShanten < this.number_jidahai) retShanten = this.number_jidahai;
+        if (retShanten < this.min_shanten) this.min_shanten = retShanten;
+      }
+
+      _increaseSet(k) {
+        this.tiles[k] -= 3;
+        this.number_melds += 1;
+      }
+      _decreaseSet(k) {
+        this.tiles[k] += 3;
+        this.number_melds -= 1;
+      }
+      _increasePair(k) {
+        this.tiles[k] -= 2;
+        this.number_pairs += 1;
+      }
+      _decreasePair(k) {
+        this.tiles[k] += 2;
+        this.number_pairs -= 1;
+      }
+      _increaseSyuntsu(k) {
+        this.tiles[k] -= 1;
+        this.tiles[k + 1] -= 1;
+        this.tiles[k + 2] -= 1;
+        this.number_melds += 1;
+      }
+      _decreaseSyuntsu(k) {
+        this.tiles[k] += 1;
+        this.tiles[k + 1] += 1;
+        this.tiles[k + 2] += 1;
+        this.number_melds -= 1;
+      }
+      _increaseTatsuFirst(k) {
+        this.tiles[k] -= 1;
+        this.tiles[k + 1] -= 1;
+        this.number_tatsu += 1;
+      }
+      _decreaseTatsuFirst(k) {
+        this.tiles[k] += 1;
+        this.tiles[k + 1] += 1;
+        this.number_tatsu -= 1;
+      }
+      _increaseTatsuSecond(k) {
+        this.tiles[k] -= 1;
+        this.tiles[k + 2] -= 1;
+        this.number_tatsu += 1;
+      }
+      _decreaseTatsuSecond(k) {
+        this.tiles[k] += 1;
+        this.tiles[k + 2] += 1;
+        this.number_tatsu -= 1;
+      }
+      _increaseIsolatedTile(k) {
+        this.tiles[k] -= 1;
+        this.number_isolated_tiles |= 1 << k;
+      }
+      _decreaseIsolatedTile(k) {
+        this.tiles[k] += 1;
+        this.number_isolated_tiles |= 1 << k;
+      }
+
+      _removeCharacterTiles(nc) {
+        let number = 0;
+        let isolated = 0;
+
+        for (let i = 27; i < 34; i++) {
+          if (this.tiles[i] === 4) {
+            this.number_melds += 1;
+            this.number_jidahai += 1;
+            number |= 1 << (i - 27);
+            isolated |= 1 << (i - 27);
+          }
+          if (this.tiles[i] === 3) this.number_melds += 1;
+          if (this.tiles[i] === 2) this.number_pairs += 1;
+          if (this.tiles[i] === 1) isolated |= 1 << (i - 27);
+        }
+
+        if (this.number_jidahai && nc % 3 === 2) this.number_jidahai -= 1;
+
+        if (isolated) {
+          this.number_isolated_tiles |= 1 << 27;
+          if ((number | isolated) === number) this.number_characters |= 1 << 27;
+        }
+      }
+    }
+
+    const TERMINAL_INDICES = [0, 8, 9, 17, 18, 26];
+    const HONOR_INDICES = [27, 28, 29, 30, 31, 32, 33];
+
+    function tileTo34Index(tile) {
+      const parsed = parseTileCode(tile);
+      if (!parsed) return -1;
+      const { suit, rawNum } = parsed;
+
+      if (suit === "z") {
+        return rawNum >= 1 && rawNum <= 7 ? SUIT_BASE_OFFSET.z + rawNum - 1 : -1;
+      }
+
+      const base = SUIT_BASE_OFFSET[suit];
+      if (base === undefined) return -1;
+      const normalizedNum = rawNum === 0 ? 5 : rawNum;
+      if (normalizedNum < 1 || normalizedNum > 9) return -1;
+      return base + normalizedNum - 1;
+    }
+
+    function convertToTiles34Arr(handTiles) {
+      const tiles34Arr = new Array(34).fill(0);
+
+      for (const tile of handTiles) {
+        const index = tileTo34Index(tile);
+        if (index >= 0) tiles34Arr[index] += 1;
+      }
+
+      return tiles34Arr;
+    }
+
+    function calculateShanten(tiles34Arr) {
+      const shanten = new Shanten();
+      return shanten.calculateShanten(tiles34Arr);
+    }
+
+    function pushCopies(arr, tile, count) {
+      for (let i = 0; i < count; i++) arr.push(tile);
+    }
+
+    function generateTiles() {
+      const tiles = [];
+
+      for (const type of ["m", "p", "s"]) {
+        for (let num = 1; num <= 9; num++) {
+          const tile = String(num) + type;
+          if (num === 5) {
+            pushCopies(tiles, tile, 3);
+            tiles.push("0" + type);
+          } else {
+            pushCopies(tiles, tile, 4);
+          }
+        }
+      }
+
+      for (let num = 1; num <= 7; num++) {
+        pushCopies(tiles, String(num) + "z", 4);
+      }
+
+      return tiles;
+    }
+
+    function analyzeImprovement(currentHand, currentTiles34) {
+      const results = {};
+      const allTiles = generateTiles();
+      const initialCountMap = allTiles.reduce((acc, tile) => {
+        acc[tile] = (acc[tile] || 0) + 1;
+        return acc;
+      }, {});
+
+      for (const tile of currentHand) {
+        initialCountMap[tile] = (initialCountMap[tile] || 0) - 1;
+      }
+
+      const originalShanten = calculateShanten(currentTiles34);
+      const discardCandidates = [...new Set(currentHand)];
+      const availableEntries = Object.entries(initialCountMap).filter(([, count]) => count > 0);
+
+      for (const tileToDiscard of discardCandidates) {
+        const removeAt = currentHand.indexOf(tileToDiscard);
+        const newHand = currentHand.filter((_, i) => i !== removeAt);
+
+        const improvements = {};
+        let totalCount = 0;
+
+        for (const [tile, available] of availableEntries) {
+          const tempHand = [...newHand, tile];
+          const tempTiles34 = convertToTiles34Arr(tempHand);
+          const newShanten = calculateShanten(tempTiles34);
+
+          if (newShanten < originalShanten) {
+            improvements[tile] = available;
+            totalCount += available;
+          }
+        }
+
+        if (totalCount > 0) {
+          results[tileToDiscard] = { improvements, totalCount };
+        }
+      }
+
+      return { shanten: originalShanten, results };
+    }
+
+    function tileSortFn(a, b) {
+      const aParsed = parseTileCode(a) || { suit: a.slice(-1), rawNum: NaN };
+      const bParsed = parseTileCode(b) || { suit: b.slice(-1), rawNum: NaN };
+      const aSortNum = aParsed.rawNum === 0 ? 5.5 : aParsed.rawNum;
+      const bSortNum = bParsed.rawNum === 0 ? 5.5 : bParsed.rawNum;
+
+      if (typeOrder[aParsed.suit] !== typeOrder[bParsed.suit]) {
+        return typeOrder[aParsed.suit] - typeOrder[bParsed.suit];
+      }
+      return aSortNum - bSortNum;
+    }
+
+    function getSortedEntries(resultMap) {
+      return Object.entries(resultMap)
+        .map(([discarded, data]) => ({ discarded, data }))
+        .sort((a, b) => {
+          if (b.data.totalCount !== a.data.totalCount) return b.data.totalCount - a.data.totalCount;
+          return tileSortFn(a.discarded, b.discarded);
+        });
+    }
+
+    window.addEventListener("beforeunload", () => {
+      stopScreenCapture();
+    });
+
+    clearOutputs();
+  </script>
+</body>
+</html>

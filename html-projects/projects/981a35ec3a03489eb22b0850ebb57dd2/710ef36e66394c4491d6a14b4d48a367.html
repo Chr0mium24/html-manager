@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mahjong ONNX Demo</title>
+  <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
+  <style>
+    :root {
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --text: #1b1f2a;
+      --muted: #5f6472;
+      --primary: #2a6ef2;
+      --danger: #c92a2a;
+      --border: #d9dfeb;
+      --ok: #2b8a3e;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 20px;
+      color: var(--text);
+      background: linear-gradient(180deg, #eef2fb 0%, #f8f9fd 100%);
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+
+    .page {
+      max-width: 1180px;
+      margin: 0 auto;
+      display: grid;
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      box-shadow: 0 6px 20px rgba(18, 23, 38, 0.06);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.2;
+    }
+
+    .hint {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+
+    label {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    input[type="text"],
+    input[type="number"],
+    input[type="file"],
+    button {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+      padding: 9px 10px;
+      background: #fff;
+    }
+
+    input[type="range"] {
+      width: 100%;
+    }
+
+    button {
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    button.primary {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      align-items: end;
+      flex-wrap: wrap;
+    }
+
+    .status {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .status.ok { color: var(--ok); }
+    .status.err { color: var(--danger); }
+    .status.mid { color: #c07000; }
+
+    .viewer {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 12px;
+      align-items: start;
+    }
+
+    canvas {
+      width: 100%;
+      height: auto;
+      background: #0f1117;
+      border-radius: 10px;
+      border: 1px solid #272d3b;
+    }
+
+    .side {
+      display: grid;
+      gap: 10px;
+      align-content: start;
+    }
+
+    pre {
+      margin: 0;
+      padding: 10px;
+      font-size: 12px;
+      border-radius: 8px;
+      background: #131722;
+      color: #d8e1ff;
+      white-space: pre-wrap;
+      word-break: break-word;
+      min-height: 84px;
+    }
+
+    .tile-text {
+      margin: 0;
+      padding: 10px;
+      font-size: 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: #1a2233;
+      white-space: pre-wrap;
+      word-break: break-word;
+      min-height: 72px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .result-list {
+      max-height: 360px;
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px;
+      background: #fafbff;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .result-list div {
+      border-bottom: 1px dashed #dfe4f1;
+      padding: 4px 0;
+    }
+
+    .result-list div:last-child {
+      border-bottom: 0;
+    }
+
+    .map-list {
+      max-height: 300px;
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #fbfcff;
+      padding: 6px;
+      display: grid;
+      gap: 4px;
+    }
+
+    .map-row {
+      border: 1px solid #d9e0ef;
+      background: #fff;
+      border-radius: 6px;
+      padding: 6px 8px;
+      font-size: 12px;
+      cursor: pointer;
+      line-height: 1.4;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .map-row:hover {
+      background: #eef4ff;
+      border-color: #b4c7f6;
+    }
+
+    .map-row.active {
+      background: #d9e7ff;
+      border-color: #4d7fe8;
+    }
+
+    @media (max-width: 980px) {
+      .grid,
+      .viewer {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="card">
+      <h1>Mahjong ONNX 单页 Demo</h1>
+      <div class="hint">仅支持本地模型文件加载；支持全局 <code>Ctrl+V</code>（macOS 可用 <code>Cmd+V</code>）粘贴图片。</div>
+    </section>
+
+    <section class="card">
+      <div class="grid">
+        <div class="field" style="grid-column: 1 / -1;">
+          <label for="modelFile">上传 ONNX 文件（本地）</label>
+          <input id="modelFile" type="file" accept=".onnx">
+        </div>
+      </div>
+
+      <div class="grid" style="margin-top: 10px;">
+        <div class="field">
+          <label for="imageFile">输入图片</label>
+          <input id="imageFile" type="file" accept="image/*">
+        </div>
+        <div class="field">
+          <label for="conf">置信度阈值 <span id="confText">0.50</span></label>
+          <input id="conf" type="range" min="0.1" max="0.95" step="0.01" value="0.5">
+        </div>
+      </div>
+
+      <div class="grid" style="margin-top: 10px;">
+        <div class="field">
+          <label for="iou">NMS IoU 阈值 <span id="iouText">0.30</span></label>
+          <input id="iou" type="range" min="0.05" max="0.9" step="0.01" value="0.3">
+        </div>
+        <div class="field">
+          <label for="maxBoxes">最多显示框数</label>
+          <input id="maxBoxes" type="number" min="1" max="300" step="1" value="120">
+        </div>
+      </div>
+
+      <div class="actions" style="margin-top: 12px;">
+        <button id="btnLoadFile">加载本地模型</button>
+        <button id="btnRun" class="primary" disabled>运行推理</button>
+        <span id="status" class="status mid">请先加载模型。</span>
+      </div>
+    </section>
+
+    <section class="card viewer">
+      <canvas id="canvas" width="960" height="540"></canvas>
+      <div class="side">
+        <div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:6px;">推理信息</div>
+          <pre id="meta">暂无</pre>
+        </div>
+        <div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:6px;">检测结果</div>
+          <div class="result-list" id="results"></div>
+        </div>
+        <div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:6px;">牌型字符</div>
+          <pre class="tile-text" id="tileText">暂无</pre>
+        </div>
+        <div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:6px;">字符-位置映射（点击高亮）</div>
+          <div class="map-list" id="mapList">暂无</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const CLASS_NAMES = [
+      "1m", "1p", "1s",
+      "2m", "2p", "2s",
+      "3m", "3p", "3s",
+      "4m", "4p", "4s",
+      "5m", "5p", "5s",
+      "6m", "6p", "6s",
+      "7m", "7p", "7s",
+      "8m", "8p", "8s",
+      "9m", "9p", "9s",
+      "7z", "5z", "6z", "2z", "4z", "3z", "1z"
+    ];
+
+    const MODEL_SIZE = 640;
+    let session = null;
+    let loadedImage = null;
+
+    const modelFileEl = document.getElementById("modelFile");
+    const imageFileEl = document.getElementById("imageFile");
+    const confEl = document.getElementById("conf");
+    const iouEl = document.getElementById("iou");
+    const confTextEl = document.getElementById("confText");
+    const iouTextEl = document.getElementById("iouText");
+    const maxBoxesEl = document.getElementById("maxBoxes");
+    const btnLoadFile = document.getElementById("btnLoadFile");
+    const btnRun = document.getElementById("btnRun");
+    const statusEl = document.getElementById("status");
+    const metaEl = document.getElementById("meta");
+    const resultsEl = document.getElementById("results");
+    const tileTextEl = document.getElementById("tileText");
+    const mapListEl = document.getElementById("mapList");
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    let latestDetections = [];
+    let orderedDetections = [];
+    let selectedMapIndex = -1;
+
+    confEl.addEventListener("input", () => {
+      confTextEl.textContent = Number(confEl.value).toFixed(2);
+    });
+    iouEl.addEventListener("input", () => {
+      iouTextEl.textContent = Number(iouEl.value).toFixed(2);
+    });
+
+    imageFileEl.addEventListener("change", async () => {
+      const f = imageFileEl.files && imageFileEl.files[0];
+      if (!f) return;
+      await loadImageBlob(f, "图片已加载，可以运行推理。");
+    });
+
+    btnLoadFile.addEventListener("click", async () => {
+      const f = modelFileEl.files && modelFileEl.files[0];
+      if (!f) {
+        setStatus("请先选择 ONNX 文件。", "err");
+        return;
+      }
+      try {
+        setStatus("正在从文件加载模型...", "mid");
+        const modelBuffer = await f.arrayBuffer();
+        await createSession(modelBuffer);
+        setStatus("模型加载成功。", "ok");
+      } catch (err) {
+        setStatus("模型加载失败: " + err.message, "err");
+      }
+      updateRunBtn();
+    });
+
+    document.addEventListener("paste", async (event) => {
+      const items = event.clipboardData && event.clipboardData.items;
+      if (!items || !items.length) return;
+
+      for (let i = 0; i < items.length; i++) {
+        const it = items[i];
+        if (!it.type || !it.type.startsWith("image/")) continue;
+        const blob = it.getAsFile();
+        if (!blob) continue;
+        event.preventDefault();
+        await loadImageBlob(blob, "已从剪贴板粘贴图片，可以运行推理。");
+        break;
+      }
+    });
+
+    btnRun.addEventListener("click", async () => {
+      if (!session || !loadedImage) return;
+      try {
+        setStatus("推理中...", "mid");
+        const confThreshold = Number(confEl.value);
+        const iouThreshold = Number(iouEl.value);
+        const maxBoxes = Math.max(1, Number(maxBoxesEl.value) || 120);
+
+        const t0 = performance.now();
+        const prep = preprocessToSquare(loadedImage, MODEL_SIZE);
+        const runOut = await runOnnx(prep.gray, session);
+        const decoded = decodeYoloOutput(
+          runOut.data,
+          runOut.type,
+          runOut.dims,
+          prep.padding,
+          confThreshold,
+          iouThreshold,
+          maxBoxes
+        );
+        const detections = decoded.detections;
+        const t1 = performance.now();
+
+        latestDetections = detections;
+        selectedMapIndex = -1;
+        drawDetections(loadedImage, detections);
+        renderResults(detections);
+        orderedDetections = renderTileText(detections);
+        renderCharMap(orderedDetections);
+        renderMeta(runOut, prep, t1 - t0, decoded);
+
+        setStatus("推理完成。检测到 " + detections.length + " 个目标。", "ok");
+      } catch (err) {
+        setStatus("推理失败: " + err.message, "err");
+      }
+    });
+
+    function updateRunBtn() {
+      btnRun.disabled = !(session && loadedImage);
+    }
+
+    function setStatus(text, level) {
+      statusEl.textContent = text;
+      statusEl.className = "status " + level;
+    }
+
+    async function createSession(modelBuffer) {
+      ort.env.wasm.simd = true;
+      const eps = (typeof navigator !== "undefined" && "gpu" in navigator)
+        ? ["webgpu", "wasm"]
+        : ["wasm"];
+      session = await ort.InferenceSession.create(modelBuffer, {
+        executionProviders: eps,
+        graphOptimizationLevel: "all"
+      });
+      updateRunBtn();
+    }
+
+    function readImageFromFile(file) {
+      return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+          URL.revokeObjectURL(url);
+          resolve(img);
+        };
+        img.onerror = () => {
+          URL.revokeObjectURL(url);
+          reject(new Error("图片解码失败"));
+        };
+        img.src = url;
+      });
+    }
+
+    async function loadImageBlob(blob, statusText) {
+      loadedImage = await readImageFromFile(blob);
+      drawBaseImage(loadedImage);
+      setStatus(statusText, "ok");
+      updateRunBtn();
+    }
+
+    function drawBaseImage(img) {
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    }
+
+    function preprocessToSquare(img, size) {
+      const srcW = img.naturalWidth;
+      const srcH = img.naturalHeight;
+      const scale = size / Math.max(srcW, srcH);
+      const scaledW = Math.round(srcW * scale);
+      const scaledH = Math.round(srcH * scale);
+      const padX = Math.floor((size - scaledW) / 2);
+      const padY = Math.floor((size - scaledH) / 2);
+
+      // step1: 在原图尺寸做灰度 + 对比度拉伸（与 App 逻辑一致）
+      const srcCanvas = document.createElement("canvas");
+      srcCanvas.width = srcW;
+      srcCanvas.height = srcH;
+      const sctx = srcCanvas.getContext("2d", { willReadFrequently: true });
+      sctx.drawImage(img, 0, 0, srcW, srcH);
+
+      const srcData = sctx.getImageData(0, 0, srcW, srcH);
+      const srcRgba = srcData.data;
+      const srcTotal = srcW * srcH;
+      const srcGray = new Uint8Array(srcTotal);
+
+      let minL = 255;
+      let maxL = 0;
+      for (let i = 0, p = 0; i < srcTotal; i++, p += 4) {
+        const r = srcRgba[p];
+        const g = srcRgba[p + 1];
+        const b = srcRgba[p + 2];
+        const lum = Math.round(r * 0.299 + g * 0.587 + b * 0.114);
+        srcGray[i] = lum;
+        if (lum < minL) minL = lum;
+        if (lum > maxL) maxL = lum;
+      }
+
+      if (maxL > minL) {
+        const range = maxL - minL;
+        for (let i = 0; i < srcTotal; i++) {
+          srcGray[i] = Math.max(0, Math.min(255, Math.round((srcGray[i] - minL) * 255 / range)));
+        }
+      }
+
+      const grayCanvas = document.createElement("canvas");
+      grayCanvas.width = srcW;
+      grayCanvas.height = srcH;
+      const gctx = grayCanvas.getContext("2d");
+      const grayImage = gctx.createImageData(srcW, srcH);
+      const grayRgba = grayImage.data;
+      for (let i = 0, p = 0; i < srcTotal; i++, p += 4) {
+        const v = srcGray[i];
+        grayRgba[p] = v;
+        grayRgba[p + 1] = v;
+        grayRgba[p + 2] = v;
+        grayRgba[p + 3] = 255;
+      }
+      gctx.putImageData(grayImage, 0, 0);
+
+      // step2: 缩放并黑边填充到 640x640
+      const tempCanvas = document.createElement("canvas");
+      tempCanvas.width = size;
+      tempCanvas.height = size;
+      const tctx = tempCanvas.getContext("2d", { willReadFrequently: true });
+      tctx.fillStyle = "black";
+      tctx.fillRect(0, 0, size, size);
+      tctx.drawImage(grayCanvas, padX, padY, scaledW, scaledH);
+
+      const imageData = tctx.getImageData(0, 0, size, size);
+      const rgba = imageData.data;
+      const total = size * size;
+      const gray = new Uint8Array(total);
+      for (let i = 0, p = 0; i < total; i++, p += 4) {
+        gray[i] = rgba[p];
+      }
+
+      return {
+        gray,
+        padding: {
+          scale,
+          padX,
+          padY,
+          originWidth: srcW,
+          originHeight: srcH
+        }
+      };
+    }
+
+    async function runOnnx(gray, sess) {
+      const inputNames = Array.isArray(sess.inputNames) ? sess.inputNames : [];
+      const inputMetaMap = sess.inputMetadata || {};
+      const inputName = inputNames[0] || Object.keys(inputMetaMap)[0];
+      if (!inputName) {
+        throw new Error("模型未提供输入节点");
+      }
+
+      const inputMeta = inputMetaMap[inputName] || null;
+      const declaredType = normalizeTensorType(inputMeta && inputMeta.type);
+
+      const candidateTypes = [];
+      if (declaredType) candidateTypes.push(declaredType);
+      if (!candidateTypes.includes("float16")) candidateTypes.push("float16");
+      if (!candidateTypes.includes("float32")) candidateTypes.push("float32");
+
+      let lastErr = null;
+      for (const t of candidateTypes) {
+        if (t !== "float16" && t !== "float32") continue;
+        try {
+          const inputTensor = createInputTensorFromGray(gray, t);
+          const outputs = await sess.run({ [inputName]: inputTensor });
+          const outputName =
+            (Array.isArray(sess.outputNames) && sess.outputNames[0])
+            || Object.keys(outputs)[0];
+          const out = outputs[outputName];
+          if (!out) {
+            throw new Error("输出节点为空，可用输出: " + Object.keys(outputs).join(","));
+          }
+          return {
+            name: outputName,
+            type: normalizeTensorType(out.type) || "float32",
+            dims: out.dims,
+            data: out.data,
+            dataCtor: out.data && out.data.constructor ? out.data.constructor.name : "unknown",
+            inputName,
+            inputType: t,
+            declaredInputType: declaredType || "unknown"
+          };
+        } catch (err) {
+          lastErr = err;
+        }
+      }
+
+      throw new Error(
+        "模型推理失败，无法确定输入类型。declared=" +
+        (declaredType || "unknown") +
+        ", lastError=" +
+        (lastErr && lastErr.message ? lastErr.message : String(lastErr))
+      );
+    }
+
+    function createInputTensorFromGray(gray, inputType) {
+      const hw = MODEL_SIZE * MODEL_SIZE;
+
+      if (inputType === "float16") {
+        const chw = new Uint16Array(3 * hw);
+        for (let i = 0; i < hw; i++) {
+          const v = gray[i] / 255;
+          const h = float32ToFloat16Bits(v);
+          chw[i] = h;
+          chw[hw + i] = h;
+          chw[2 * hw + i] = h;
+        }
+        return new ort.Tensor("float16", chw, [1, 3, MODEL_SIZE, MODEL_SIZE]);
+      }
+
+      if (inputType === "float32") {
+        const chw = new Float32Array(3 * hw);
+        for (let i = 0; i < hw; i++) {
+          const v = gray[i] / 255;
+          chw[i] = v;
+          chw[hw + i] = v;
+          chw[2 * hw + i] = v;
+        }
+        return new ort.Tensor("float32", chw, [1, 3, MODEL_SIZE, MODEL_SIZE]);
+      }
+
+      throw new Error("不支持的输入类型: " + inputType);
+    }
+
+    function normalizeTensorType(t) {
+      if (!t) return "";
+      if (t.startsWith("tensor(") && t.endsWith(")")) {
+        return t.slice(7, -1);
+      }
+      return t;
+    }
+
+    function decodeYoloOutput(data, outType, dims, padding, confThreshold, iouThreshold, maxBoxes) {
+      if (!Array.isArray(dims) || dims.length !== 3) {
+        throw new Error("输出形状异常，预期 [1, C, N]，实际: " + JSON.stringify(dims));
+      }
+
+      const expectedChannels = 4 + CLASS_NAMES.length;
+      const d1 = dims[1];
+      const d2 = dims[2];
+
+      let channels;
+      let anchors;
+      let channelFirst;
+      if (d1 === expectedChannels) {
+        channels = d1;
+        anchors = d2;
+        channelFirst = true;   // [1, C, N]
+      } else if (d2 === expectedChannels) {
+        channels = d2;
+        anchors = d1;
+        channelFirst = false;  // [1, N, C]
+      } else {
+        throw new Error(
+          "无法识别输出布局，预期 [1, " + expectedChannels + ", N] 或 [1, N, " + expectedChannels + "]，实际: " +
+          JSON.stringify(dims)
+        );
+      }
+
+      const at = (c, i) => {
+        if (channelFirst) return tensorValue(data, outType, c * anchors + i);
+        return tensorValue(data, outType, i * channels + c);
+      };
+
+      if (channels < expectedChannels) {
+        throw new Error("输出通道不足，预期至少 " + expectedChannels + "，实际 " + channels);
+      }
+
+      const boxes = [];
+      let maxScoreAll = Number.NEGATIVE_INFINITY;
+      for (let i = 0; i < anchors; i++) {
+        let bestScore = 0;
+        let bestClass = -1;
+
+        for (let c = 0; c < CLASS_NAMES.length; c++) {
+          const score = at(4 + c, i);
+          if (score > bestScore) {
+            bestScore = score;
+            bestClass = c;
+          }
+        }
+        if (bestScore > maxScoreAll) maxScoreAll = bestScore;
+
+        if (bestScore < confThreshold) continue;
+
+        const cx = at(0, i);
+        const cy = at(1, i);
+        const w = at(2, i);
+        const h = at(3, i);
+
+        let x1 = (cx - w / 2 - padding.padX) / padding.scale;
+        let y1 = (cy - h / 2 - padding.padY) / padding.scale;
+        let x2 = (cx + w / 2 - padding.padX) / padding.scale;
+        let y2 = (cy + h / 2 - padding.padY) / padding.scale;
+
+        x1 = clamp(x1, 0, padding.originWidth);
+        y1 = clamp(y1, 0, padding.originHeight);
+        x2 = clamp(x2, 0, padding.originWidth);
+        y2 = clamp(y2, 0, padding.originHeight);
+
+        if (x2 <= x1 || y2 <= y1) continue;
+
+        boxes.push({
+          x1,
+          y1,
+          x2,
+          y2,
+          score: bestScore,
+          classId: bestClass,
+          className: CLASS_NAMES[bestClass]
+        });
+      }
+
+      boxes.sort((a, b) => b.score - a.score);
+      const picked = [];
+      const used = new Uint8Array(boxes.length);
+
+      for (let i = 0; i < boxes.length && picked.length < maxBoxes; i++) {
+        if (used[i]) continue;
+        const bi = boxes[i];
+        picked.push(bi);
+        for (let j = i + 1; j < boxes.length; j++) {
+          if (used[j]) continue;
+          const ov = iou(bi, boxes[j]);
+          if (ov > iouThreshold) used[j] = 1;
+        }
+      }
+
+      return {
+        detections: picked,
+        maxScore: Number.isFinite(maxScoreAll) ? maxScoreAll : 0,
+        preNmsCount: boxes.length,
+        anchors
+      };
+    }
+
+    function tensorValue(arr, type, idx) {
+      const v = arr[idx];
+      if (type === "float16") {
+        // onnxruntime-web 在不同 EP/版本下，float16 输出可能是 Uint16Array(半精度位模式)
+        // 也可能已经是 Float32Array（已解码为 JS float）。这里按真实数组类型处理。
+        if (arr instanceof Uint16Array) {
+          return float16BitsToFloat32(v);
+        }
+        return Number(v);
+      }
+      return Number(v);
+    }
+
+    function clamp(v, lo, hi) {
+      return Math.max(lo, Math.min(hi, v));
+    }
+
+    function iou(a, b) {
+      const x1 = Math.max(a.x1, b.x1);
+      const y1 = Math.max(a.y1, b.y1);
+      const x2 = Math.min(a.x2, b.x2);
+      const y2 = Math.min(a.y2, b.y2);
+      const w = Math.max(0, x2 - x1);
+      const h = Math.max(0, y2 - y1);
+      const inter = w * h;
+      if (inter <= 0) return 0;
+      const areaA = (a.x2 - a.x1) * (a.y2 - a.y1);
+      const areaB = (b.x2 - b.x1) * (b.y2 - b.y1);
+      return inter / (areaA + areaB - inter);
+    }
+
+    function drawDetections(img, detections) {
+      drawBaseImage(img);
+
+      ctx.lineWidth = 2;
+      ctx.font = "15px Segoe UI";
+      ctx.textBaseline = "top";
+
+      for (let i = 0; i < detections.length; i++) {
+        const d = detections[i];
+        const color = hslColor(d.classId);
+
+        ctx.strokeStyle = color;
+        ctx.strokeRect(d.x1, d.y1, d.x2 - d.x1, d.y2 - d.y1);
+
+        const text = d.className + " " + (d.score * 100).toFixed(1) + "%";
+        const tw = ctx.measureText(text).width + 10;
+        const th = 20;
+        const tx = d.x1;
+        const ty = Math.max(0, d.y1 - th);
+
+        ctx.fillStyle = color;
+        ctx.fillRect(tx, ty, tw, th);
+        ctx.fillStyle = "#fff";
+        ctx.fillText(text, tx + 5, ty + 3);
+      }
+    }
+
+    function drawHighlight(det, orderIndex) {
+      if (!det) return;
+      ctx.save();
+      ctx.strokeStyle = "#ffd43b";
+      ctx.lineWidth = 4;
+      ctx.strokeRect(det.x1, det.y1, det.x2 - det.x1, det.y2 - det.y1);
+
+      const label = "#" + String(orderIndex + 1).padStart(2, "0") + " " + det.className;
+      ctx.font = "bold 15px Segoe UI";
+      const w = ctx.measureText(label).width + 10;
+      const h = 22;
+      const x = det.x1;
+      const y = Math.max(0, det.y1 - h - 2);
+      ctx.fillStyle = "#ffd43b";
+      ctx.fillRect(x, y, w, h);
+      ctx.fillStyle = "#1f1f1f";
+      ctx.fillText(label, x + 5, y + 4);
+      ctx.restore();
+    }
+
+    function hslColor(seed) {
+      const hue = (seed * 137.508) % 360;
+      return "hsl(" + hue.toFixed(1) + ", 80%, 50%)";
+    }
+
+    function renderResults(detections) {
+      resultsEl.innerHTML = "";
+      if (detections.length === 0) {
+        const empty = document.createElement("div");
+        empty.textContent = "无目标";
+        resultsEl.appendChild(empty);
+        tileTextEl.textContent = "无目标";
+        mapListEl.textContent = "无目标";
+        return;
+      }
+      detections.forEach((d, idx) => {
+        const row = document.createElement("div");
+        row.textContent =
+          String(idx + 1).padStart(3, "0") +
+          "  " + d.className +
+          "  " + (d.score * 100).toFixed(1).padStart(6, " ") + "%" +
+          "  [" + d.x1.toFixed(1) + ", " + d.y1.toFixed(1) + ", " + d.x2.toFixed(1) + ", " + d.y2.toFixed(1) + "]";
+        resultsEl.appendChild(row);
+      });
+    }
+
+    function renderTileText(detections) {
+      if (!detections || detections.length === 0) {
+        tileTextEl.textContent = "无目标";
+        return [];
+      }
+
+      const rows = groupDetectionsByRows(detections);
+      const codeRows = rows.map((row) => row.map((d) => d.className).join(" "));
+      const unicodeRows = rows.map((row) => row.map((d) => tileToUnicode(d.className)).join(""));
+      const ordered = rows.flat();
+      const compact = toCompactTileString(ordered.map((d) => d.className));
+      const indexed = ordered.map((d, i) => String(i + 1).padStart(2, "0") + ":" + d.className).join(" ");
+
+      const lines = [];
+      lines.push("紧凑: " + compact);
+      lines.push("");
+      lines.push("序号:");
+      lines.push(indexed);
+      lines.push("");
+      lines.push("牌码:");
+      lines.push(codeRows.join("\n"));
+      lines.push("");
+      lines.push("字符:");
+      lines.push(unicodeRows.join("\n"));
+      tileTextEl.textContent = lines.join("\n");
+      return ordered;
+    }
+
+    function renderCharMap(ordered) {
+      mapListEl.innerHTML = "";
+      if (!ordered || ordered.length === 0) {
+        mapListEl.textContent = "无目标";
+        return;
+      }
+
+      ordered.forEach((d, idx) => {
+        const row = document.createElement("div");
+        row.className = "map-row";
+        row.dataset.idx = String(idx);
+        const w = d.x2 - d.x1;
+        const h = d.y2 - d.y1;
+        row.textContent =
+          "#" + String(idx + 1).padStart(2, "0") +
+          "  " + d.className + " " + tileToUnicode(d.className) +
+          "  (" + (d.score * 100).toFixed(1) + "%)" +
+          "  x=" + d.x1.toFixed(1) +
+          " y=" + d.y1.toFixed(1) +
+          " w=" + w.toFixed(1) +
+          " h=" + h.toFixed(1);
+        row.addEventListener("click", () => {
+          selectedMapIndex = idx;
+          drawDetections(loadedImage, latestDetections);
+          drawHighlight(orderedDetections[selectedMapIndex], selectedMapIndex);
+          syncMapActiveRow();
+        });
+        mapListEl.appendChild(row);
+      });
+    }
+
+    function syncMapActiveRow() {
+      const rows = mapListEl.querySelectorAll(".map-row");
+      rows.forEach((row) => {
+        const idx = Number(row.dataset.idx);
+        row.classList.toggle("active", idx === selectedMapIndex);
+      });
+    }
+
+    function toCompactTileString(codes) {
+      if (!codes || codes.length === 0) return "";
+      let result = "";
+      let digits = "";
+      let suit = "";
+
+      for (const code of codes) {
+        const m = /^([1-9])([mpsz])$/.exec(code);
+        if (!m) {
+          if (digits && suit) {
+            result += digits + suit;
+            digits = "";
+            suit = "";
+          }
+          result += code;
+          continue;
+        }
+
+        const d = m[1];
+        const s = m[2];
+        if (!suit || suit === s) {
+          digits += d;
+          suit = s;
+        } else {
+          result += digits + suit;
+          digits = d;
+          suit = s;
+        }
+      }
+
+      if (digits && suit) {
+        result += digits + suit;
+      }
+      return result;
+    }
+
+    function groupDetectionsByRows(detections) {
+      const items = detections.map((d) => {
+        const cy = (d.y1 + d.y2) / 2;
+        const cx = (d.x1 + d.x2) / 2;
+        const h = Math.max(1, d.y2 - d.y1);
+        return { d, cx, cy, h };
+      }).sort((a, b) => a.cy - b.cy);
+
+      const rows = [];
+      for (const item of items) {
+        if (rows.length === 0) {
+          rows.push({ avgY: item.cy, avgH: item.h, items: [item] });
+          continue;
+        }
+
+        const last = rows[rows.length - 1];
+        const threshold = Math.max(10, last.avgH * 0.6);
+        if (Math.abs(item.cy - last.avgY) <= threshold) {
+          last.items.push(item);
+          const n = last.items.length;
+          last.avgY = (last.avgY * (n - 1) + item.cy) / n;
+          last.avgH = (last.avgH * (n - 1) + item.h) / n;
+        } else {
+          rows.push({ avgY: item.cy, avgH: item.h, items: [item] });
+        }
+      }
+
+      return rows
+        .sort((a, b) => a.avgY - b.avgY)
+        .map((row) => row.items.sort((a, b) => a.cx - b.cx).map((it) => it.d));
+    }
+
+    function tileToUnicode(code) {
+      const map = {
+        "1m": "🀇", "2m": "🀈", "3m": "🀉", "4m": "🀊", "5m": "🀋", "6m": "🀌", "7m": "🀍", "8m": "🀎", "9m": "🀏",
+        "1p": "🀙", "2p": "🀚", "3p": "🀛", "4p": "🀜", "5p": "🀝", "6p": "🀞", "7p": "🀟", "8p": "🀠", "9p": "🀡",
+        "1s": "🀐", "2s": "🀑", "3s": "🀒", "4s": "🀓", "5s": "🀔", "6s": "🀕", "7s": "🀖", "8s": "🀗", "9s": "🀘",
+        "1z": "🀀", "2z": "🀁", "3z": "🀂", "4z": "🀃", "5z": "🀆", "6z": "🀅", "7z": "🀄"
+      };
+      return map[code] || code;
+    }
+
+    function renderMeta(runOut, prep, elapsedMs, decoded) {
+      const lines = [];
+      lines.push("input shape: [1, 3, 640, 640]");
+      lines.push("input name: " + (runOut.inputName || "unknown"));
+      lines.push("input type used: " + (runOut.inputType || "unknown"));
+      lines.push("input type declared: " + (runOut.declaredInputType || "unknown"));
+      lines.push("output name: " + runOut.name);
+      lines.push("output type: " + runOut.type);
+      lines.push("output data ctor: " + (runOut.dataCtor || "unknown"));
+      lines.push("output dims: " + JSON.stringify(runOut.dims));
+      lines.push("class count: " + CLASS_NAMES.length);
+      lines.push("padding scale: " + prep.padding.scale.toFixed(6));
+      lines.push("padding (x,y): (" + prep.padding.padX + ", " + prep.padding.padY + ")");
+      lines.push("origin (w,h): (" + prep.padding.originWidth + ", " + prep.padding.originHeight + ")");
+      if (decoded) {
+        lines.push("score max(raw): " + Number(decoded.maxScore).toFixed(4));
+        lines.push("boxes >= conf(before nms): " + decoded.preNmsCount);
+        lines.push("anchors: " + decoded.anchors);
+      }
+      lines.push("elapsed: " + elapsedMs.toFixed(2) + " ms");
+      metaEl.textContent = lines.join("\n");
+    }
+
+    function float32ToFloat16Bits(value) {
+      const floatView = new Float32Array(1);
+      const intView = new Uint32Array(floatView.buffer);
+      floatView[0] = value;
+      const x = intView[0];
+      const sign = (x >> 16) & 0x8000;
+      let mantissa = x & 0x007fffff;
+      let exp = (x >> 23) & 0xff;
+
+      if (exp === 0xff) {
+        if (mantissa !== 0) return sign | 0x7e00;
+        return sign | 0x7c00;
+      }
+
+      exp = exp - 127 + 15;
+
+      if (exp >= 0x1f) {
+        return sign | 0x7c00;
+      }
+
+      if (exp <= 0) {
+        if (exp < -10) return sign;
+        mantissa = (mantissa | 0x00800000) >> (1 - exp);
+        if (mantissa & 0x00001000) mantissa += 0x00002000;
+        return sign | (mantissa >> 13);
+      }
+
+      if (mantissa & 0x00001000) {
+        mantissa += 0x00002000;
+        if (mantissa & 0x00800000) {
+          mantissa = 0;
+          exp += 1;
+          if (exp >= 0x1f) {
+            return sign | 0x7c00;
+          }
+        }
+      }
+
+      return sign | (exp << 10) | (mantissa >> 13);
+    }
+
+    function float16BitsToFloat32(h) {
+      const sign = (h & 0x8000) ? -1 : 1;
+      const exp = (h >> 10) & 0x1f;
+      const frac = h & 0x03ff;
+
+      if (exp === 0) {
+        if (frac === 0) return sign * 0;
+        return sign * Math.pow(2, -14) * (frac / 1024);
+      }
+
+      if (exp === 31) {
+        return frac === 0 ? sign * Infinity : NaN;
+      }
+
+      return sign * Math.pow(2, exp - 15) * (1 + frac / 1024);
+    }
+
+    setStatus("请先加载模型。", "mid");
+  </script>
+</body>
+</html>

@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lean 4 抽象代数道场 (AI Powered)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/lean.min.js"></script>
+
+    <style>
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        
+        .lean-editor {
+            font-family: 'Fira Code', 'Consolas', monospace;
+            tab-size: 4;
+            line-height: 1.5;
+        }
+        /* Markdown 样式覆盖 */
+        .prose h1 { font-size: 1.25rem; font-weight: bold; margin-bottom: 0.5rem; color: #e2e8f0; }
+        .prose h2 { font-size: 1.1rem; font-weight: bold; margin-top: 1rem; margin-bottom: 0.5rem; color: #e2e8f0; }
+        .prose p { margin-bottom: 0.5rem; color: #cbd5e1; }
+        .prose code { background-color: #334155; padding: 2px 4px; border-radius: 4px; color: #fbbf24; }
+        .prose pre { background-color: #1e293b; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-200 h-screen flex flex-col overflow-hidden font-sans">
+
+    <div id="apiKeyModal" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center hidden">
+        <div class="bg-slate-800 p-8 rounded-lg shadow-2xl w-full max-w-md border border-slate-700">
+            <h2 class="text-xl font-bold mb-4 text-sky-400">配置 Gemini API</h2>
+            <p class="text-sm text-slate-400 mb-4">
+                请输入您的 Google Gemini API Key 以启用 AI 功能。<br>
+                Key 将仅存储在您的本地浏览器中。
+            </p>
+            <input type="password" id="apiKeyInput" placeholder="在此粘贴 API Key" 
+                   class="w-full bg-slate-900 border border-slate-700 rounded p-3 text-white focus:outline-none focus:border-sky-500 mb-4">
+            <button onclick="saveApiKey()" class="w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-2 px-4 rounded transition">
+                开始学习
+            </button>
+        </div>
+    </div>
+
+    <header class="h-14 bg-slate-950 border-b border-slate-800 flex items-center justify-between px-6 shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="w-6 h-6 bg-sky-500 rounded-sm transform rotate-45"></div>
+            <h1 class="text-lg font-bold tracking-wide">Lean 4 <span class="text-sky-400">Algebra Dojo</span></h1>
+        </div>
+        <div class="flex items-center gap-4">
+            <button onclick="clearData()" class="text-xs text-red-400 hover:text-red-300 underline">清除本地数据</button>
+            <div class="text-xs text-slate-500" id="apiStatus">API Key: 未设置</div>
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden">
+        
+        <aside class="w-64 bg-slate-900 border-r border-slate-800 flex flex-col shrink-0">
+            <div class="p-4 border-b border-slate-800">
+                <h2 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">目录章节</h2>
+            </div>
+            <div id="chapterList" class="flex-1 overflow-y-auto p-2 space-y-1">
+                </div>
+        </aside>
+
+        <main class="flex-1 flex flex-col min-w-0">
+            
+            <div class="h-16 bg-slate-800/50 border-b border-slate-800 flex items-center justify-between px-6 shrink-0">
+                <div>
+                    <h2 id="currentTopicDisplay" class="text-lg font-medium text-white">请选择左侧章节</h2>
+                    <p id="currentSubTopicDisplay" class="text-xs text-slate-400">等待开始...</p>
+                </div>
+                <div class="flex gap-3">
+                    <button id="btnGenerate" onclick="generateProblem()" disabled 
+                            class="bg-emerald-600/20 text-emerald-400 border border-emerald-600/50 hover:bg-emerald-600/30 px-4 py-2 rounded text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        生成/重置命题
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex-1 flex overflow-hidden">
+                
+                <div class="flex-1 flex flex-col border-r border-slate-800 min-w-0">
+                    <div id="problemDescription" class="h-1/3 bg-slate-900 p-6 overflow-y-auto border-b border-slate-800 prose prose-invert max-w-none">
+                        <p class="text-slate-500 italic">选择章节并点击“生成命题”以开始练习。</p>
+                    </div>
+                    
+                    <div class="flex-1 bg-slate-950 flex flex-col relative group">
+                        <div class="absolute top-0 right-0 p-2 z-10">
+                            <button onclick="runSimulation()" class="bg-sky-600 hover:bg-sky-500 text-white text-xs px-3 py-1.5 rounded shadow-lg flex items-center gap-1 transition">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                运行 / 验证 (Run)
+                            </button>
+                        </div>
+                        <div class="flex-1 relative">
+                            <textarea id="leanCodeInput" class="lean-editor w-full h-full bg-transparent text-slate-300 p-4 resize-none focus:outline-none z-0" spellcheck="false"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="w-96 bg-slate-900 flex flex-col shrink-0">
+                    <div class="p-3 border-b border-slate-800 bg-slate-900/50 flex justify-between items-center">
+                        <span class="text-xs font-bold text-slate-400 uppercase">终端 / AI 反馈</span>
+                        <span id="loadingIndicator" class="hidden text-xs text-yellow-400 animate-pulse">AI 思考中...</span>
+                    </div>
+                    <div id="consoleOutput" class="flex-1 p-4 overflow-y-auto font-mono text-sm space-y-4">
+                        <div class="text-slate-600">ready...</div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // --- 1. Data Structure: Abstract Algebra Syllabus ---
+        const algebraStructure = {
+            "group_theory": {
+                title: "群论 (Group Theory)",
+                chapters: [
+                    "群的定义与基本性质 (Definitions & Properties)",
+                    "子群 (Subgroups)",
+                    "循环群 (Cyclic Groups)",
+                    "置换群 (Permutation Groups)",
+                    "陪集与拉格朗日定理 (Cosets & Lagrange's Thm)",
+                    "正规子群与商群 (Normal Subgroups & Quotients)",
+                    "群同态与同构定理 (Homomorphisms & Isomorphism Thms)"
+                ]
+            },
+            "ring_theory": {
+                title: "环论 (Ring Theory)",
+                chapters: [
+                    "环的定义 (Definitions)",
+                    "整环与域 (Integral Domains & Fields)",
+                    "理想与商环 (Ideals & Quotient Rings)",
+                    "环同态 (Ring Homomorphisms)",
+                    "多项式环 (Polynomial Rings)",
+                    "唯一分解整环 (UFDs)"
+                ]
+            },
+            "field_theory": {
+                title: "域论 (Field Theory)",
+                chapters: [
+                    "域扩张 (Field Extensions)",
+                    "分裂域 (Splitting Fields)",
+                    "伽罗瓦理论基础 (Basics of Galois Theory)"
+                ]
+            }
+        };
+
+        // --- 2. State Management ---
+        let state = {
+            apiKey: localStorage.getItem('lean_dojo_apikey') || null,
+            currentTopicKey: null,
+            currentSubTopic: null,
+            history: JSON.parse(localStorage.getItem('lean_dojo_history') || '[]')
+        };
+
+        // --- 3. UI Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            checkApiKey();
+            renderSidebar();
+            restoreLastSession();
+        });
+
+        function checkApiKey() {
+            if (!state.apiKey) {
+                document.getElementById('apiKeyModal').classList.remove('hidden');
+                document.getElementById('apiStatus').innerText = "API Key: 未设置";
+            } else {
+                document.getElementById('apiStatus').innerText = "API Key: 已就绪";
+            }
+        }
+
+        function saveApiKey() {
+            const input = document.getElementById('apiKeyInput').value.trim();
+            if (input) {
+                state.apiKey = input;
+                localStorage.setItem('lean_dojo_apikey', input);
+                document.getElementById('apiKeyModal').classList.add('hidden');
+                checkApiKey();
+            }
+        }
+
+        function clearData() {
+            if(confirm("确定要清除 API Key 和所有历史记录吗？")) {
+                localStorage.removeItem('lean_dojo_apikey');
+                localStorage.removeItem('lean_dojo_history');
+                location.reload();
+            }
+        }
+
+        function renderSidebar() {
+            const list = document.getElementById('chapterList');
+            list.innerHTML = '';
+
+            for (const [key, section] of Object.entries(algebraStructure)) {
+                // Section Header
+                const sectionHeader = document.createElement('div');
+                sectionHeader.className = "px-3 py-2 mt-2 text-xs font-bold text-sky-500 truncate";
+                sectionHeader.innerText = section.title;
+                list.appendChild(sectionHeader);
+
+                // Chapters
+                section.chapters.forEach(chapter => {
+                    const btn = document.createElement('button');
+                    btn.className = "w-full text-left px-3 py-1.5 text-sm text-slate-400 hover:bg-slate-800 hover:text-white rounded transition truncate";
+                    btn.innerText = chapter;
+                    btn.onclick = () => selectTopic(key, chapter);
+                    list.appendChild(btn);
+                });
+            }
+        }
+
+        function selectTopic(topicKey, subTopic) {
+            state.currentTopicKey = topicKey;
+            state.currentSubTopic = subTopic;
+            
+            document.getElementById('currentTopicDisplay').innerText = algebraStructure[topicKey].title;
+            document.getElementById('currentSubTopicDisplay').innerText = subTopic;
+            document.getElementById('btnGenerate').disabled = false;
+            
+            // Clear editor if switching topics drastically, or load from history if implemented
+            logConsole(`已选择: ${subTopic}`);
+        }
+
+        // --- 4. Gemini API Interaction ---
+
+        async function callGemini(prompt, systemInstruction = "") {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${state.apiKey}`;
+            
+            const payload = {
+                contents: [{
+                    parts: [{ text: systemInstruction + "\n\n" + prompt }]
+                }]
+            };
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                if (data.error) throw new Error(data.error.message);
+                return data.candidates[0].content.parts[0].text;
+            } catch (error) {
+                console.error("API Error:", error);
+                throw error;
+            }
+        }
+
+        // --- 5. Core Logic: Generate Problem ---
+
+        async function generateProblem() {
+            if (!state.currentSubTopic) return;
+            
+            setLoading(true);
+            logConsole("正在生成新的 Lean 4 命题...");
+
+            const systemPrompt = `你是一个 Lean 4 定理证明助手。你的任务是为抽象代数学习者生成 Lean 4 的练习题。
+            请严格按照 JSON 格式返回，不要包含 markdown 代码块标记。
+            格式要求:
+            {
+                "title": "命题标题",
+                "descriptionMarkdown": "数学描述 (可以使用 LaTeX)",
+                "initialCode": "Lean 4 代码模板 (包含 import, variable, theorem声明, 和 := by sorry)"
+            }`;
+
+            const userPrompt = `请为章节 "${state.currentSubTopic}" (属于 ${algebraStructure[state.currentTopicKey].title}) 生成一个适合初学者的 Lean 4 证明题。
+            确保代码可以编译（假设有 Mathlib）。
+            如果是群论，通常需要 import Mathlib.Algebra.Group.Basic
+            确保 initialCode 以 'sorry' 结尾，留给用户填空。`;
+
+            try {
+                let rawText = await callGemini(userPrompt, systemPrompt);
+                // Clean markdown code blocks if present
+                rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+                
+                const problemData = JSON.parse(rawText);
+                
+                // Update UI
+                renderProblem(problemData);
+                
+                // Save to state
+                state.currentProblem = problemData;
+                saveHistory();
+                logConsole("命题生成成功！");
+
+            } catch (e) {
+                logConsole(`生成失败: ${e.message}`, 'error');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        function renderProblem(data) {
+            const descEl = document.getElementById('problemDescription');
+            descEl.innerHTML = marked.parse(`## ${data.title}\n\n${data.descriptionMarkdown}`);
+            
+            const editor = document.getElementById('leanCodeInput');
+            editor.value = data.initialCode;
+        }
+
+        // --- 6. Core Logic: Simulation (Run/Check) ---
+
+        async function runSimulation() {
+            const code = document.getElementById('leanCodeInput').value;
+            if (!code.trim()) return;
+
+            setLoading(true);
+            logConsole("正在编译并验证证明...", 'info');
+
+            const systemPrompt = `你是一个严格的 Lean 4 编译器模拟器。
+            用户会提交一段 Lean 代码。你需要判断这段代码在逻辑上和语法上是否正确，尤其是证明部分。
+            
+            请返回严格的 JSON 格式 (无 Markdown):
+            {
+                "status": "success" | "error",
+                "message": "编译器输出信息",
+                "feedback": "针对用户的详细解释或纠错建议"
+            }
+            
+            如果代码里还有 'sorry'，status 必须是 error，message 提示 'proof contains sorry'。
+            如果逻辑错误，详细说明哪一步 tactic 错了。`;
+
+            const userPrompt = `请验证以下 Lean 4 代码，背景是抽象代数章节 ${state.currentSubTopic}:
+            
+            \`\`\`lean
+            ${code}
+            \`\`\``;
+
+            try {
+                let rawText = await callGemini(userPrompt, systemPrompt);
+                rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+                
+                const result = JSON.parse(rawText);
+                
+                if (result.status === 'success') {
+                    logConsole(`Goals accomplished! 🎉\n${result.message}`, 'success');
+                    logConsole(`AI 点评: ${result.feedback}`, 'success');
+                } else {
+                    logConsole(`Error: ${result.message}`, 'error');
+                    logConsole(`建议: ${result.feedback}`, 'warning');
+                }
+
+            } catch (e) {
+                logConsole(`验证服务错误: ${e.message}`, 'error');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        // --- 7. Utilities ---
+
+        function setLoading(isLoading) {
+            const indicator = document.getElementById('loadingIndicator');
+            if (isLoading) indicator.classList.remove('hidden');
+            else indicator.classList.add('hidden');
+        }
+
+        function logConsole(text, type = 'info') {
+            const consoleEl = document.getElementById('consoleOutput');
+            const entry = document.createElement('div');
+            
+            const timestamp = new Date().toLocaleTimeString();
+            let colorClass = "text-slate-300";
+            if (type === 'error') colorClass = "text-red-400";
+            if (type === 'success') colorClass = "text-emerald-400";
+            if (type === 'warning') colorClass = "text-yellow-400";
+
+            entry.className = `border-l-2 pl-2 text-sm ${type === 'error' ? 'border-red-500' : 'border-slate-600'}`;
+            entry.innerHTML = `<span class="text-xs text-slate-600">[${timestamp}]</span> <span class="${colorClass}">${text.replace(/\n/g, '<br>')}</span>`;
+            
+            consoleEl.appendChild(entry);
+            consoleEl.scrollTop = consoleEl.scrollHeight;
+        }
+
+        function saveHistory() {
+            // Save just the latest context for simplicity in this demo
+            const sessionData = {
+                currentTopicKey: state.currentTopicKey,
+                currentSubTopic: state.currentSubTopic,
+                currentProblem: state.currentProblem,
+                currentCode: document.getElementById('leanCodeInput').value
+            };
+            localStorage.setItem('lean_dojo_last_session', JSON.stringify(sessionData));
+        }
+
+        function restoreLastSession() {
+            const saved = localStorage.getItem('lean_dojo_last_session');
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    if (data.currentTopicKey && data.currentSubTopic) {
+                        selectTopic(data.currentTopicKey, data.currentSubTopic);
+                        if (data.currentProblem) {
+                            renderProblem(data.currentProblem);
+                            // If user had edited code, restore that instead of template
+                            if (data.currentCode) {
+                                document.getElementById('leanCodeInput').value = data.currentCode;
+                            }
+                            logConsole("已恢复上次的学习进度");
+                        }
+                    }
+                } catch (e) {
+                    console.error("Failed to restore session", e);
+                }
+            }
+        }
+
+        // Auto-save code on input
+        document.getElementById('leanCodeInput').addEventListener('input', () => {
+            saveHistory();
+        });
+
+    </script>
+</body>
+</html>

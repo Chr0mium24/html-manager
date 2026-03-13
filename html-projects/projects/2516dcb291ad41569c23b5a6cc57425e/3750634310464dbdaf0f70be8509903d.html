@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>制袋公式实时计算 - 彩色高亮版</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+            max-width: 950px;
+            margin: 40px auto;
+            padding: 30px 40px;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.06);
+            line-height: 2.4;
+            font-size: 1.15em;
+        }
+        
+        /* 颜色分类系统 */
+        .c-dim { color: #1976d2; font-weight: bold; }   /* 蓝色：尺寸 */
+        .c-area { color: #8e24aa; font-weight: bold; }  /* 紫色：面积/重量 */
+        .c-price { color: #f57c00; font-weight: bold; } /* 橙色：单价/成本 */
+        .c-fee { color: #00897b; font-weight: bold; }   /* 青色：杂费/系数 */
+        .c-final { color: #d32f2f; font-weight: bold; } /* 红色：最终/强调 */
+
+        input, select {
+            width: 70px;
+            padding: 2px 5px;
+            margin: 0 4px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #fafafa;
+            font-size: 1em;
+            text-align: center;
+            outline: none;
+            color: #333;
+            transition: all 0.3s;
+        }
+        input:focus, select:focus {
+            background-color: #fff;
+            border-color: #1976d2;
+            box-shadow: 0 0 5px rgba(25,118,210,0.2);
+        }
+        input::placeholder {
+            color: #bbb;
+            font-weight: normal;
+        }
+        select {
+            width: auto;
+            cursor: pointer;
+        }
+        .result {
+            color: #d32f2f;
+            font-weight: bold;
+            min-width: 60px;
+            display: inline-block;
+            border-bottom: 2px dashed #ffcdd2;
+            text-align: center;
+            padding: 0 5px;
+            margin: 0 5px;
+        }
+        .formula-row {
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .formula-row:last-child {
+            border-bottom: none;
+            background-color: #fffde7;
+            padding: 15px;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="calculator">
+        <div class="formula-row">
+            1. 布料长 = <span class="c-dim">高</span><input type="number" id="h" placeholder="30"> × 2 + <span class="c-dim">侧边</span><input type="number" id="side1" placeholder="10"> + 6.5 = <span class="result" id="resL"></span>
+        </div>
+        
+        <div class="formula-row">
+            2. 布料宽 = <span class="c-dim">横宽</span><input type="number" id="w" placeholder="40"> + <span class="c-dim">侧边</span><input type="number" id="side2" placeholder="10"> + 1.5 = <span class="result" id="resW"></span>
+        </div>
+        
+        <div class="formula-row">
+            3. 总面积 = (<span class="c-dim">布料长</span> <span class="result" id="valL"></span> × <span class="c-dim">布料宽</span> <span class="result" id="valW"></span>) = <span class="result c-area" id="resArea"></span>
+        </div>
+        
+        <div class="formula-row">
+            4. 布料成本：单个袋子重量(kg) = <span class="c-area">总面积</span> <span class="result" id="valArea1"></span> × <span class="c-price">克重</span><input type="number" id="gsm" placeholder="80"> × <span class="c-price">布料单价</span><input type="number" id="fabricPrice" placeholder="10"> = <span class="result c-price" id="resFabricCost"></span>
+        </div>
+        
+        <div class="formula-row">
+            5. 彩印成本：彩印面积(m²) = ((<span class="c-dim">布料长</span> <span class="result" id="valL2"></span> - <span class="c-dim">彩印扣减</span><input type="number" id="printDeduct" placeholder="2">) × <span class="c-dim">布料宽</span> <span class="result" id="valW2"></span>) × <span class="c-price">彩印单价</span><input type="number" id="printPrice" placeholder="1.5"> = <span class="result c-price" id="resPrintCost"></span>
+        </div>
+        
+        <div class="formula-row" style="font-size: 1.1em;">
+            6. 最终单价 = (<span class="c-price">布料总价</span> <span class="result" id="valFabricCost"></span> + <span class="c-price">彩印总价</span> <span class="result" id="valPrintCost"></span> + <span class="c-fee">加工费</span><input type="number" id="processFee" placeholder="0.2"> + <span class="c-fee">打包费</span><input type="number" id="packFee" placeholder="0.05">) × 
+            <span class="c-fee">系数</span><select id="multiplier">
+                <option value="" selected disabled>选系数</option>
+                <option value="1.01">1.01</option>
+                <option value="1.075">1.075</option>
+                <option value="1">1</option>
+            </select>
+             = <span class="result c-final" id="resFinal" style="font-size: 1.4em;"></span>
+        </div>
+    </div>
+
+    <script>
+        const inputs = document.querySelectorAll('input, select');
+        const side1 = document.getElementById('side1');
+        const side2 = document.getElementById('side2');
+
+        // 双向同步侧边数据
+        side1.addEventListener('input', (e) => { side2.value = e.target.value; calculate(); });
+        side2.addEventListener('input', (e) => { side1.value = e.target.value; calculate(); });
+
+        // 监听输入
+        inputs.forEach(input => {
+            if(input.id !== 'side1' && input.id !== 'side2') {
+                input.addEventListener('input', calculate);
+            }
+        });
+
+        function calculate() {
+            const getVal = (id) => {
+                const val = document.getElementById(id).value;
+                return val === '' ? NaN : parseFloat(val);
+            };
+
+            const h = getVal('h');
+            const w = getVal('w');
+            const side = getVal('side1');
+            const gsm = getVal('gsm');
+            const fabricPrice = getVal('fabricPrice');
+            const printDeduct = getVal('printDeduct');
+            const printPrice = getVal('printPrice');
+            const processFee = getVal('processFee');
+            const packFee = getVal('packFee');
+            const multiplier = getVal('multiplier');
+
+            // 1. 布料长
+            let L = NaN;
+            if (!isNaN(h) && !isNaN(side)) {
+                L = h * 2 + side + 6.5;
+                document.getElementById('resL').innerText = L;
+                document.getElementById('valL').innerText = L;
+                document.getElementById('valL2').innerText = L;
+            } else {
+                document.getElementById('resL').innerText = '';
+                document.getElementById('valL').innerText = '';
+                document.getElementById('valL2').innerText = '';
+            }
+
+            // 2. 布料宽
+            let W = NaN;
+            if (!isNaN(w) && !isNaN(side)) {
+                W = w + side + 1.5;
+                document.getElementById('resW').innerText = W;
+                document.getElementById('valW').innerText = W;
+                document.getElementById('valW2').innerText = W;
+            } else {
+                document.getElementById('resW').innerText = '';
+                document.getElementById('valW').innerText = '';
+                document.getElementById('valW2').innerText = '';
+            }
+
+            // 3. 总面积
+            let Area = NaN;
+            if (!isNaN(L) && !isNaN(W)) {
+                Area = L * W/10000;
+                document.getElementById('resArea').innerText = Area;
+                document.getElementById('valArea1').innerText = Area;
+            } else {
+                document.getElementById('resArea').innerText = '';
+                document.getElementById('valArea1').innerText = '';
+            }
+
+            // 4. 布料成本
+            let FabricCost = NaN;
+            if (!isNaN(Area) && !isNaN(gsm) && !isNaN(fabricPrice)) {
+                FabricCost = Area * gsm * fabricPrice;
+                document.getElementById('resFabricCost').innerText = FabricCost;
+                document.getElementById('valFabricCost').innerText = FabricCost;
+            } else {
+                document.getElementById('resFabricCost').innerText = '';
+                document.getElementById('valFabricCost').innerText = '';
+            }
+
+            // 5. 彩印成本
+            let PrintCost = NaN;
+            if (!isNaN(L) && !isNaN(W) && !isNaN(printDeduct) && !isNaN(printPrice)) {
+                PrintCost = ((L - printDeduct) * W) * printPrice;
+                document.getElementById('resPrintCost').innerText = PrintCost;
+                document.getElementById('valPrintCost').innerText = PrintCost;
+            } else {
+                document.getElementById('resPrintCost').innerText = '';
+                document.getElementById('valPrintCost').innerText = '';
+            }
+
+            // 6. 最终单价
+            let Final = NaN;
+            if (!isNaN(FabricCost) && !isNaN(PrintCost) && !isNaN(processFee) && !isNaN(packFee) && !isNaN(multiplier)) {
+                Final = (FabricCost + PrintCost + processFee + packFee) * multiplier;
+                document.getElementById('resFinal').innerText = Final.toFixed(4); 
+            } else {
+                document.getElementById('resFinal').innerText = '';
+            }
+        }
+    </script>
+</body>
+</html>

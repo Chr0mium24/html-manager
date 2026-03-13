@@ -1,40 +1,978 @@
 {
   "version": 1,
-  "updated_at": "2026-03-13T07:42:18.612Z",
+  "updated_at": "2026-03-13T08:05:30.464Z",
   "projects": [
     {
-      "id": "93a9c8464ee0461e959cafafb71141f5",
-      "name": "俄罗斯轮盘赌",
-      "description": "俄罗斯轮盘赌 抽取花色 (梅花, 方片, 红桃) 俄罗斯轮盘赌 你敢扣动扳机吗？ 添加玩家",
+      "id": "fc1670b3052847a5aa800cea4aa02e39",
+      "name": "Lab3 图片上传与打包",
+      "description": "Lab3 图片上传与打包 Lab 3 图片上传与 ZIP 导出 按预设文件名上传图片，数据保存在浏览器 IndexedDB(localForage) 。关闭页面后再次打开仍可继续。 下载 ZIP 设置图片列表 清空全部图片 导出本地备份(JSON) 导入备份(JSON) 实验 目标文件名 说明 预览 状态 操作 图片列",
       "icon": "📁",
-      "created_at": "2026-03-13T07:41:55.316Z",
-      "updated_at": "2026-03-13T07:41:55.316Z",
+      "created_at": "2026-03-13T08:01:44.978Z",
+      "updated_at": "2026-03-13T08:01:44.983Z",
       "versions": [
         {
-          "id": "c405bc6459cd43989b54cb8756b01b97",
-          "display_name": "b4ae9449b7c94aef9a58544a9d00cded.html",
-          "original_filename": "b4ae9449b7c94aef9a58544a9d00cded.html",
-          "created_at": "2026-03-13T07:41:55.316Z",
-          "path": "html-projects/projects/93a9c8464ee0461e959cafafb71141f5/versions/c405bc6459cd43989b54cb8756b01b97.html",
-          "sha": "4f133aa511a309469122494e1dcacbfd6f451284"
+          "id": "eab28ba563744af39508996d87c7616b",
+          "display_name": "eab28ba563744af39508996d87c7616b.html",
+          "original_filename": "eab28ba563744af39508996d87c7616b.html",
+          "created_at": "2026-03-13T08:01:44.983Z",
+          "path": "html-projects/projects/fc1670b3052847a5aa800cea4aa02e39/eab28ba563744af39508996d87c7616b.html",
+          "sha": null
+        },
+        {
+          "id": "7d5ebcaad32f4b3e8dc619f5c094de8f",
+          "display_name": "7d5ebcaad32f4b3e8dc619f5c094de8f.html",
+          "original_filename": "7d5ebcaad32f4b3e8dc619f5c094de8f.html",
+          "created_at": "2026-03-13T08:01:44.982Z",
+          "path": "html-projects/projects/fc1670b3052847a5aa800cea4aa02e39/7d5ebcaad32f4b3e8dc619f5c094de8f.html",
+          "sha": null
+        },
+        {
+          "id": "6715815fa0b34db4bd0fa22c717dc353",
+          "display_name": "6715815fa0b34db4bd0fa22c717dc353.html",
+          "original_filename": "6715815fa0b34db4bd0fa22c717dc353.html",
+          "created_at": "2026-03-13T08:01:44.981Z",
+          "path": "html-projects/projects/fc1670b3052847a5aa800cea4aa02e39/6715815fa0b34db4bd0fa22c717dc353.html",
+          "sha": null
+        },
+        {
+          "id": "49b426a1705f4d4aa17eac9105102607",
+          "display_name": "49b426a1705f4d4aa17eac9105102607.html",
+          "original_filename": "49b426a1705f4d4aa17eac9105102607.html",
+          "created_at": "2026-03-13T08:01:44.980Z",
+          "path": "html-projects/projects/fc1670b3052847a5aa800cea4aa02e39/49b426a1705f4d4aa17eac9105102607.html",
+          "sha": null
+        },
+        {
+          "id": "412ce6b8cb624007ad7d77fed7b3b6ed",
+          "display_name": "412ce6b8cb624007ad7d77fed7b3b6ed.html",
+          "original_filename": "412ce6b8cb624007ad7d77fed7b3b6ed.html",
+          "created_at": "2026-03-13T08:01:44.979Z",
+          "path": "html-projects/projects/fc1670b3052847a5aa800cea4aa02e39/412ce6b8cb624007ad7d77fed7b3b6ed.html",
+          "sha": null
+        },
+        {
+          "id": "2a1897b5fed34911a9e1633b22179be0",
+          "display_name": "2a1897b5fed34911a9e1633b22179be0.html",
+          "original_filename": "2a1897b5fed34911a9e1633b22179be0.html",
+          "created_at": "2026-03-13T08:01:44.978Z",
+          "path": "html-projects/projects/fc1670b3052847a5aa800cea4aa02e39/2a1897b5fed34911a9e1633b22179be0.html",
+          "sha": null
         }
       ]
     },
     {
-      "id": "4ad96912e31546a48708540f9b63b2fd",
-      "name": "Class Schedule Pro",
-      "description": "Class Schedule Pro -- -- Wait... --:-- --:-- - --:-- -- -- -- Full Schedule Scroll horizontally for details Setup Paste JSON to load your schedule 课程数据 JSON 支持自",
+      "id": "f63a62a250024ecdbf88cf2baba4e6d0",
+      "name": "选课",
+      "description": "选课 1. 课程管理 添加新课程 导入课程 (JSON) 导出课程 (JSON) 2. 排课设置 必修课和课程选项 课程替代组 (N选1) + 添加替代组 时间偏好 (符合条件加分) 导入设置 导出设置 生成课程表 &#9696; 3. 推荐课程表 添加课程并设置完毕后，点击“生成课程表” 添加新课程 课程名称 + 添",
       "icon": "📁",
-      "created_at": "2026-03-13T07:42:15.428Z",
-      "updated_at": "2026-03-13T07:42:15.428Z",
+      "created_at": "2026-03-13T08:01:44.977Z",
+      "updated_at": "2026-03-13T08:01:44.977Z",
       "versions": [
         {
-          "id": "a3a799fe1bdd403bb4edb50f75308ef5",
-          "display_name": "5ba30b0b1d254c68add05a71e6aa4a27.html",
-          "original_filename": "5ba30b0b1d254c68add05a71e6aa4a27.html",
-          "created_at": "2026-03-13T07:42:15.428Z",
-          "path": "html-projects/projects/4ad96912e31546a48708540f9b63b2fd/versions/a3a799fe1bdd403bb4edb50f75308ef5.html",
-          "sha": "c4d7163b150ded70bdd03b752a8e98c62f541356"
+          "id": "5ab84434e4df48a79ede7f9bae4da8de",
+          "display_name": "5ab84434e4df48a79ede7f9bae4da8de.html",
+          "original_filename": "5ab84434e4df48a79ede7f9bae4da8de.html",
+          "created_at": "2026-03-13T08:01:44.977Z",
+          "path": "html-projects/projects/f63a62a250024ecdbf88cf2baba4e6d0/5ab84434e4df48a79ede7f9bae4da8de.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "f1646cf0601048d8b296a98d62328afa",
+      "name": "GRE Flow - 现代化背词",
+      "description": "GRE Flow - 现代化背词",
+      "icon": "📁",
+      "created_at": "2026-03-13T08:01:44.968Z",
+      "updated_at": "2026-03-13T08:01:44.976Z",
+      "versions": [
+        {
+          "id": "ef27ada9c21d4ed0b793b613c19d9b8f",
+          "display_name": "ef27ada9c21d4ed0b793b613c19d9b8f.html",
+          "original_filename": "ef27ada9c21d4ed0b793b613c19d9b8f.html",
+          "created_at": "2026-03-13T08:01:44.976Z",
+          "path": "html-projects/projects/f1646cf0601048d8b296a98d62328afa/ef27ada9c21d4ed0b793b613c19d9b8f.html",
+          "sha": null
+        },
+        {
+          "id": "dfdf9f1e6fe44d9d9aa14a045151404a",
+          "display_name": "dfdf9f1e6fe44d9d9aa14a045151404a.html",
+          "original_filename": "dfdf9f1e6fe44d9d9aa14a045151404a.html",
+          "created_at": "2026-03-13T08:01:44.975Z",
+          "path": "html-projects/projects/f1646cf0601048d8b296a98d62328afa/dfdf9f1e6fe44d9d9aa14a045151404a.html",
+          "sha": null
+        },
+        {
+          "id": "c6a20ddc15d8456ab402ede8ef782910",
+          "display_name": "c6a20ddc15d8456ab402ede8ef782910.html",
+          "original_filename": "c6a20ddc15d8456ab402ede8ef782910.html",
+          "created_at": "2026-03-13T08:01:44.974Z",
+          "path": "html-projects/projects/f1646cf0601048d8b296a98d62328afa/c6a20ddc15d8456ab402ede8ef782910.html",
+          "sha": null
+        },
+        {
+          "id": "2a0c938bf768463bb8b85a0df7cb648a",
+          "display_name": "2a0c938bf768463bb8b85a0df7cb648a.html",
+          "original_filename": "2a0c938bf768463bb8b85a0df7cb648a.html",
+          "created_at": "2026-03-13T08:01:44.972Z",
+          "path": "html-projects/projects/f1646cf0601048d8b296a98d62328afa/2a0c938bf768463bb8b85a0df7cb648a.html",
+          "sha": null
+        },
+        {
+          "id": "3138f62329ad4206b0b642786f2465d4",
+          "display_name": "3138f62329ad4206b0b642786f2465d4.html",
+          "original_filename": "3138f62329ad4206b0b642786f2465d4.html",
+          "created_at": "2026-03-13T08:01:44.972Z",
+          "path": "html-projects/projects/f1646cf0601048d8b296a98d62328afa/3138f62329ad4206b0b642786f2465d4.html",
+          "sha": null
+        },
+        {
+          "id": "7316bcb3bcad4f8c80c8ea8e7cc2ece2",
+          "display_name": "7316bcb3bcad4f8c80c8ea8e7cc2ece2.html",
+          "original_filename": "7316bcb3bcad4f8c80c8ea8e7cc2ece2.html",
+          "created_at": "2026-03-13T08:01:44.972Z",
+          "path": "html-projects/projects/f1646cf0601048d8b296a98d62328afa/7316bcb3bcad4f8c80c8ea8e7cc2ece2.html",
+          "sha": null
+        },
+        {
+          "id": "20044f1e21ae4372aa28edc03cf4d373",
+          "display_name": "20044f1e21ae4372aa28edc03cf4d373.html",
+          "original_filename": "20044f1e21ae4372aa28edc03cf4d373.html",
+          "created_at": "2026-03-13T08:01:44.971Z",
+          "path": "html-projects/projects/f1646cf0601048d8b296a98d62328afa/20044f1e21ae4372aa28edc03cf4d373.html",
+          "sha": null
+        },
+        {
+          "id": "24b7fe2e06f94131b182d6f0e384e381",
+          "display_name": "24b7fe2e06f94131b182d6f0e384e381.html",
+          "original_filename": "24b7fe2e06f94131b182d6f0e384e381.html",
+          "created_at": "2026-03-13T08:01:44.971Z",
+          "path": "html-projects/projects/f1646cf0601048d8b296a98d62328afa/24b7fe2e06f94131b182d6f0e384e381.html",
+          "sha": null
+        },
+        {
+          "id": "1805eafa88ae4269a8efb17a32abfa1b",
+          "display_name": "1805eafa88ae4269a8efb17a32abfa1b.html",
+          "original_filename": "1805eafa88ae4269a8efb17a32abfa1b.html",
+          "created_at": "2026-03-13T08:01:44.970Z",
+          "path": "html-projects/projects/f1646cf0601048d8b296a98d62328afa/1805eafa88ae4269a8efb17a32abfa1b.html",
+          "sha": null
+        },
+        {
+          "id": "097db57bcf2d4d2583d21065b88e6bb6",
+          "display_name": "097db57bcf2d4d2583d21065b88e6bb6.html",
+          "original_filename": "097db57bcf2d4d2583d21065b88e6bb6.html",
+          "created_at": "2026-03-13T08:01:44.968Z",
+          "path": "html-projects/projects/f1646cf0601048d8b296a98d62328afa/097db57bcf2d4d2583d21065b88e6bb6.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "f043ddff457e48b4b1d83bd71abd3fd6",
+      "name": "聊天式局域网剪贴板",
+      "description": "聊天式局域网剪贴板 房间号: 连接同步 🔴 离线 (仅本地) 发送",
+      "icon": "📁",
+      "created_at": "2026-03-13T08:01:44.964Z",
+      "updated_at": "2026-03-13T08:01:44.965Z",
+      "versions": [
+        {
+          "id": "692896034b3647f288bea59e6396aca9",
+          "display_name": "692896034b3647f288bea59e6396aca9.html",
+          "original_filename": "692896034b3647f288bea59e6396aca9.html",
+          "created_at": "2026-03-13T08:01:44.965Z",
+          "path": "html-projects/projects/f043ddff457e48b4b1d83bd71abd3fd6/692896034b3647f288bea59e6396aca9.html",
+          "sha": null
+        },
+        {
+          "id": "4c49d9dd76e048948d0575c5029a1abe",
+          "display_name": "4c49d9dd76e048948d0575c5029a1abe.html",
+          "original_filename": "4c49d9dd76e048948d0575c5029a1abe.html",
+          "created_at": "2026-03-13T08:01:44.964Z",
+          "path": "html-projects/projects/f043ddff457e48b4b1d83bd71abd3fd6/4c49d9dd76e048948d0575c5029a1abe.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "e6e0b8a19ca04d5bab4cdee6fa1057d3",
+      "name": "分账计算器",
+      "description": "分账计算器 分账计算器 1. 设置货币（可选） 2. 添加参与人员 添加人员 3. 添加消费项目 由谁付款？ --请选择付款人-- 由谁分摊？ 请先添加参与人员 全选 添加这笔账单 账单列表 暂无账单 开始计算 全部重置 🎉 分账结果 🎉 账单明细",
+      "icon": "📁",
+      "created_at": "2026-03-13T08:01:44.953Z",
+      "updated_at": "2026-03-13T08:01:44.953Z",
+      "versions": [
+        {
+          "id": "295ecbef83274742a8cc22192fd192a1",
+          "display_name": "295ecbef83274742a8cc22192fd192a1.html",
+          "original_filename": "295ecbef83274742a8cc22192fd192a1.html",
+          "created_at": "2026-03-13T08:01:44.953Z",
+          "path": "html-projects/projects/e6e0b8a19ca04d5bab4cdee6fa1057d3/295ecbef83274742a8cc22192fd192a1.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "de4720e80a564b039d9a701409d6f7b9",
+      "name": "Type Help",
+      "description": "Type Help . All rights reserved. Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following cond",
+      "icon": "📁",
+      "created_at": "2026-03-13T08:01:44.935Z",
+      "updated_at": "2026-03-13T08:01:44.943Z",
+      "versions": [
+        {
+          "id": "fc3008a9a4554e3eab4e779a773c8f61",
+          "display_name": "fc3008a9a4554e3eab4e779a773c8f61.html",
+          "original_filename": "fc3008a9a4554e3eab4e779a773c8f61.html",
+          "created_at": "2026-03-13T08:01:44.943Z",
+          "path": "html-projects/projects/de4720e80a564b039d9a701409d6f7b9/fc3008a9a4554e3eab4e779a773c8f61.html",
+          "sha": null
+        },
+        {
+          "id": "c24103c87ba344e8ba1b1652349a160e",
+          "display_name": "c24103c87ba344e8ba1b1652349a160e.html",
+          "original_filename": "c24103c87ba344e8ba1b1652349a160e.html",
+          "created_at": "2026-03-13T08:01:44.935Z",
+          "path": "html-projects/projects/de4720e80a564b039d9a701409d6f7b9/c24103c87ba344e8ba1b1652349a160e.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "dd95876a9b444ffa9ac0c956bd016856",
+      "name": "Agent 大脑核心 (v2 交互进化版)",
+      "description": "Agent 大脑核心 (v2 交互进化版) ⚙️ 系统配置 严格限制 (>3 需确认) 中等限制 (>6 需确认) 无限制 保存配置 测试连通性 🚀 发起新任务 开启任务会话",
+      "icon": "📁",
+      "created_at": "2026-03-13T08:01:44.922Z",
+      "updated_at": "2026-03-13T08:01:44.923Z",
+      "versions": [
+        {
+          "id": "042d783964e042f1a2602f1ca56c1d4f",
+          "display_name": "042d783964e042f1a2602f1ca56c1d4f.html",
+          "original_filename": "042d783964e042f1a2602f1ca56c1d4f.html",
+          "created_at": "2026-03-13T08:01:44.923Z",
+          "path": "html-projects/projects/dd95876a9b444ffa9ac0c956bd016856/042d783964e042f1a2602f1ca56c1d4f.html",
+          "sha": null
+        },
+        {
+          "id": "70a2467e7151407c87e8d15187934f0b",
+          "display_name": "70a2467e7151407c87e8d15187934f0b.html",
+          "original_filename": "70a2467e7151407c87e8d15187934f0b.html",
+          "created_at": "2026-03-13T08:01:44.923Z",
+          "path": "html-projects/projects/dd95876a9b444ffa9ac0c956bd016856/70a2467e7151407c87e8d15187934f0b.html",
+          "sha": null
+        },
+        {
+          "id": "0081a2614a8e4b38825b549d81a358fe",
+          "display_name": "0081a2614a8e4b38825b549d81a358fe.html",
+          "original_filename": "0081a2614a8e4b38825b549d81a358fe.html",
+          "created_at": "2026-03-13T08:01:44.922Z",
+          "path": "html-projects/projects/dd95876a9b444ffa9ac0c956bd016856/0081a2614a8e4b38825b549d81a358fe.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "d56707f6b9da4c9e8ed222e4f82c09b4",
+      "name": "Fingerdance Web MVP",
+      "description": "Fingerdance Web MVP Fingerdance 网页版 右手按键映射： Space (拇指) | L (食指) | ; (中指) | ' (无名指) | Shift (小指) AI 驱动关卡生成 生成谱面并开始 Space L ; ' Shift",
+      "icon": "📁",
+      "created_at": "2026-03-13T08:01:44.919Z",
+      "updated_at": "2026-03-13T08:01:44.922Z",
+      "versions": [
+        {
+          "id": "cd36c3f238cc42bca6c09b30dd4f7d66",
+          "display_name": "cd36c3f238cc42bca6c09b30dd4f7d66.html",
+          "original_filename": "cd36c3f238cc42bca6c09b30dd4f7d66.html",
+          "created_at": "2026-03-13T08:01:44.922Z",
+          "path": "html-projects/projects/d56707f6b9da4c9e8ed222e4f82c09b4/cd36c3f238cc42bca6c09b30dd4f7d66.html",
+          "sha": null
+        },
+        {
+          "id": "86fda3cb19b242bfaf6f55a4cbb7c2be",
+          "display_name": "86fda3cb19b242bfaf6f55a4cbb7c2be.html",
+          "original_filename": "86fda3cb19b242bfaf6f55a4cbb7c2be.html",
+          "created_at": "2026-03-13T08:01:44.921Z",
+          "path": "html-projects/projects/d56707f6b9da4c9e8ed222e4f82c09b4/86fda3cb19b242bfaf6f55a4cbb7c2be.html",
+          "sha": null
+        },
+        {
+          "id": "ac29faa2b4f0474793f36e69eb8442db",
+          "display_name": "ac29faa2b4f0474793f36e69eb8442db.html",
+          "original_filename": "ac29faa2b4f0474793f36e69eb8442db.html",
+          "created_at": "2026-03-13T08:01:44.921Z",
+          "path": "html-projects/projects/d56707f6b9da4c9e8ed222e4f82c09b4/ac29faa2b4f0474793f36e69eb8442db.html",
+          "sha": null
+        },
+        {
+          "id": "7a9dc3ddf65c471ea8da02bb20b45fe5",
+          "display_name": "7a9dc3ddf65c471ea8da02bb20b45fe5.html",
+          "original_filename": "7a9dc3ddf65c471ea8da02bb20b45fe5.html",
+          "created_at": "2026-03-13T08:01:44.920Z",
+          "path": "html-projects/projects/d56707f6b9da4c9e8ed222e4f82c09b4/7a9dc3ddf65c471ea8da02bb20b45fe5.html",
+          "sha": null
+        },
+        {
+          "id": "6d6714ca41ec4e418e40f671e74c2226",
+          "display_name": "6d6714ca41ec4e418e40f671e74c2226.html",
+          "original_filename": "6d6714ca41ec4e418e40f671e74c2226.html",
+          "created_at": "2026-03-13T08:01:44.919Z",
+          "path": "html-projects/projects/d56707f6b9da4c9e8ed222e4f82c09b4/6d6714ca41ec4e418e40f671e74c2226.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "c47712442ae84e459ede27ed60c55ad0",
+      "name": "科学电阻值计算器 (分数版 - 最终修复)",
+      "description": "科学电阻值计算器 (分数版 - 最终修复) 科学电阻值计算器 输入电阻表达式 (支持分数): 计算结果: 说明: - 支持加 (+), 减 (-), 乘 (*), 除 (/), 括号 () - 并联符号 (//) 优先级高于加减，低于乘除。 - 示例: 3//3//3 结果为 1 。 - 示例: 2+2*6//6 等价",
+      "icon": "📁",
+      "created_at": "2026-03-13T08:01:44.919Z",
+      "updated_at": "2026-03-13T08:01:44.919Z",
+      "versions": [
+        {
+          "id": "74ed1225c10e4fc69b7daa8788a75b59",
+          "display_name": "74ed1225c10e4fc69b7daa8788a75b59.html",
+          "original_filename": "74ed1225c10e4fc69b7daa8788a75b59.html",
+          "created_at": "2026-03-13T08:01:44.919Z",
+          "path": "html-projects/projects/c47712442ae84e459ede27ed60c55ad0/74ed1225c10e4fc69b7daa8788a75b59.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "bb3c35712be64afaa83289e138414bfb",
+      "name": "Lean 4 抽象代数道场 (AI Powered)",
+      "description": "Lean 4 抽象代数道场 (AI Powered) 配置 Gemini API 请输入您的 Google Gemini API Key 以启用 AI 功能。 Key 将仅存储在您的本地浏览器中。 开始学习 Lean 4 Algebra Dojo 清除本地数据 API Key: 未设置 目录章节 请选择左侧章节 等待开",
+      "icon": "📁",
+      "created_at": "2026-03-13T08:01:44.917Z",
+      "updated_at": "2026-03-13T08:01:44.918Z",
+      "versions": [
+        {
+          "id": "ca551787a88b4a178679d93541d3a2e7",
+          "display_name": "ca551787a88b4a178679d93541d3a2e7.html",
+          "original_filename": "ca551787a88b4a178679d93541d3a2e7.html",
+          "created_at": "2026-03-13T08:01:44.918Z",
+          "path": "html-projects/projects/bb3c35712be64afaa83289e138414bfb/ca551787a88b4a178679d93541d3a2e7.html",
+          "sha": null
+        },
+        {
+          "id": "da327276e9784b21b2f3531b8720b4b5",
+          "display_name": "da327276e9784b21b2f3531b8720b4b5.html",
+          "original_filename": "da327276e9784b21b2f3531b8720b4b5.html",
+          "created_at": "2026-03-13T08:01:44.918Z",
+          "path": "html-projects/projects/bb3c35712be64afaa83289e138414bfb/da327276e9784b21b2f3531b8720b4b5.html",
+          "sha": null
+        },
+        {
+          "id": "e347d1dd30904195bee9b4e5a2e05f74",
+          "display_name": "e347d1dd30904195bee9b4e5a2e05f74.html",
+          "original_filename": "e347d1dd30904195bee9b4e5a2e05f74.html",
+          "created_at": "2026-03-13T08:01:44.918Z",
+          "path": "html-projects/projects/bb3c35712be64afaa83289e138414bfb/e347d1dd30904195bee9b4e5a2e05f74.html",
+          "sha": null
+        },
+        {
+          "id": "12d90d3a8c424b458a9992d6b5c051c2",
+          "display_name": "12d90d3a8c424b458a9992d6b5c051c2.html",
+          "original_filename": "12d90d3a8c424b458a9992d6b5c051c2.html",
+          "created_at": "2026-03-13T08:01:44.917Z",
+          "path": "html-projects/projects/bb3c35712be64afaa83289e138414bfb/12d90d3a8c424b458a9992d6b5c051c2.html",
+          "sha": null
+        },
+        {
+          "id": "1cdb9d386e984dd7bc1110c4d6a634fd",
+          "display_name": "1cdb9d386e984dd7bc1110c4d6a634fd.html",
+          "original_filename": "1cdb9d386e984dd7bc1110c4d6a634fd.html",
+          "created_at": "2026-03-13T08:01:44.917Z",
+          "path": "html-projects/projects/bb3c35712be64afaa83289e138414bfb/1cdb9d386e984dd7bc1110c4d6a634fd.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "b59f406c8c154685b51bafa46fd2bf80",
+      "name": "极简本地 AI 助手",
+      "description": "极简本地 AI 助手 会话列表 + 删 ⚙️ 设置 请选择或创建左侧会话 ▶ 深度思考过程 {{ msg.disabled ? '👀' : '🙈' }} ✏️ 🗑️ {{ msg.role === 'user' ? '你' : 'AI' }} {{ msg.disabled ? '(已屏蔽)' : '' }} {",
+      "icon": "📁",
+      "created_at": "2026-03-13T08:01:44.916Z",
+      "updated_at": "2026-03-13T08:01:44.916Z",
+      "versions": [
+        {
+          "id": "4089f78f33ae480f908dd8ff4c744eea",
+          "display_name": "4089f78f33ae480f908dd8ff4c744eea.html",
+          "original_filename": "4089f78f33ae480f908dd8ff4c744eea.html",
+          "created_at": "2026-03-13T08:01:44.916Z",
+          "path": "html-projects/projects/b59f406c8c154685b51bafa46fd2bf80/4089f78f33ae480f908dd8ff4c744eea.html",
+          "sha": null
+        },
+        {
+          "id": "6eba2aade84b45679ab949d772526f10",
+          "display_name": "6eba2aade84b45679ab949d772526f10.html",
+          "original_filename": "6eba2aade84b45679ab949d772526f10.html",
+          "created_at": "2026-03-13T08:01:44.916Z",
+          "path": "html-projects/projects/b59f406c8c154685b51bafa46fd2bf80/6eba2aade84b45679ab949d772526f10.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "b17bcc99851d4c168cc31c16b5610c79",
+      "name": "图片转 GIF 工具 (终极版)",
+      "description": "图片转 GIF 工具 (终极版) 图片转 GIF 在线工具 将 PNG, JPG, HEIC, 或 WEBP 图片拖拽到下方区域即可自动转换。 将文件拖拽到这里 或者 点击选择文件 正在努力转换中... 转换完成！ 下载 GIF 复制到剪贴板",
+      "icon": "📁",
+      "created_at": "2026-03-13T08:01:44.915Z",
+      "updated_at": "2026-03-13T08:01:44.915Z",
+      "versions": [
+        {
+          "id": "c9f4597b58c24be382dccc497298c647",
+          "display_name": "c9f4597b58c24be382dccc497298c647.html",
+          "original_filename": "c9f4597b58c24be382dccc497298c647.html",
+          "created_at": "2026-03-13T08:01:44.915Z",
+          "path": "html-projects/projects/b17bcc99851d4c168cc31c16b5610c79/c9f4597b58c24be382dccc497298c647.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "a3f6fe6162464f8797a53d45f183b470",
+      "name": "YOLOv8s ONNX 实时检测",
+      "description": "YOLOv8s ONNX 实时检测 YOLOv8 Web 实时检测 1. 上传 yolov8s.onnx 2. 设置帧率 (FPS) 3. 打开摄像头并开始 请先上传模型...",
+      "icon": "📁",
+      "created_at": "2026-03-13T08:01:44.914Z",
+      "updated_at": "2026-03-13T08:01:44.914Z",
+      "versions": [
+        {
+          "id": "24768ec9374c4cc4810a02d57fb158c1",
+          "display_name": "24768ec9374c4cc4810a02d57fb158c1.html",
+          "original_filename": "24768ec9374c4cc4810a02d57fb158c1.html",
+          "created_at": "2026-03-13T08:01:44.914Z",
+          "path": "html-projects/projects/a3f6fe6162464f8797a53d45f183b470/24768ec9374c4cc4810a02d57fb158c1.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "a357416320734c9a9a68203637c43235",
+      "name": "电路实验助手 Pro (AI + IDB)",
+      "description": "电路实验助手 Pro (AI + IDB) 电路实验助手 工作区大纲 AI设置 & 手册分析 上传实验手册(图片)生成大纲 手动添加实验 {{eIdx+1}} {{sIdx+1}} + 添加步骤 暂无实验，请在左上角菜单添加或上传手册 Exp {{ eIdx + 1 }} {{ exp.title }} {{ sIdx",
+      "icon": "📁",
+      "created_at": "2026-03-13T08:01:44.911Z",
+      "updated_at": "2026-03-13T08:01:44.913Z",
+      "versions": [
+        {
+          "id": "b273c17994314616ae78159dd664431b",
+          "display_name": "b273c17994314616ae78159dd664431b.html",
+          "original_filename": "b273c17994314616ae78159dd664431b.html",
+          "created_at": "2026-03-13T08:01:44.913Z",
+          "path": "html-projects/projects/a357416320734c9a9a68203637c43235/b273c17994314616ae78159dd664431b.html",
+          "sha": null
+        },
+        {
+          "id": "a5d9affbfde744bdb0176c958cd0494c",
+          "display_name": "a5d9affbfde744bdb0176c958cd0494c.html",
+          "original_filename": "a5d9affbfde744bdb0176c958cd0494c.html",
+          "created_at": "2026-03-13T08:01:44.912Z",
+          "path": "html-projects/projects/a357416320734c9a9a68203637c43235/a5d9affbfde744bdb0176c958cd0494c.html",
+          "sha": null
+        },
+        {
+          "id": "2cc2cfed93e946cfbb9faa598d803d1d",
+          "display_name": "2cc2cfed93e946cfbb9faa598d803d1d.html",
+          "original_filename": "2cc2cfed93e946cfbb9faa598d803d1d.html",
+          "created_at": "2026-03-13T08:01:44.911Z",
+          "path": "html-projects/projects/a357416320734c9a9a68203637c43235/2cc2cfed93e946cfbb9faa598d803d1d.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "a2a61661780b4e05b99e2cd6a65dc643",
+      "name": "API Smoke Test",
+      "description": "API Smoke Test API Smoke Test Fill your API Base URL first, for example: http://127.0.0.1:8000 Ping /docs OCR: POST /ocr Send OCR ASR: POST /asr Send ASR Bilibi",
+      "icon": "📁",
+      "created_at": "2026-03-13T08:01:44.910Z",
+      "updated_at": "2026-03-13T08:01:44.910Z",
+      "versions": [
+        {
+          "id": "9c6ef403d943499fb49b56e039fb164c",
+          "display_name": "9c6ef403d943499fb49b56e039fb164c.html",
+          "original_filename": "9c6ef403d943499fb49b56e039fb164c.html",
+          "created_at": "2026-03-13T08:01:44.910Z",
+          "path": "html-projects/projects/a2a61661780b4e05b99e2cd6a65dc643/9c6ef403d943499fb49b56e039fb164c.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "981a35ec3a03489eb22b0850ebb57dd2",
+      "name": "Mahjong Recognize + Shanten",
+      "description": "Mahjong Recognize + Shanten 麻将图像识别 + 向听计算（单文件） 使用方式：先上传项目中的 weight.onnx ，再在页面内按 Ctrl+V / Cmd+V 粘贴截图（或上传图片）。 粘贴后会自动识别并计算。识别框统一浅色显示；最佳/次优/第三切牌会在图上按递减颜色高亮。 ONNX 模型",
+      "icon": "📁",
+      "created_at": "2026-03-13T08:01:44.883Z",
+      "updated_at": "2026-03-13T08:01:44.908Z",
+      "versions": [
+        {
+          "id": "fc63b9bc93d84976b420733239d0d5ba",
+          "display_name": "fc63b9bc93d84976b420733239d0d5ba.html",
+          "original_filename": "fc63b9bc93d84976b420733239d0d5ba.html",
+          "created_at": "2026-03-13T08:01:44.908Z",
+          "path": "html-projects/projects/981a35ec3a03489eb22b0850ebb57dd2/fc63b9bc93d84976b420733239d0d5ba.html",
+          "sha": null
+        },
+        {
+          "id": "f16fd5ea00324ec6bf5418f14f1e0dae",
+          "display_name": "f16fd5ea00324ec6bf5418f14f1e0dae.html",
+          "original_filename": "f16fd5ea00324ec6bf5418f14f1e0dae.html",
+          "created_at": "2026-03-13T08:01:44.906Z",
+          "path": "html-projects/projects/981a35ec3a03489eb22b0850ebb57dd2/f16fd5ea00324ec6bf5418f14f1e0dae.html",
+          "sha": null
+        },
+        {
+          "id": "e939d25446dc4a64abe086b528c139f3",
+          "display_name": "e939d25446dc4a64abe086b528c139f3.html",
+          "original_filename": "e939d25446dc4a64abe086b528c139f3.html",
+          "created_at": "2026-03-13T08:01:44.904Z",
+          "path": "html-projects/projects/981a35ec3a03489eb22b0850ebb57dd2/e939d25446dc4a64abe086b528c139f3.html",
+          "sha": null
+        },
+        {
+          "id": "daad8c1c5bd34710ac7c02b8c6fce031",
+          "display_name": "daad8c1c5bd34710ac7c02b8c6fce031.html",
+          "original_filename": "daad8c1c5bd34710ac7c02b8c6fce031.html",
+          "created_at": "2026-03-13T08:01:44.901Z",
+          "path": "html-projects/projects/981a35ec3a03489eb22b0850ebb57dd2/daad8c1c5bd34710ac7c02b8c6fce031.html",
+          "sha": null
+        },
+        {
+          "id": "d4d98f56348d436db360f59165c75cec",
+          "display_name": "d4d98f56348d436db360f59165c75cec.html",
+          "original_filename": "d4d98f56348d436db360f59165c75cec.html",
+          "created_at": "2026-03-13T08:01:44.900Z",
+          "path": "html-projects/projects/981a35ec3a03489eb22b0850ebb57dd2/d4d98f56348d436db360f59165c75cec.html",
+          "sha": null
+        },
+        {
+          "id": "c65c34b4e4ce47a6bca2dd8fa00746ba",
+          "display_name": "c65c34b4e4ce47a6bca2dd8fa00746ba.html",
+          "original_filename": "c65c34b4e4ce47a6bca2dd8fa00746ba.html",
+          "created_at": "2026-03-13T08:01:44.898Z",
+          "path": "html-projects/projects/981a35ec3a03489eb22b0850ebb57dd2/c65c34b4e4ce47a6bca2dd8fa00746ba.html",
+          "sha": null
+        },
+        {
+          "id": "9858b2c5055b45178576b0ee9c4cc17d",
+          "display_name": "9858b2c5055b45178576b0ee9c4cc17d.html",
+          "original_filename": "9858b2c5055b45178576b0ee9c4cc17d.html",
+          "created_at": "2026-03-13T08:01:44.897Z",
+          "path": "html-projects/projects/981a35ec3a03489eb22b0850ebb57dd2/9858b2c5055b45178576b0ee9c4cc17d.html",
+          "sha": null
+        },
+        {
+          "id": "9d8b4bbd84664e3ea93c312938fd0aa3",
+          "display_name": "9d8b4bbd84664e3ea93c312938fd0aa3.html",
+          "original_filename": "9d8b4bbd84664e3ea93c312938fd0aa3.html",
+          "created_at": "2026-03-13T08:01:44.897Z",
+          "path": "html-projects/projects/981a35ec3a03489eb22b0850ebb57dd2/9d8b4bbd84664e3ea93c312938fd0aa3.html",
+          "sha": null
+        },
+        {
+          "id": "711475da71e04ca894d966bcc0033a59",
+          "display_name": "711475da71e04ca894d966bcc0033a59.html",
+          "original_filename": "711475da71e04ca894d966bcc0033a59.html",
+          "created_at": "2026-03-13T08:01:44.896Z",
+          "path": "html-projects/projects/981a35ec3a03489eb22b0850ebb57dd2/711475da71e04ca894d966bcc0033a59.html",
+          "sha": null
+        },
+        {
+          "id": "710ef36e66394c4491d6a14b4d48a367",
+          "display_name": "710ef36e66394c4491d6a14b4d48a367.html",
+          "original_filename": "710ef36e66394c4491d6a14b4d48a367.html",
+          "created_at": "2026-03-13T08:01:44.895Z",
+          "path": "html-projects/projects/981a35ec3a03489eb22b0850ebb57dd2/710ef36e66394c4491d6a14b4d48a367.html",
+          "sha": null
+        },
+        {
+          "id": "6a1e6b5feb284b1ab59edfc80496f35f",
+          "display_name": "6a1e6b5feb284b1ab59edfc80496f35f.html",
+          "original_filename": "6a1e6b5feb284b1ab59edfc80496f35f.html",
+          "created_at": "2026-03-13T08:01:44.894Z",
+          "path": "html-projects/projects/981a35ec3a03489eb22b0850ebb57dd2/6a1e6b5feb284b1ab59edfc80496f35f.html",
+          "sha": null
+        },
+        {
+          "id": "5f224de3533b41189730a60d7479438c",
+          "display_name": "5f224de3533b41189730a60d7479438c.html",
+          "original_filename": "5f224de3533b41189730a60d7479438c.html",
+          "created_at": "2026-03-13T08:01:44.893Z",
+          "path": "html-projects/projects/981a35ec3a03489eb22b0850ebb57dd2/5f224de3533b41189730a60d7479438c.html",
+          "sha": null
+        },
+        {
+          "id": "5ec7a1eab47f46e49391ccb807c506d4",
+          "display_name": "5ec7a1eab47f46e49391ccb807c506d4.html",
+          "original_filename": "5ec7a1eab47f46e49391ccb807c506d4.html",
+          "created_at": "2026-03-13T08:01:44.891Z",
+          "path": "html-projects/projects/981a35ec3a03489eb22b0850ebb57dd2/5ec7a1eab47f46e49391ccb807c506d4.html",
+          "sha": null
+        },
+        {
+          "id": "497b03658b7c44a4a54224910c6456c2",
+          "display_name": "497b03658b7c44a4a54224910c6456c2.html",
+          "original_filename": "497b03658b7c44a4a54224910c6456c2.html",
+          "created_at": "2026-03-13T08:01:44.889Z",
+          "path": "html-projects/projects/981a35ec3a03489eb22b0850ebb57dd2/497b03658b7c44a4a54224910c6456c2.html",
+          "sha": null
+        },
+        {
+          "id": "4f490fdd0bc74d31adbd7bf4aa2f318a",
+          "display_name": "4f490fdd0bc74d31adbd7bf4aa2f318a.html",
+          "original_filename": "4f490fdd0bc74d31adbd7bf4aa2f318a.html",
+          "created_at": "2026-03-13T08:01:44.889Z",
+          "path": "html-projects/projects/981a35ec3a03489eb22b0850ebb57dd2/4f490fdd0bc74d31adbd7bf4aa2f318a.html",
+          "sha": null
+        },
+        {
+          "id": "3e9f924fdbe840628cfdc6d539044eab",
+          "display_name": "3e9f924fdbe840628cfdc6d539044eab.html",
+          "original_filename": "3e9f924fdbe840628cfdc6d539044eab.html",
+          "created_at": "2026-03-13T08:01:44.888Z",
+          "path": "html-projects/projects/981a35ec3a03489eb22b0850ebb57dd2/3e9f924fdbe840628cfdc6d539044eab.html",
+          "sha": null
+        },
+        {
+          "id": "3cf6bac504e14b699a54f8acb463d37a",
+          "display_name": "3cf6bac504e14b699a54f8acb463d37a.html",
+          "original_filename": "3cf6bac504e14b699a54f8acb463d37a.html",
+          "created_at": "2026-03-13T08:01:44.887Z",
+          "path": "html-projects/projects/981a35ec3a03489eb22b0850ebb57dd2/3cf6bac504e14b699a54f8acb463d37a.html",
+          "sha": null
+        },
+        {
+          "id": "1c7a4a9b4bbe4863a7eb9bb5ce498016",
+          "display_name": "1c7a4a9b4bbe4863a7eb9bb5ce498016.html",
+          "original_filename": "1c7a4a9b4bbe4863a7eb9bb5ce498016.html",
+          "created_at": "2026-03-13T08:01:44.886Z",
+          "path": "html-projects/projects/981a35ec3a03489eb22b0850ebb57dd2/1c7a4a9b4bbe4863a7eb9bb5ce498016.html",
+          "sha": null
+        },
+        {
+          "id": "15121e747188440f9d35b3ac9a1136bd",
+          "display_name": "15121e747188440f9d35b3ac9a1136bd.html",
+          "original_filename": "15121e747188440f9d35b3ac9a1136bd.html",
+          "created_at": "2026-03-13T08:01:44.885Z",
+          "path": "html-projects/projects/981a35ec3a03489eb22b0850ebb57dd2/15121e747188440f9d35b3ac9a1136bd.html",
+          "sha": null
+        },
+        {
+          "id": "06a9abc27cb64905b6ded0b6b4d394df",
+          "display_name": "06a9abc27cb64905b6ded0b6b4d394df.html",
+          "original_filename": "06a9abc27cb64905b6ded0b6b4d394df.html",
+          "created_at": "2026-03-13T08:01:44.884Z",
+          "path": "html-projects/projects/981a35ec3a03489eb22b0850ebb57dd2/06a9abc27cb64905b6ded0b6b4d394df.html",
+          "sha": null
+        },
+        {
+          "id": "01dda31f5242444bb8aeb8e8307b25dd",
+          "display_name": "01dda31f5242444bb8aeb8e8307b25dd.html",
+          "original_filename": "01dda31f5242444bb8aeb8e8307b25dd.html",
+          "created_at": "2026-03-13T08:01:44.883Z",
+          "path": "html-projects/projects/981a35ec3a03489eb22b0850ebb57dd2/01dda31f5242444bb8aeb8e8307b25dd.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "8f21795881704a45aca81b71d788823a",
+      "name": "Doodle Jump - 陀螺仪版",
+      "description": "Doodle Jump - 陀螺仪版 得分: 0 Doodle Jump 倾斜手机控制左右移动 或点击屏幕左右侧 开始游戏 Gyro: N/A",
+      "icon": "📁",
+      "created_at": "2026-03-13T08:01:44.880Z",
+      "updated_at": "2026-03-13T08:01:44.880Z",
+      "versions": [
+        {
+          "id": "b800479eeb0749289cbdef4bb2aa3260",
+          "display_name": "b800479eeb0749289cbdef4bb2aa3260.html",
+          "original_filename": "b800479eeb0749289cbdef4bb2aa3260.html",
+          "created_at": "2026-03-13T08:01:44.880Z",
+          "path": "html-projects/projects/8f21795881704a45aca81b71d788823a/b800479eeb0749289cbdef4bb2aa3260.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "68187d52bc8a4ba2b42105e2c9874ccb",
+      "name": "OpenCV 颜色范围选择器 (HSV & LAB)",
+      "description": "OpenCV 颜色范围选择器 (HSV & LAB) Loading... 正在加载 OpenCV.js... OpenCV 颜色范围选择器 色彩模式: HSV LAB 上传图片 或直接在页面按 Ctrl+V 粘贴 取色器: 原图 请上传或粘贴图片 遮罩 (Mask) 处理结果将显示在此处 Python 代码 复制",
+      "icon": "📁",
+      "created_at": "2026-03-13T08:01:44.879Z",
+      "updated_at": "2026-03-13T08:01:44.879Z",
+      "versions": [
+        {
+          "id": "c99829a21299402da0fe458593695576",
+          "display_name": "c99829a21299402da0fe458593695576.html",
+          "original_filename": "c99829a21299402da0fe458593695576.html",
+          "created_at": "2026-03-13T08:01:44.879Z",
+          "path": "html-projects/projects/68187d52bc8a4ba2b42105e2c9874ccb/c99829a21299402da0fe458593695576.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "566c133b04864d95813076352f01522c",
+      "name": "CEC 工具 (时间同步版)",
+      "description": "CEC 工具 (时间同步版) 📂 释放动态二维码图片以识别 CEC工具 📷 相机扫描动态二维码 ⏹ 停止扫描 📁 上传动态二维码识别 支持 Ctrl+V 粘贴图片 或将图片 拖拽 到此页面 本地模拟生成 返回 ⚠️ 注意： 检测到旧链接，未包含初始扫描时间。系统将使用当前时间作为基准，可能与服务器时间存在相位偏差",
+      "icon": "📁",
+      "created_at": "2026-03-13T08:01:44.875Z",
+      "updated_at": "2026-03-13T08:01:44.876Z",
+      "versions": [
+        {
+          "id": "0d2396147b1140478d71bb09534df4f9",
+          "display_name": "0d2396147b1140478d71bb09534df4f9.html",
+          "original_filename": "0d2396147b1140478d71bb09534df4f9.html",
+          "created_at": "2026-03-13T08:01:44.876Z",
+          "path": "html-projects/projects/566c133b04864d95813076352f01522c/0d2396147b1140478d71bb09534df4f9.html",
+          "sha": null
+        },
+        {
+          "id": "09815829e8b74e508864836cdbffed5d",
+          "display_name": "09815829e8b74e508864836cdbffed5d.html",
+          "original_filename": "09815829e8b74e508864836cdbffed5d.html",
+          "created_at": "2026-03-13T08:01:44.875Z",
+          "path": "html-projects/projects/566c133b04864d95813076352f01522c/09815829e8b74e508864836cdbffed5d.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "43c7d128bf4d47c0ba9648b059d2adb2",
+      "name": "PDF 预览与自定义拆分工具",
+      "description": "PDF 预览与自定义拆分工具 📄 PDF 预览与自定义拆分工具 1. 选择 PDF 文件 当前未加载文件 2. 输入拆分范围 (每行生成一个新文件) 规则提示： • 每写一行，就会导出一个独立的 PDF。 • 支持连字符（如 1-3 表示第 1 到 3 页）。 • 支持逗号（如 1, 4, 5 表示第 1、4、5 页",
+      "icon": "📁",
+      "created_at": "2026-03-13T08:01:44.873Z",
+      "updated_at": "2026-03-13T08:01:44.873Z",
+      "versions": [
+        {
+          "id": "32f32822fd2f43ceb18ced005507078e",
+          "display_name": "32f32822fd2f43ceb18ced005507078e.html",
+          "original_filename": "32f32822fd2f43ceb18ced005507078e.html",
+          "created_at": "2026-03-13T08:01:44.873Z",
+          "path": "html-projects/projects/43c7d128bf4d47c0ba9648b059d2adb2/32f32822fd2f43ceb18ced005507078e.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "38784b7751224d898cd23cb00665cfc0",
+      "name": "中文文本特征对比分析",
+      "description": "中文文本特征对比分析 中文文本特征对比分析工具 输入两段中文文本，从词汇、句法、信息密度和连贯性等维度进行可视化对比。 文本 A (蓝色) 文本 B (红色) 开始分析",
+      "icon": "📁",
+      "created_at": "2026-03-13T08:01:44.871Z",
+      "updated_at": "2026-03-13T08:01:44.871Z",
+      "versions": [
+        {
+          "id": "c0b3da3850134cff913274f1b8347eac",
+          "display_name": "c0b3da3850134cff913274f1b8347eac.html",
+          "original_filename": "c0b3da3850134cff913274f1b8347eac.html",
+          "created_at": "2026-03-13T08:01:44.871Z",
+          "path": "html-projects/projects/38784b7751224d898cd23cb00665cfc0/c0b3da3850134cff913274f1b8347eac.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "330efde1458f4b4b9777a2f694aad022",
+      "name": "Calculate Shanten (Single HTML)",
+      "description": "Calculate Shanten (Single HTML) Shanten / 切牌组合 (Single HTML) 输入 14 张手牌字符，例如: 123m456s789p1234z0m 或 123m 456p 789s 55z 0m 计算 示例 牌面显示: Unicode 文字(1m)",
+      "icon": "📁",
+      "created_at": "2026-03-13T08:01:44.862Z",
+      "updated_at": "2026-03-13T08:01:44.866Z",
+      "versions": [
+        {
+          "id": "fd107428d11c4b6e87cc87cbb24f991f",
+          "display_name": "fd107428d11c4b6e87cc87cbb24f991f.html",
+          "original_filename": "fd107428d11c4b6e87cc87cbb24f991f.html",
+          "created_at": "2026-03-13T08:01:44.866Z",
+          "path": "html-projects/projects/330efde1458f4b4b9777a2f694aad022/fd107428d11c4b6e87cc87cbb24f991f.html",
+          "sha": null
+        },
+        {
+          "id": "ac7325e15fbb4d4399deeaf59da5da0c",
+          "display_name": "ac7325e15fbb4d4399deeaf59da5da0c.html",
+          "original_filename": "ac7325e15fbb4d4399deeaf59da5da0c.html",
+          "created_at": "2026-03-13T08:01:44.863Z",
+          "path": "html-projects/projects/330efde1458f4b4b9777a2f694aad022/ac7325e15fbb4d4399deeaf59da5da0c.html",
+          "sha": null
+        },
+        {
+          "id": "3cb4e599120c4db6bf04331b416976c6",
+          "display_name": "3cb4e599120c4db6bf04331b416976c6.html",
+          "original_filename": "3cb4e599120c4db6bf04331b416976c6.html",
+          "created_at": "2026-03-13T08:01:44.862Z",
+          "path": "html-projects/projects/330efde1458f4b4b9777a2f694aad022/3cb4e599120c4db6bf04331b416976c6.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "2842ae93589e4cbda1828d16aaf1ac0d",
+      "name": "Textual Resolution Scaling Demo",
+      "description": "Textual Resolution Scaling Demo Textual Resolution Scaling 可视化对比：离散剪枝 (Discrete) vs. 连续降采样 (Continuous) 输入代码 / 文本 压缩率 (Compression): {{ compressionRate }}x 1x =",
+      "icon": "📁",
+      "created_at": "2026-03-13T08:01:44.858Z",
+      "updated_at": "2026-03-13T08:01:44.858Z",
+      "versions": [
+        {
+          "id": "6f61bffad5ea46b1a4a26e2318b09382",
+          "display_name": "6f61bffad5ea46b1a4a26e2318b09382.html",
+          "original_filename": "6f61bffad5ea46b1a4a26e2318b09382.html",
+          "created_at": "2026-03-13T08:01:44.858Z",
+          "path": "html-projects/projects/2842ae93589e4cbda1828d16aaf1ac0d/6f61bffad5ea46b1a4a26e2318b09382.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "26f8dd7861464ed09644e48774ac268f",
+      "name": "静电平衡电场与等势面演示",
+      "description": "静电平衡电场与等势面演示 静电平衡演示 • 橙色点 ：感应电荷（分布在表面） • 青色线 ：电场线（垂直于表面） • 虚线圈 ：等势面（外部环绕） • 内部区域 ：场强 $E=0$，电势相等 拖动鼠标移动导体位置",
+      "icon": "📁",
+      "created_at": "2026-03-13T08:01:44.850Z",
+      "updated_at": "2026-03-13T08:01:44.851Z",
+      "versions": [
+        {
+          "id": "cd479c730787495b9863313c7120b27f",
+          "display_name": "cd479c730787495b9863313c7120b27f.html",
+          "original_filename": "cd479c730787495b9863313c7120b27f.html",
+          "created_at": "2026-03-13T08:01:44.851Z",
+          "path": "html-projects/projects/26f8dd7861464ed09644e48774ac268f/cd479c730787495b9863313c7120b27f.html",
+          "sha": null
+        },
+        {
+          "id": "8adf50d9544f4515a91e7d9992e1b33e",
+          "display_name": "8adf50d9544f4515a91e7d9992e1b33e.html",
+          "original_filename": "8adf50d9544f4515a91e7d9992e1b33e.html",
+          "created_at": "2026-03-13T08:01:44.850Z",
+          "path": "html-projects/projects/26f8dd7861464ed09644e48774ac268f/8adf50d9544f4515a91e7d9992e1b33e.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "2516dcb291ad41569c23b5a6cc57425e",
+      "name": "制袋成本计算器",
+      "description": "制袋成本计算器 计算公式核对区 布料长 = 高 × 2 + 侧边 + 6.5 布料宽 = 横宽 + 侧边 + 1.5 总面积 = 布料长 × 布料宽 布料成本 = 总面积 × 克重 × 布料单价 (注: 已在后台处理厘米到平方米、克到千克的单位换算) 彩印成本 = ((布料长 - 彩印扣减) × 布料宽) × 彩印单价",
+      "icon": "📁",
+      "created_at": "2026-03-13T08:01:44.826Z",
+      "updated_at": "2026-03-13T08:01:44.848Z",
+      "versions": [
+        {
+          "id": "ed13821e25b24fc28b2df9f2eca798f3",
+          "display_name": "ed13821e25b24fc28b2df9f2eca798f3.html",
+          "original_filename": "ed13821e25b24fc28b2df9f2eca798f3.html",
+          "created_at": "2026-03-13T08:01:44.848Z",
+          "path": "html-projects/projects/2516dcb291ad41569c23b5a6cc57425e/ed13821e25b24fc28b2df9f2eca798f3.html",
+          "sha": null
+        },
+        {
+          "id": "fa628ac3916746ef9deb6a230bc51d73",
+          "display_name": "fa628ac3916746ef9deb6a230bc51d73.html",
+          "original_filename": "fa628ac3916746ef9deb6a230bc51d73.html",
+          "created_at": "2026-03-13T08:01:44.848Z",
+          "path": "html-projects/projects/2516dcb291ad41569c23b5a6cc57425e/fa628ac3916746ef9deb6a230bc51d73.html",
+          "sha": null
+        },
+        {
+          "id": "b8aa8df46d62417e87e7b798d992721a",
+          "display_name": "b8aa8df46d62417e87e7b798d992721a.html",
+          "original_filename": "b8aa8df46d62417e87e7b798d992721a.html",
+          "created_at": "2026-03-13T08:01:44.847Z",
+          "path": "html-projects/projects/2516dcb291ad41569c23b5a6cc57425e/b8aa8df46d62417e87e7b798d992721a.html",
+          "sha": null
+        },
+        {
+          "id": "9230fa46d4ee4fb99327d0eba1509016",
+          "display_name": "9230fa46d4ee4fb99327d0eba1509016.html",
+          "original_filename": "9230fa46d4ee4fb99327d0eba1509016.html",
+          "created_at": "2026-03-13T08:01:44.846Z",
+          "path": "html-projects/projects/2516dcb291ad41569c23b5a6cc57425e/9230fa46d4ee4fb99327d0eba1509016.html",
+          "sha": null
+        },
+        {
+          "id": "9b68d2ad7d8e4c179c60581f947077d7",
+          "display_name": "9b68d2ad7d8e4c179c60581f947077d7.html",
+          "original_filename": "9b68d2ad7d8e4c179c60581f947077d7.html",
+          "created_at": "2026-03-13T08:01:44.846Z",
+          "path": "html-projects/projects/2516dcb291ad41569c23b5a6cc57425e/9b68d2ad7d8e4c179c60581f947077d7.html",
+          "sha": null
+        },
+        {
+          "id": "8e6d21acf9a348d89fb2d6ec5bd6ab0e",
+          "display_name": "8e6d21acf9a348d89fb2d6ec5bd6ab0e.html",
+          "original_filename": "8e6d21acf9a348d89fb2d6ec5bd6ab0e.html",
+          "created_at": "2026-03-13T08:01:44.845Z",
+          "path": "html-projects/projects/2516dcb291ad41569c23b5a6cc57425e/8e6d21acf9a348d89fb2d6ec5bd6ab0e.html",
+          "sha": null
+        },
+        {
+          "id": "4dde0b66d1934f84b052488284fb059a",
+          "display_name": "4dde0b66d1934f84b052488284fb059a.html",
+          "original_filename": "4dde0b66d1934f84b052488284fb059a.html",
+          "created_at": "2026-03-13T08:01:44.827Z",
+          "path": "html-projects/projects/2516dcb291ad41569c23b5a6cc57425e/4dde0b66d1934f84b052488284fb059a.html",
+          "sha": null
+        },
+        {
+          "id": "127117c5fd31407980e5de542702b904",
+          "display_name": "127117c5fd31407980e5de542702b904.html",
+          "original_filename": "127117c5fd31407980e5de542702b904.html",
+          "created_at": "2026-03-13T08:01:44.826Z",
+          "path": "html-projects/projects/2516dcb291ad41569c23b5a6cc57425e/127117c5fd31407980e5de542702b904.html",
+          "sha": null
+        },
+        {
+          "id": "3750634310464dbdaf0f70be8509903d",
+          "display_name": "3750634310464dbdaf0f70be8509903d.html",
+          "original_filename": "3750634310464dbdaf0f70be8509903d.html",
+          "created_at": "2026-03-13T08:01:44.826Z",
+          "path": "html-projects/projects/2516dcb291ad41569c23b5a6cc57425e/3750634310464dbdaf0f70be8509903d.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "14ed03867fa442eb8c70de47db67108a",
+      "name": "Lcapy in Pyodide (Final Fix)",
+      "description": "Lcapy in Pyodide (Final Fix) Lcapy 符号分析示例 (原生 Pyodide) 下面的代码使用原生 Pyodide API 来加载 Python 环境、安装 Lcapy 并执行分析。 注意： 第一次加载会比较慢，因为它需要加载 Pyodide 运行时并安装 Lcapy 及其依赖。 运行分析",
+      "icon": "📁",
+      "created_at": "2026-03-13T08:01:44.825Z",
+      "updated_at": "2026-03-13T08:01:44.825Z",
+      "versions": [
+        {
+          "id": "f2a4ac3e714f435ba9c342e281ebfe91",
+          "display_name": "f2a4ac3e714f435ba9c342e281ebfe91.html",
+          "original_filename": "f2a4ac3e714f435ba9c342e281ebfe91.html",
+          "created_at": "2026-03-13T08:01:44.825Z",
+          "path": "html-projects/projects/14ed03867fa442eb8c70de47db67108a/f2a4ac3e714f435ba9c342e281ebfe91.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "13a508b09cd2409099da1b2d36eb68fd",
+      "name": "YOLO 标签编辑器",
+      "description": "YOLO 标签编辑器 YOLO 标签编辑器 使用 File System Access API 和 Tailwind CSS 操作面板 选择标签文件夹 1. 替换选中文件的所有标签为: 执行替换 2. 将所有文件中的指定标签: → 执行替换 全选 文件名 标签 (Class ID) 请先选择一个文件夹...",
+      "icon": "📁",
+      "created_at": "2026-03-13T08:01:44.824Z",
+      "updated_at": "2026-03-13T08:01:44.824Z",
+      "versions": [
+        {
+          "id": "ade5cee4f57d4e79b9b4cbcb60185055",
+          "display_name": "ade5cee4f57d4e79b9b4cbcb60185055.html",
+          "original_filename": "ade5cee4f57d4e79b9b4cbcb60185055.html",
+          "created_at": "2026-03-13T08:01:44.824Z",
+          "path": "html-projects/projects/13a508b09cd2409099da1b2d36eb68fd/ade5cee4f57d4e79b9b4cbcb60185055.html",
+          "sha": null
         }
       ]
     }

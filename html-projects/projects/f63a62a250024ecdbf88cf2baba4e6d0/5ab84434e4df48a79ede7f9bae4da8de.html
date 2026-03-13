@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>选课</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', 'Helvetica Neue', 'Arial', 'sans-serif'; }
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+        }
+        .modal-content {
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .schedule-grid {
+            display: grid;
+            grid-template-columns: 50px repeat(5, 1fr);
+            grid-template-rows: 30px repeat(14, 40px);
+            gap: 1px;
+        }
+        .time-label {
+            font-size: 10px;
+            text-align: right;
+            padding-right: 4px;
+        }
+        .day-header {
+            font-weight: 500;
+            text-align: center;
+        }
+        .course-block {
+            border-radius: 4px;
+            padding: 4px;
+            font-size: 12px;
+            overflow: hidden;
+            position: absolute;
+            width: calc(100% - 2px);
+            left: 1px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300">
+
+    <div id="app" class="container mx-auto p-4 md:p-6 lg:p-8">
+        <header class="text-center mb-8">
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- 左侧：课程和设置 -->
+            <div class="lg:col-span-1 space-y-6">
+                <!-- 课程管理 -->
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
+                    <h2 class="text-xl font-semibold mb-4">1. 课程管理</h2>
+                    <div class="space-y-3">
+                        <button id="addCourseBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-transform transform hover:scale-105">添加新课程</button>
+                        <div class="flex space-x-2">
+                            <button id="importCoursesBtn" class="w-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 py-2 px-4 rounded-lg">导入课程 (JSON)</button>
+                            <button id="exportCoursesBtn" class="w-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 py-2 px-4 rounded-lg">导出课程 (JSON)</button>
+                            <input type="file" id="courseFileInput" class="hidden" accept=".json">
+                        </div>
+                    </div>
+                    <div id="courseList" class="mt-4 space-y-3 max-h-96 overflow-y-auto pr-2">
+                        <!-- 课程列表将动态插入此处 -->
+                    </div>
+                </div>
+
+                <!-- 排课设置 -->
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
+                    <h2 class="text-xl font-semibold mb-4">2. 排课设置</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="font-medium">必修课和课程选项</label>
+                            <div id="requiredCoursesContainer" class="mt-2 space-y-2 text-sm"></div>
+                        </div>
+                        <div>
+                            <label class="font-medium">课程替代组 (N选1)</label>
+                            <div id="alternativeGroupsContainer" class="mt-2 space-y-2"></div>
+                            <button id="addAlternativeGroupBtn" class="mt-2 text-sm text-blue-600 hover:text-blue-800">+ 添加替代组</button>
+                        </div>
+                        <div>
+                            <label class="font-medium">时间偏好 (符合条件加分)</label>
+                            <div id="preferencesContainer" class="space-y-2 mt-2">
+                                <!-- 时间偏好将动态插入 -->
+                            </div>
+                        </div>
+                        <div class="flex space-x-2">
+                             <button id="importSettingsBtn" class="w-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 py-2 px-4 rounded-lg">导入设置</button>
+                             <button id="exportSettingsBtn" class="w-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 py-2 px-4 rounded-lg">导出设置</button>
+                             <input type="file" id="settingsFileInput" class="hidden" accept=".json">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 生成按钮 -->
+                <div class="sticky bottom-4">
+                    <button id="generateSchedulesBtn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg shadow-lg transition-transform transform hover:scale-105">
+                        <span id="generateBtnText">生成课程表</span>
+                        <span id="loadingSpinner" class="hidden animate-spin">&#9696;</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 右侧：结果展示 -->
+            <div class="lg:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md min-h-screen">
+                <h2 class="text-xl font-semibold mb-4">3. 推荐课程表</h2>
+                <div id="resultsContainer" class="space-y-8">
+                    <div id="placeholder" class="text-center py-20 text-gray-500">
+                        <svg class="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                        <p class="mt-4">添加课程并设置完毕后，点击“生成课程表”</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 课程添加/编辑 Modal -->
+    <div id="courseModal" class="modal-backdrop hidden">
+        <div class="modal-content bg-white dark:bg-gray-800 w-11/12 md:w-2/3 lg:w-1/2 p-6 rounded-xl shadow-2xl">
+            <h3 id="modalTitle" class="text-2xl font-bold mb-6">添加新课程</h3>
+            <form id="courseForm">
+                <input type="hidden" id="courseId">
+                <div class="mb-4">
+                    <label for="courseName" class="block font-medium mb-1">课程名称</label>
+                    <input type="text" id="courseName" class="w-full p-2 border rounded-lg bg-gray-50 dark:bg-gray-700 dark:border-gray-600" required>
+                </div>
+                
+                <div id="timeGroupsContainer" class="space-y-4">
+                    <!-- 时间组将动态插入此处 -->
+                </div>
+
+                <button type="button" id="addTimeGroupBtn" class="mt-4 text-blue-600 hover:text-blue-800">+ 添加可替代的时间选项 (例如: 不同老师或时间)</button>
+                
+                <div class="mt-8 flex justify-end space-x-4">
+                    <button type="button" id="cancelCourseModal" class="bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 py-2 px-6 rounded-lg">取消</button>
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg">保存课程</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- 状态管理 ---
+        let courses = [];
+        let settings = {
+            required: [],
+            alternatives: [],
+            // NEW: Added groupConstraints for fixed/preferred choices
+            groupConstraints: {}, 
+            preferences: {
+                no_morning_1: { enabled: false, score: 10 },
+                no_afternoon_1: { enabled: false, score: 10 },
+                no_friday_afternoon: { enabled: false, score: 20 },
+                full_day_off: { enabled: false, score: 30 }
+            }
+        };
+        let nextId = 1;
+        const preferenceLabels = {
+            no_morning_1: "不要 8:30-9:50",
+            no_afternoon_1: "不要 1:30-2:50",
+            no_friday_afternoon: "不要周五下午",
+            full_day_off: "希望有一天没课"
+        };
+        const presetTimes = [
+            "周一 8:30-9:50", "周一 10:30-11:50", "周一 1:30-2:50", "周一 3:30-4:50", "周一 6:00-6:50", "周一 7:00-7:50" ,"周一 8:00-8:50",
+            "周二 8:30-9:50", "周二 10:30-11:50", "周二 1:30-2:50", "周二 3:30-4:50", "周二 6:00-6:50", "周二 7:00-7:50" ,"周二 8:00-8:50",
+            "周三 8:30-9:50", "周三 10:30-11:50", "周三 1:30-2:50", "周三 3:30-4:50", "周三 6:00-6:50", "周三 7:00-7:50" ,"周三 8:00-8:50",
+            "周四 8:30-9:50", "周四 10:30-11:50", "周四 1:30-2:50", "周四 3:30-4:50", "周四 6:00-6:50", "周四 7:00-7:50" ,"周四 8:00-8:50",
+            "周五 8:30-9:50", "周五 10:30-11:50", "周五 1:30-2:50", "周五 3:30-4:50", "周五 6:00-6:50", "周五 7:00-7:50" ,"周五 8:00-8:50",
+        ];
+        const colorPalette = [
+            'bg-red-200 text-red-800 border-red-300', 'bg-blue-200 text-blue-800 border-blue-300',
+            'bg-green-200 text-green-800 border-green-300', 'bg-yellow-200 text-yellow-800 border-yellow-300',
+            'bg-purple-200 text-purple-800 border-purple-300', 'bg-pink-200 text-pink-800 border-pink-300',
+            'bg-indigo-200 text-indigo-800 border-indigo-300', 'bg-teal-200 text-teal-800 border-teal-300'
+        ];
+
+        // --- DOM 元素 ---
+        const courseModal = document.getElementById('courseModal');
+        const addCourseBtn = document.getElementById('addCourseBtn');
+        const cancelCourseModalBtn = document.getElementById('cancelCourseModal');
+        const courseForm = document.getElementById('courseForm');
+        const courseList = document.getElementById('courseList');
+        const timeGroupsContainer = document.getElementById('timeGroupsContainer');
+        const addTimeGroupBtn = document.getElementById('addTimeGroupBtn');
+        const generateSchedulesBtn = document.getElementById('generateSchedulesBtn');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const placeholder = document.getElementById('placeholder');
+        
+        // --- 数据持久化 ---
+        function saveState() {
+            localStorage.setItem('courses', JSON.stringify(courses));
+            localStorage.setItem('settings', JSON.stringify(settings));
+            localStorage.setItem('nextId', nextId.toString());
+        }
+
+        function loadState() {
+            const savedCourses = localStorage.getItem('courses');
+            let savedSettings = localStorage.getItem('settings');
+            const savedNextId = localStorage.getItem('nextId');
+            if (savedCourses) {
+                courses = JSON.parse(savedCourses);
+            }
+            if (savedSettings) {
+                let parsedSettings = JSON.parse(savedSettings);
+                // 确保新属性存在，以兼容旧的存档
+                if (!parsedSettings.groupConstraints) {
+                    parsedSettings.groupConstraints = {};
+                }
+                Object.keys(parsedSettings.preferences).forEach(key => {
+                    if (typeof parsedSettings.preferences[key] === 'boolean') {
+                        parsedSettings.preferences[key] = {
+                            enabled: parsedSettings.preferences[key],
+                            score: settings.preferences[key]?.score || 10
+                        };
+                    }
+                });
+                settings = parsedSettings;
+            }
+            if (savedNextId) {
+                nextId = parseInt(savedNextId, 10);
+            }
+            renderAll();
+        }
+
+        // --- 渲染函数 ---
+        function renderAll() {
+            renderCourseList();
+            renderSettings();
+        }
+
+        function renderCourseList() {
+            courseList.innerHTML = '';
+            if (courses.length === 0) {
+                courseList.innerHTML = `<p class="text-center text-gray-500 dark:text-gray-400 text-sm py-4">暂无课程，请点击上方按钮添加。</p>`;
+                return;
+            }
+            courses.forEach(course => {
+                const courseEl = document.createElement('div');
+                courseEl.className = 'bg-gray-100 dark:bg-gray-700 p-3 rounded-lg flex justify-between items-center';
+                courseEl.innerHTML = `
+                    <div>
+                        <p class="font-semibold">${course.name}</p>
+                        <p class="text-xs text-gray-600 dark:text-gray-400">${course.groups.length}个时间选项</p>
+                    </div>
+                    <div class="space-x-2">
+                        <button class="edit-course-btn text-blue-500 hover:text-blue-700" data-id="${course.id}">编辑</button>
+                        <button class="delete-course-btn text-red-500 hover:text-red-700" data-id="${course.id}">删除</button>
+                    </div>
+                `;
+                courseList.appendChild(courseEl);
+            });
+        }
+        
+        // MODIFIED: Heavily updated renderSettings to include new controls
+        function renderSettings() {
+            const requiredContainer = document.getElementById('requiredCoursesContainer');
+            requiredContainer.innerHTML = courses.length ? '' : '<p class="text-xs text-gray-500">请先添加课程</p>';
+            courses.forEach(course => {
+                const isRequired = settings.required.includes(course.id);
+                const constraint = settings.groupConstraints[course.id];
+
+                // Create group options for the select dropdown
+                const groupOptions = course.groups.map((g, i) => {
+                    const teacherName = g.teacher ? ` (${g.teacher})` : ` (选项 ${i+1})`;
+                    return `<option value="${g.id}" ${constraint?.groupId === g.id ? 'selected' : ''}>${course.name}${teacherName}</option>`;
+                }).join('');
+                
+                const showControls = isRequired && course.groups.length > 1;
+
+                const courseDiv = document.createElement('div');
+                courseDiv.className = 'p-2 border rounded-lg dark:border-gray-600';
+                courseDiv.innerHTML = `
+                    <div class="flex items-center space-x-2">
+                        <input type="checkbox" class="required-check" data-id="${course.id}" ${isRequired ? 'checked' : ''}>
+                        <label>${course.name}</label>
+                    </div>
+                    <div class="group-constraint-controls mt-2 pl-6 space-y-2 ${showControls ? '' : 'hidden'}">
+                        <div class="flex items-center space-x-2">
+                            <select class="constraint-type-select p-1 border rounded text-xs dark:bg-gray-700 dark:border-gray-500" data-id="${course.id}">
+                                <option value="none" ${!constraint ? 'selected' : ''}>无特殊要求</option>
+                                <option value="fixed" ${constraint?.type === 'fixed' ? 'selected' : ''}>固定选择</option>
+                                <option value="preferred" ${constraint?.type === 'preferred' ? 'selected' : ''}>优先选择</option>
+                            </select>
+                            <select class="constraint-group-select p-1 border rounded text-xs dark:bg-gray-700 dark:border-gray-500 ${constraint ? '' : 'hidden'}" data-id="${course.id}">
+                                ${groupOptions}
+                            </select>
+                        </div>
+                        <div class="constraint-score-container ${constraint?.type === 'preferred' ? '' : 'hidden'}">
+                             <label class="text-xs">加分: 
+                                <input type="number" class="constraint-score-input w-16 p-1 border rounded text-xs dark:bg-gray-700 dark:border-gray-500" data-id="${course.id}" min="1" max="999" value="${constraint?.score || 50}">
+                             </label>
+                        </div>
+                    </div>
+                `;
+                requiredContainer.appendChild(courseDiv);
+            });
+
+            const altContainer = document.getElementById('alternativeGroupsContainer');
+            altContainer.innerHTML = '';
+            settings.alternatives.forEach((group, index) => {
+                const groupEl = document.createElement('div');
+                groupEl.className = 'p-2 border rounded-lg dark:border-gray-600';
+                let options = courses.map(c => `<option value="${c.id}" ${group.includes(c.id) ? 'selected' : ''}>${c.name}</option>`).join('');
+                groupEl.innerHTML = `
+                    <div class="flex items-center justify-between">
+                       <p class="text-xs font-medium mb-1">替代组 ${index + 1}</p>
+                       <button class="delete-alt-group-btn text-xs text-red-500" data-index="${index}">删除组</button>
+                    </div>
+                    <select multiple class="alt-group-select w-full bg-gray-50 dark:bg-gray-700 rounded-md text-sm" data-index="${index}">
+                        ${options}
+                    </select>
+                `;
+                altContainer.appendChild(groupEl);
+            });
+
+            const preferencesContainer = document.getElementById('preferencesContainer');
+            preferencesContainer.innerHTML = '';
+            for(const type in settings.preferences) {
+                const pref = settings.preferences[type];
+                preferencesContainer.innerHTML += `
+                <div class="flex items-center justify-between text-sm">
+                    <label class="flex items-center space-x-2">
+                        <input type="checkbox" class="preference-check" data-type="${type}" ${pref.enabled ? 'checked' : ''}>
+                        <span>${preferenceLabels[type]}</span>
+                    </label>
+                    <div class="flex items-center space-x-1">
+                       <span>+</span>
+                       <input type="number" class="preference-score-input w-16 text-sm p-1 border rounded-md dark:bg-gray-700 dark:border-gray-600" data-type="${type}" min="1" max="999" value="${pref.score}">
+                    </div>
+                </div>
+                `;
+            }
+        }
+        
+        // --- 课程模态框逻辑 ---
+        function openCourseModal(course = null) {
+            courseForm.reset();
+            timeGroupsContainer.innerHTML = '';
+            document.getElementById('courseId').value = '';
+
+            if (course) {
+                document.getElementById('modalTitle').textContent = '编辑课程';
+                document.getElementById('courseId').value = course.id;
+                document.getElementById('courseName').value = course.name;
+                
+                const uiGroups = new Map();
+                course.groups.forEach(group => {
+                    const key = group.baseId || `${group.teacher}::${group.rating}`;
+                    if (!uiGroups.has(key)) {
+                        uiGroups.set(key, { teacher: group.teacher, rating: group.rating, allSlots: [], count: 0 });
+                    }
+                    uiGroups.get(key).allSlots.push(...group.slots);
+                    uiGroups.get(key).count++;
+                });
+
+                uiGroups.forEach(uiGroupData => {
+                    let mainSlots = [];
+                    let linkedSlots = [];
+                    if (uiGroupData.count <= 1) {
+                        mainSlots = uiGroupData.allSlots;
+                    } else {
+                        const slotCounts = uiGroupData.allSlots.reduce((acc, slot) => {
+                            acc[slot] = (acc[slot] || 0) + 1;
+                            return acc;
+                        }, {});
+                        for (const slot in slotCounts) {
+                            if (slotCounts[slot] === uiGroupData.count) mainSlots.push(slot);
+                            else linkedSlots.push(slot);
+                        }
+                    }
+                    renderUiGroupInModal({ ...uiGroupData, mainSlots, linkedSlots });
+                });
+
+            } else {
+                document.getElementById('modalTitle').textContent = '添加新课程';
+                renderUiGroupInModal();
+            }
+            courseModal.classList.remove('hidden');
+        }
+
+        function closeCourseModal() {
+            courseModal.classList.add('hidden');
+        }
+
+        function renderUiGroupInModal(data = {}) {
+            const { teacher = '', rating = 50, mainSlots = [], linkedSlots = [] } = data;
+            
+            const groupEl = addTimeGroup(teacher, rating);
+            
+            const mainSlotsContainer = groupEl.querySelector('.main-time-slots-container');
+            if (mainSlots.length > 0) {
+                mainSlots.forEach(slot => addTimeSlot(mainSlotsContainer, slot));
+            } else {
+                addTimeSlot(mainSlotsContainer);
+            }
+
+            const linkedSlotsContainer = groupEl.querySelector('.linked-time-slots-container');
+            if (linkedSlots.length > 0) {
+                linkedSlots.forEach(slot => addTimeSlot(linkedSlotsContainer, slot));
+            }
+        }
+        
+        function addTimeGroup(teacher = '', rating = 50) {
+            const groupId = `ui_g${nextId++}`;
+            const groupEl = document.createElement('div');
+            groupEl.className = 'time-group border p-4 rounded-lg dark:border-gray-600 relative';
+            groupEl.dataset.id = groupId;
+            groupEl.innerHTML = `
+                <button type="button" class="remove-group-btn absolute top-2 right-2 text-red-500 hover:text-red-700 text-xs">移除此选项</button>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block font-medium mb-1 text-sm">授课教师/标识</label>
+                        <input type="text" class="teacher-input w-full p-2 border rounded-lg text-sm bg-gray-50 dark:bg-gray-700 dark:border-gray-600" placeholder="例如: 林老师, Section A..." value="${teacher}">
+                    </div>
+                    <div>
+                        <label class="block font-medium mb-1 text-sm">课程评分 (1-999)</label>
+                        <input type="number" class="rating-input w-full p-2 border rounded-lg text-sm bg-gray-50 dark:bg-gray-700 dark:border-gray-600" min="1" max="999" step="1" value="${rating}">
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <label class="block font-medium mb-1 text-sm">主课程时间 (必须同时满足)</label>
+                    <div class="main-time-slots-container space-y-2 mt-2"></div>
+                    <button type="button" class="add-main-time-slot-btn mt-2 text-sm text-blue-600 hover:text-blue-800">+ 添加主课程时间</button>
+                </div>
+                <div class="mt-4 border-t pt-4 dark:border-gray-500">
+                    <label class="block font-medium mb-1 text-sm">关联实验/习题课 (自动N选1)</label>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">若主课需绑定实验课，请在此处添加所有可选实验时间。系统将自动选其一。</p>
+                    <div class="linked-time-slots-container space-y-2 mt-2"></div>
+                    <button type="button" class="add-linked-time-slot-btn mt-2 text-sm text-green-600 hover:text-green-800">+ 添加关联时间选项</button>
+                </div>
+            `;
+            timeGroupsContainer.appendChild(groupEl);
+            return groupEl;
+        }
+
+        function addTimeSlot(container, slot = null) {
+            const slotEl = document.createElement('div');
+            slotEl.className = 'time-slot flex items-center space-x-2';
+            
+            let presetsHtml = presetTimes.map(time => `<option value="${time}" ${slot === time ? 'selected' : ''}>${time}</option>`).join('');
+
+            slotEl.innerHTML = `
+                <select class="preset-time-select flex-grow p-2 border rounded-lg text-sm bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
+                    <option value="">选择预设时间</option>
+                    ${presetsHtml}
+                    <option value="custom">自定义...</option>
+                </select>
+                <div class="flex-grow relative">
+                    <input type="text" class="custom-time-input w-full p-2 border rounded-lg text-sm bg-gray-50 dark:bg-gray-700 dark:border-gray-600 ${slot && !presetTimes.includes(slot) ? '' : 'hidden'}" placeholder="格式: 周一 8:30-10:00" value="${slot && !presetTimes.includes(slot) ? slot : ''}">
+                </div>
+                <button type="button" class="remove-slot-btn text-red-500 hover:text-red-700">×</button>
+            `;
+            container.appendChild(slotEl);
+            
+            const presetSelect = slotEl.querySelector('.preset-time-select');
+            if (slot && !presetTimes.includes(slot)) {
+                presetSelect.value = 'custom';
+            }
+        }
+
+        // --- 事件监听 ---
+        addCourseBtn.addEventListener('click', () => openCourseModal());
+        cancelCourseModalBtn.addEventListener('click', closeCourseModal);
+        addTimeGroupBtn.addEventListener('click', () => renderUiGroupInModal());
+
+        courseModal.addEventListener('click', e => {
+            if (e.target.classList.contains('add-main-time-slot-btn')) {
+                const container = e.target.previousElementSibling;
+                addTimeSlot(container);
+            }
+            if (e.target.classList.contains('add-linked-time-slot-btn')) {
+                const container = e.target.previousElementSibling;
+                addTimeSlot(container);
+            }
+            if (e.target.classList.contains('remove-slot-btn')) {
+                e.target.parentElement.remove();
+            }
+            if (e.target.classList.contains('remove-group-btn')) {
+                e.target.parentElement.remove();
+            }
+        });
+        courseModal.addEventListener('change', e => {
+    // 专门处理下拉选择框的值变化
+    if (e.target.classList.contains('preset-time-select')) {
+        const customInput = e.target.nextElementSibling.querySelector('.custom-time-input');
+        if (e.target.value === 'custom') {
+            customInput.classList.remove('hidden');
+            // 为了方便，可以自动聚焦到输入框
+            customInput.focus(); 
+        } else {
+            customInput.classList.add('hidden');
+        }
+    }
+});
+
+        courseForm.addEventListener('submit', e => {
+            e.preventDefault();
+            const id = document.getElementById('courseId').value;
+            const name = document.getElementById('courseName').value.trim();
+            if (!name) {
+                alert('请输入课程名称');
+                return;
+            }
+
+            const finalGroups = [];
+            let hasValidTime = false;
+            document.querySelectorAll('.time-group').forEach(groupEl => {
+                const baseId = groupEl.dataset.id;
+                const teacher = groupEl.querySelector('.teacher-input').value.trim();
+                const rating = parseInt(groupEl.querySelector('.rating-input').value, 10) || 50;
+
+                const mainSlots = [];
+                groupEl.querySelectorAll('.main-time-slots-container .time-slot').forEach(slotEl => {
+                    const preset = slotEl.querySelector('.preset-time-select').value;
+                    const custom = slotEl.querySelector('.custom-time-input').value.trim();
+                    const time = (preset === 'custom' ? custom : preset);
+                    if (time) mainSlots.push(time);
+                });
+
+                const linkedSlots = [];
+                groupEl.querySelectorAll('.linked-time-slots-container .time-slot').forEach(slotEl => {
+                     const preset = slotEl.querySelector('.preset-time-select').value;
+                    const custom = slotEl.querySelector('.custom-time-input').value.trim();
+                    const time = (preset === 'custom' ? custom : preset);
+                    if (time) linkedSlots.push(time);
+                });
+
+                if (mainSlots.length === 0 && linkedSlots.length === 0) return;
+
+                hasValidTime = true;
+                if (linkedSlots.length > 0) {
+                    linkedSlots.forEach(linkedSlot => {
+                        finalGroups.push({
+                            id: `g${nextId++}`,
+                            baseId, teacher, rating,
+                            slots: [...mainSlots, linkedSlot]
+                        });
+                    });
+                } else {
+                    finalGroups.push({
+                        id: `g${nextId++}`,
+                        baseId, teacher, rating,
+                        slots: mainSlots
+                    });
+                }
+            });
+
+            if (!hasValidTime) {
+                alert('请至少为一个课程选项添加一个有效的时间段');
+                return;
+            }
+
+            if (id) { // 编辑
+                const index = courses.findIndex(c => c.id == id);
+                if (index !== -1) {
+                    courses[index].name = name;
+                    courses[index].groups = finalGroups;
+                }
+            } else { // 新增
+                courses.push({ id: `c${nextId++}`, name, groups: finalGroups });
+            }
+            
+            saveState();
+            renderAll();
+            closeCourseModal();
+        });
+
+        courseList.addEventListener('click', e => {
+            if (e.target.classList.contains('edit-course-btn')) {
+                const course = courses.find(c => c.id == e.target.dataset.id);
+                openCourseModal(course);
+            }
+            if (e.target.classList.contains('delete-course-btn')) {
+                if (confirm('确定要删除这门课程吗？')) {
+                    const deletedId = e.target.dataset.id;
+                    courses = courses.filter(c => c.id != deletedId);
+                    settings.required = settings.required.filter(id => id != deletedId);
+                    delete settings.groupConstraints[deletedId]; // NEW: Remove from constraints
+                    settings.alternatives = settings.alternatives.map(group => group.filter(id => id != deletedId)).filter(group => group.length > 1);
+                    saveState();
+                    renderAll();
+                }
+            }
+        });
+        
+        // MODIFIED: Updated to handle new constraint controls
+        const settingsContainer = document.querySelector('.lg\\:col-span-1');
+        function handleSettingsChange(e) {
+            let stateChanged = false;
+            const courseId = e.target.dataset.id;
+            
+            // Required checkbox logic
+            if (e.target.classList.contains('required-check')) {
+                if (e.target.checked) {
+                    if (!settings.required.includes(courseId)) settings.required.push(courseId);
+                } else {
+                    settings.required = settings.required.filter(reqId => reqId !== courseId);
+                    delete settings.groupConstraints[courseId]; // Also remove any constraints if unchecked
+                }
+                stateChanged = true;
+                renderSettings(); // Re-render to show/hide controls
+            }
+            
+            // Constraint Type (None, Fixed, Preferred)
+            if (e.target.classList.contains('constraint-type-select')) {
+                const type = e.target.value;
+                if (type === 'none') {
+                    delete settings.groupConstraints[courseId];
+                } else {
+                    // Find the first group as a default
+                    const defaultGroupId = courses.find(c => c.id === courseId)?.groups[0]?.id;
+                    if (defaultGroupId) {
+                        settings.groupConstraints[courseId] = {
+                            type: type,
+                            groupId: settings.groupConstraints[courseId]?.groupId || defaultGroupId,
+                            score: settings.groupConstraints[courseId]?.score || 50
+                        };
+                    }
+                }
+                stateChanged = true;
+                renderSettings(); // Re-render to update UI
+            }
+            
+            // Specific Group Selection
+            if (e.target.classList.contains('constraint-group-select')) {
+                if (settings.groupConstraints[courseId]) {
+                    settings.groupConstraints[courseId].groupId = e.target.value;
+                    stateChanged = true;
+                }
+            }
+            
+            // Preferred Score Input
+            if (e.target.classList.contains('constraint-score-input') && e.target.dataset.id) {
+                 if (settings.groupConstraints[courseId]) {
+                    settings.groupConstraints[courseId].score = parseInt(e.target.value, 10) || 1;
+                    stateChanged = true;
+                 }
+            }
+
+            // Alternative groups
+            if (e.target.classList.contains('alt-group-select')) {
+                const index = e.target.dataset.index;
+                const selectedOptions = Array.from(e.target.selectedOptions).map(opt => opt.value);
+                if(settings.alternatives[index].join(',') !== selectedOptions.join(',')) {
+                    settings.alternatives[index] = selectedOptions;
+                    stateChanged = true;
+                }
+            }
+            
+            // Time preferences
+            if (e.target.classList.contains('preference-check')) {
+                const type = e.target.dataset.type;
+                if(settings.preferences[type]) {
+                    settings.preferences[type].enabled = e.target.checked;
+                    stateChanged = true;
+                }
+            }
+            if (e.target.classList.contains('preference-score-input') && e.target.dataset.type) {
+                 const type = e.target.dataset.type;
+                 if(settings.preferences[type]) {
+                    settings.preferences[type].score = parseInt(e.target.value, 10) || 1;
+                    stateChanged = true;
+                 }
+            }
+
+            if(stateChanged) {
+                saveState();
+            }
+        }
+        settingsContainer.addEventListener('change', handleSettingsChange);
+        settingsContainer.addEventListener('input', handleSettingsChange);
+
+        settingsContainer.addEventListener('click', e => {
+            if (e.target.id === 'addAlternativeGroupBtn') {
+                if (courses.length < 2) {
+                    alert('请至少添加两门课程才能创建替代组。');
+                    return;
+                }
+                settings.alternatives.push([]);
+                renderSettings();
+                saveState();
+            }
+            if (e.target.classList.contains('delete-alt-group-btn')) {
+                const index = e.target.dataset.index;
+                settings.alternatives.splice(index, 1);
+                renderSettings();
+                saveState();
+            }
+        });
+
+        // --- 导入/导出 ---
+        function setupImportExport() {
+            document.getElementById('exportCoursesBtn').addEventListener('click', () => exportData(courses, 'courses.json'));
+            document.getElementById('importCoursesBtn').addEventListener('click', () => document.getElementById('courseFileInput').click());
+            document.getElementById('courseFileInput').addEventListener('change', (e) => importData(e, 'courses'));
+
+            document.getElementById('exportSettingsBtn').addEventListener('click', () => exportData(settings, 'settings.json'));
+            document.getElementById('importSettingsBtn').addEventListener('click', () => document.getElementById('settingsFileInput').click());
+            document.getElementById('settingsFileInput').addEventListener('change', (e) => importData(e, 'settings'));
+        }
+
+        function exportData(data, filename) {
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importData(event, type) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (type === 'courses') {
+                        if (Array.isArray(data) && data.every(c => c.id && c.name && c.groups)) {
+                            courses = data;
+                            const maxIdC = Math.max(0, ...data.map(c => parseInt(c.id.replace('c','')) || 0));
+                            const allGroups = data.flatMap(c => c.groups);
+                            const maxIdG = Math.max(0, ...allGroups.map(g => parseInt(g.id.replace('g','')) || 0));
+                            const maxIdUiG = Math.max(0, ...allGroups.map(g => parseInt(g.baseId?.replace('ui_g','') || 0) || 0));
+                            nextId = Math.max(maxIdC, maxIdG, maxIdUiG) + 1;
+                        } else {
+                            throw new Error('课程文件格式不正确');
+                        }
+                    } else if (type === 'settings') {
+                         if (data.required && data.alternatives && data.preferences) {
+                            settings = data;
+                         } else {
+                            throw new Error('设置文件格式不正确');
+                         }
+                    }
+                    saveState();
+                    loadState(); 
+                    alert('导入成功！');
+                } catch (err) {
+                    alert(`导入失败: ${err.message}`);
+                } finally {
+                    event.target.value = '';
+                }
+            };
+            reader.readAsText(file);
+        }
+        
+        // MODIFIED: Updated generateSchedules and scoring logic
+        function generateSchedules() {
+            const generateBtnText = document.getElementById('generateBtnText');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            generateBtnText.classList.add('hidden');
+            loadingSpinner.classList.remove('hidden');
+            
+            setTimeout(() => {
+                const allSchedules = [];
+                const courseMap = new Map(courses.map(c => [c.id, c]));
+                const alternativeMap = new Map();
+                settings.alternatives.forEach(group => {
+                    group.forEach(courseId => {
+                        alternativeMap.set(courseId, group);
+                    });
+                });
+                
+                const coursesToSchedule = courses.filter(c => c.groups.length > 0);
+
+                function findCombinations(courseIndex, currentSchedule, usedAltGroups) {
+                    if (courseIndex >= coursesToSchedule.length) {
+                        const scheduleCourseIds = new Set(currentSchedule.map(item => item.course.id));
+                        const allRequiredMet = settings.required.every(reqId => scheduleCourseIds.has(reqId));
+                        
+                        if (allRequiredMet) {
+                            allSchedules.push(currentSchedule);
+                        }
+                        return;
+                    }
+
+                    const course = coursesToSchedule[courseIndex];
+                    const altGroup = alternativeMap.get(course.id);
+
+                    // A course can be skipped if it's not required
+                    let canSkip = !settings.required.includes(course.id);
+                    if (canSkip) {
+                        findCombinations(courseIndex + 1, currentSchedule, usedAltGroups);
+                    }
+                    
+                    if (altGroup && usedAltGroups.has(altGroup)) {
+                        // If this course is part of an alt group already used, we can't select it.
+                        // We must have already skipped it if possible, so we just return.
+                        return; 
+                    }
+                    
+                    const constraint = settings.groupConstraints[course.id];
+
+                    for (const group of course.groups) {
+                        // NEW: Hard constraint check (fixed choice)
+                        if (constraint && constraint.type === 'fixed' && group.id !== constraint.groupId) {
+                            continue; // Skip this group if it's not the fixed one
+                        }
+
+                        if (!checkConflict(currentSchedule, group.slots)) {
+                            const newSchedule = [...currentSchedule, { course, group }];
+                            const newUsedAltGroups = new Set(usedAltGroups);
+                            if (altGroup) {
+                                newUsedAltGroups.add(altGroup);
+                            }
+                            findCombinations(courseIndex + 1, newSchedule, newUsedAltGroups);
+                        }
+                    }
+                }
+
+                findCombinations(0, [], new Set());
+                
+                // MODIFIED: Scoring logic updated
+                const scoredSchedules = allSchedules.map(schedule => {
+                    let baseScore = schedule.reduce((acc, item) => acc + item.group.rating, 0);
+                    let bonus = 0;
+                    let bonusBreakdown = [];
+                    
+                    const daysWithClasses = new Set();
+                    let hasMorning1 = false, hasAfternoon1 = false, hasFridayAfternoon = false;
+                    
+                    schedule.forEach(item => {
+                        item.group.slots.forEach(slotStr => {
+                            const p = parseTime(slotStr);
+                            if(!p) return;
+                            daysWithClasses.add(p.day);
+                            if (p.start < 600) hasMorning1 = true; 
+                            if (p.start >= 810 && p.start < 930) hasAfternoon1 = true;
+                            if (p.day === 5 && p.start >= 720) hasFridayAfternoon = true;
+                        });
+                    });
+                    
+                    // Time preference scoring
+                    const prefs = settings.preferences;
+                    if (prefs.no_morning_1.enabled && !hasMorning1) { bonus += prefs.no_morning_1.score; bonusBreakdown.push('无早八'); }
+                    if (prefs.no_afternoon_1.enabled && !hasAfternoon1) { bonus += prefs.no_afternoon_1.score; bonusBreakdown.push('无午后'); }
+                    if (prefs.no_friday_afternoon.enabled && !hasFridayAfternoon) { bonus += prefs.no_friday_afternoon.score; bonusBreakdown.push('周五下午无课'); }
+                    if (prefs.full_day_off.enabled && daysWithClasses.size < 5) { bonus += prefs.full_day_off.score; bonusBreakdown.push('有全天没课'); }
+
+                    // NEW: Preferred group scoring
+                    for (const courseId in settings.groupConstraints) {
+                        const constraint = settings.groupConstraints[courseId];
+                        if (constraint.type === 'preferred') {
+                            if (schedule.some(item => item.group.id === constraint.groupId)) {
+                                bonus += constraint.score;
+                                const c = courseMap.get(courseId);
+                                const g = c.groups.find(grp => grp.id === constraint.groupId);
+                                const gName = g.teacher || `选项`;
+                                bonusBreakdown.push(`选${gName}`);
+                            }
+                        }
+                    }
+
+                    return { schedule, score: baseScore + bonus, baseScore, bonus, bonusBreakdown: bonusBreakdown.join(', ') };
+                }).sort((a, b) => b.score - a.score);
+                
+                renderResults(scoredSchedules);
+                generateBtnText.classList.remove('hidden');
+                loadingSpinner.add('hidden');
+            }, 10);
+        }
+
+        function parseTime(timeStr) {
+            const dayMap = { '周一': 1, '周二': 2, '周三': 3, '周四': 4, '周五': 5, '周六': 6, '周日': 7 };
+            const normalizedStr = timeStr.replace(/：/g, ':').replace(/\s+/g, ' ');
+            const match = normalizedStr.match(/(周[一二三四五])\s*(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/);
+            if (!match) return null;
+            const [, day, startH, startM, endH, endM] = match;
+            return {
+                day: dayMap[day],
+                start: parseInt(startH) * 60 + parseInt(startM),
+                end: parseInt(endH) * 60 + parseInt(endM)
+            };
+        }
+
+        function checkConflict(schedule, newSlots) {
+            for (const newSlotStr of newSlots) {
+                const newParsed = parseTime(newSlotStr);
+                if (!newParsed) continue;
+                for (const scheduledCourse of schedule) {
+                    for (const existingSlotStr of scheduledCourse.group.slots) {
+                        const existingParsed = parseTime(existingSlotStr);
+                        if (!existingParsed) continue;
+                        if (newParsed.day === existingParsed.day &&
+                            Math.max(newParsed.start, existingParsed.start) < Math.min(newParsed.end, existingParsed.end)) {
+                            return true; 
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        function renderResults(schedules) {
+            resultsContainer.innerHTML = '';
+            placeholder.classList.add('hidden');
+            if (schedules.length === 0) {
+                placeholder.classList.remove('hidden');
+                placeholder.innerHTML = `
+                    <svg class="mx-auto h-12 w-12 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    <p class="mt-4">未能生成符合所有条件的课程表。</p>
+                    <p class="text-sm text-gray-500">请尝试放宽“必修课”或“固定选择”的限制。</p>
+                `;
+                return;
+            }
+
+            schedules.slice(0, 50).forEach((result, index) => {
+                const resultEl = document.createElement('div');
+                resultEl.className = 'border dark:border-gray-700 rounded-lg p-4';
+                
+                const scheduleGrid = createScheduleGrid(result.schedule);
+                const bonusInfo = result.bonus > 0 ? `课程分 ${result.baseScore} + 偏好分 ${result.bonus} (${result.bonusBreakdown})` : `课程分 ${result.baseScore}`;
+
+                resultEl.innerHTML = `
+                    <div class="flex justify-between items-start mb-4 flex-wrap">
+                        <h4 class="text-lg font-bold">方案 ${index + 1}</h4>
+                        <div class="text-right">
+                           <p class="text-lg font-semibold text-green-600">总分: ${result.score}</p>
+                           <p class="text-xs text-gray-500">${bonusInfo}</p>
+                        </div>
+                    </div>
+                    <div class="schedule-grid bg-gray-200 dark:bg-gray-700">${scheduleGrid}</div>
+                `;
+                resultsContainer.appendChild(resultEl);
+            });
+            if (schedules.length > 50) {
+                resultsContainer.innerHTML += `<p class="text-center text-sm text-gray-500 mt-4">已显示评分最高的50个结果，共生成${schedules.length}个方案。</p>`;
+            }
+        }
+
+        function createScheduleGrid(schedule) {
+            let gridHtml = '<div class="bg-white dark:bg-gray-800"></div>' + ['一', '二', '三', '四', '五'].map(d => `<div class="day-header">${d}</div>`).join('');
+            const timeLabels = ["8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21"];
+            for (let i = 0; i < 14; i++) {
+                gridHtml += `<div class="time-label bg-white dark:bg-gray-800">${timeLabels[i]}:00</div>`;
+                for(let j=1; j<=5; j++) {
+                     gridHtml += `<div class="relative bg-white dark:bg-gray-800" data-day="${j}" data-hour="${i+8}"></div>`;
+                }
+            }
+            
+            const scheduleContainer = document.createElement('div');
+            scheduleContainer.innerHTML = gridHtml;
+
+            schedule.forEach((item) => {
+                const colorClass = colorPalette[courses.findIndex(c => c.id === item.course.id) % colorPalette.length];
+                item.group.slots.forEach(slotStr => {
+                    const p = parseTime(slotStr);
+                    if (!p || p.day > 5) return;
+                    
+                    const parentCell = scheduleContainer.querySelector(`div[data-day="${p.day}"][data-hour="${Math.floor((p.start - 480)/60)+8}"]`);
+                    if(parentCell) {
+                        const block = document.createElement('div');
+                        block.className = `course-block ${colorClass} border`;
+                        block.style.top = `${((p.start-480)%60)/60 * 40}px`;
+                        
+                        // --- 代码修改 START ---
+                        const startHour = Math.floor((p.start - 480) / 60);
+                        const endHour = Math.floor((p.end - 480 - 1) / 60); // -1 to handle courses ending exactly on the hour
+                        const gapsSpanned = Math.max(0, endHour - startHour);
+                        block.style.height = `${(p.end - p.start)/60 * 40 + gapsSpanned - 2}px`;
+                        // --- 代码修改 END ---
+                        
+                        block.innerHTML = `
+                            <p class="font-bold leading-tight">${item.course.name}</p>
+                            <p class="leading-tight text-xs">${item.group.teacher || ''}</p>
+                        `;
+                        parentCell.appendChild(block);
+                    }
+                });
+            });
+            return scheduleContainer.innerHTML;
+        }
+
+        // --- 初始化 ---
+        generateSchedulesBtn.addEventListener('click', generateSchedules);
+        loadState();
+        setupImportExport();
+    });
+    </script>
+</body>
+</html>

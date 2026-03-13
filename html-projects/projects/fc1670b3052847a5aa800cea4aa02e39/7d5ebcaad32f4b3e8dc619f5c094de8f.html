@@ -1,0 +1,1827 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>实验图片上传与打包</title>
+  <style>
+    :root {
+      --bg: #f4f6f8;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --ok: #0f766e;
+      --warn: #92400e;
+      --danger: #9f1239;
+      --line: #d1d5db;
+      --accent: #0b69c7;
+      --overlay: rgba(15, 23, 42, 0.55);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+      color: var(--text);
+      background: linear-gradient(150deg, #eef3f7 0%, #f9fafb 60%, #edf2f8 100%);
+    }
+    .wrap {
+      max-width: 1260px;
+      margin: 22px auto;
+      padding: 0 14px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 24px;
+    }
+    h2 {
+      margin: 0;
+      font-size: 18px;
+    }
+    h3 {
+      margin: 0;
+      font-size: 16px;
+    }
+    .muted { color: var(--muted); }
+    .small { font-size: 12px; color: #475569; }
+    .hidden { display: none !important; }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-top: 10px;
+    }
+
+    .inline-field {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+    }
+
+    input[type="text"],
+    textarea,
+    select {
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 14px;
+      color: #0f172a;
+      background: #fff;
+    }
+
+    .lab-input {
+      width: 160px;
+    }
+
+    button, .file-btn {
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      color: #111827;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 14px;
+      cursor: pointer;
+      line-height: 1.2;
+    }
+
+    button.primary {
+      border-color: #0b69c7;
+      background: var(--accent);
+      color: #fff;
+    }
+
+    button.danger {
+      border-color: #fecdd3;
+      color: var(--danger);
+      background: #fff1f2;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .file-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .upload-btn.drag-hover {
+      border-color: #0b69c7;
+      background: #dbeafe;
+      color: #0b3a73;
+    }
+
+    .upload-btn.paste-hover {
+      border-color: #0f766e;
+      box-shadow: inset 0 0 0 1px #0f766e;
+      background: #ecfdf5;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      font-size: 14px;
+    }
+
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 8px 6px;
+      vertical-align: top;
+      text-align: left;
+    }
+
+    th {
+      font-size: 13px;
+      color: #374151;
+      background: #f8fafc;
+    }
+
+    .tag {
+      display: inline-block;
+      font-size: 12px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      border: 1px solid #cbd5e1;
+      color: #334155;
+    }
+
+    .tag.optional {
+      background: #fff7ed;
+      border-color: #fed7aa;
+      color: var(--warn);
+    }
+
+    .status.ok { color: var(--ok); font-weight: 600; }
+    .status.missing { color: var(--danger); font-weight: 600; }
+
+    .experiment-block {
+      margin-bottom: 14px;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 12px;
+      background: #ffffff;
+    }
+
+    .experiment-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 6px;
+    }
+
+    .exp-code {
+      font-weight: 700;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      color: #0b3a73;
+      margin-right: 8px;
+    }
+
+    .filename {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 12px;
+      color: #0f172a;
+      word-break: break-all;
+    }
+
+    .thumb-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .thumb {
+      width: 72px;
+      height: 48px;
+      border-radius: 6px;
+      border: 1px solid #d1d5db;
+      object-fit: cover;
+      cursor: pointer;
+      background: #f8fafc;
+    }
+
+    .thumb-more {
+      font-size: 12px;
+      color: #334155;
+    }
+
+    .operation {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .tips li { margin-bottom: 6px; }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: var(--overlay);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 20;
+      padding: 12px;
+    }
+
+    .modal-panel {
+      width: min(1120px, 100%);
+      max-height: 92vh;
+      overflow: auto;
+      background: #fff;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      padding: 14px;
+    }
+
+    .modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .editor-exp {
+      border: 1px solid #dbe4ef;
+      border-radius: 10px;
+      padding: 10px;
+      margin-top: 10px;
+      background: #f9fbff;
+    }
+
+    .editor-exp-head {
+      display: grid;
+      grid-template-columns: 140px 1fr auto;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .editor-table input[type="text"] {
+      width: 100%;
+      padding: 6px 8px;
+      font-size: 13px;
+    }
+
+    .editor-table .cell-center {
+      text-align: center;
+    }
+
+    .preview-panel {
+      width: min(960px, 100%);
+      max-height: 90vh;
+      overflow: auto;
+      background: #fff;
+      border-radius: 12px;
+      padding: 12px;
+      border: 1px solid #dbe4ef;
+    }
+
+    .preview-stage {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 220px;
+      background: #f8fafc;
+      border-radius: 8px;
+      border: 1px solid #dbe4ef;
+      margin: 10px 0;
+      padding: 8px;
+    }
+
+    .preview-stage img {
+      max-width: 100%;
+      max-height: 68vh;
+      object-fit: contain;
+      border-radius: 6px;
+    }
+
+    .schema-box,
+    .prompt-box {
+      width: 100%;
+      margin-top: 8px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 10px;
+      background: #f8fafc;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 12px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .prompt-box {
+      min-height: 210px;
+      resize: vertical;
+      color: #0f172a;
+    }
+
+    @media (max-width: 1000px) {
+      .editor-exp-head {
+        grid-template-columns: 1fr;
+      }
+      th:nth-child(3), td:nth-child(3) {
+        display: none;
+      }
+      .thumb {
+        width: 64px;
+        height: 42px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>实验图片上传与 ZIP 导出</h1>
+      <div class="muted">数据保存在浏览器 <code>IndexedDB(localForage)</code>。支持按实验分块管理、多图上传、ZIP 备份导入导出。</div>
+      <div class="toolbar">
+        <label class="inline-field">
+          <span>Lab 前缀</span>
+          <input id="labPrefixInput" class="lab-input" type="text" placeholder="例如：digital_lab">
+        </label>
+        <button id="downloadZipBtn" class="primary">导出图片 ZIP</button>
+        <label class="file-btn" for="importZipInput">导入图片 ZIP 备份</label>
+        <input id="importZipInput" class="hidden" type="file" accept=".zip,application/zip">
+        <button id="openEditorBtn">编辑实验列表</button>
+        <label class="file-btn" for="importListInput">导入实验列表 JSON</label>
+        <input id="importListInput" class="hidden" type="file" accept="application/json,.json">
+        <button id="exportListBtn">导出实验列表 JSON</button>
+        <button id="clearAllBtn" class="danger">清空全部图片</button>
+        <span id="summary" class="small"></span>
+      </div>
+    </div>
+
+    <div id="experimentContainer"></div>
+
+    <div class="card">
+      <h2>命名与导入规则</h2>
+      <ul class="tips">
+        <li>导出文件命名格式：<code>lab前缀__实验编号__条目序号__同条目第N张__图片主体--描述.ext</code>。</li>
+        <li>同一条目可上传多张图片，导出时会按 <code>01, 02, 03...</code> 递增命名。</li>
+        <li>ZIP 导入会按 <code>--</code> 解析“图片主体”和“描述”，并按双下划线 <code>__</code> 解析前置字段。</li>
+        <li>删除条目或实验块时，如果存在已上传图片会二次确认。</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>实验列表 JSON 格式与 AI Prompt 模板</h2>
+      <div class="small muted">JSON 仅用于导入/导出实验结构（不含图片数据）。图片备份统一走 ZIP。</div>
+      <pre id="jsonSchema" class="schema-box"></pre>
+      <textarea id="promptTemplate" class="prompt-box" readonly></textarea>
+      <div class="toolbar">
+        <button id="copyPromptBtn">复制 Prompt 模板</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="editorModal" class="modal hidden">
+    <div class="modal-panel">
+      <div class="modal-head">
+        <h2>编辑实验列表（分块）</h2>
+        <button id="closeEditorBtn">关闭</button>
+      </div>
+
+      <div class="toolbar">
+        <input id="newExpCodeInput" type="text" placeholder="新实验编号，例如 4.4">
+        <input id="newExpTitleInput" type="text" placeholder="新实验标题，例如 组合逻辑扩展实验">
+        <button id="addExperimentBtn" class="primary">新建实验块</button>
+      </div>
+
+      <div class="toolbar">
+        <select id="quickAddExpSelect"></select>
+        <input id="quickAddCoreInput" type="text" placeholder="图片主体（不含扩展名）">
+        <input id="quickAddDescInput" type="text" placeholder="描述（导出时放在 -- 后面）">
+        <button id="quickAddItemBtn">按下拉框新增条目</button>
+      </div>
+
+      <div id="editorExperiments"></div>
+
+      <div class="toolbar">
+        <button id="saveEditorBtn" class="primary">保存实验列表</button>
+        <button id="cancelEditorBtn">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="previewModal" class="modal hidden">
+    <div class="preview-panel">
+      <div class="modal-head">
+        <h2>图片预览</h2>
+        <button id="closePreviewBtn">关闭</button>
+      </div>
+      <div id="previewMeta" class="small"></div>
+      <div class="preview-stage">
+        <img id="previewImage" alt="preview">
+      </div>
+      <div class="toolbar">
+        <button id="previewPrevBtn">上一张</button>
+        <button id="previewNextBtn">下一张</button>
+        <button id="previewDeleteBtn" class="danger">删除当前图片</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/localforage@1.10.0/dist/localforage.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script>
+    const DB_NAME = "lab_image_uploader_db_v2";
+    const META_STORE = "meta";
+    const FILES_STORE = "files";
+    const META_STATE_KEY = "state_v2";
+
+    const DESC_SEPARATOR = "--";
+    const TOKEN_SEPARATOR = "__";
+
+    const JSON_SCHEMA_TEXT = `{
+  "version": 1,
+  "labPrefix": "lab_x",
+  "experiments": [
+    {
+      "id": "exp_41",
+      "code": "4.1",
+      "title": "实验 4.1",
+      "items": [
+        {
+          "id": "item_41_01",
+          "required": true,
+          "nameCore": "gate_schematic_multisim",
+          "description": "门级 Multisim 电路图",
+          "ext": "png"
+        }
+      ]
+    }
+  ]
+}`;
+
+    const DEFAULT_STATE = {
+      version: 1,
+      labPrefix: "lab",
+      experiments: [
+        {
+          id: "exp_41",
+          code: "4.1",
+          title: "实验 4.1",
+          items: [
+            { id: "item_41_01", required: true,  nameCore: "gate_schematic_multisim", description: "门级 Multisim 电路图", ext: "png" },
+            { id: "item_41_02", required: true,  nameCore: "chip_schematic_multisim", description: "芯片级 Multisim 电路图", ext: "png" },
+            { id: "item_41_03", required: true,  nameCore: "waveform_logic_analyzer_multisim", description: "4.1 第 3 步逻辑分析仪波形", ext: "png" },
+            { id: "item_41_04", required: false, nameCore: "hardware_wiring_hardware", description: "硬件连线照片（建议）", ext: "jpg" }
+          ]
+        },
+        {
+          id: "exp_42",
+          code: "4.2",
+          title: "实验 4.2",
+          items: [
+            { id: "item_42_01", required: true, nameCore: "kmap_hazard_marked_handdrawn", description: "标注 hazard 的 Karnaugh 图", ext: "png" },
+            { id: "item_42_02", required: true, nameCore: "original_schematic_multisim", description: "消除前原始电路", ext: "png" },
+            { id: "item_42_03", required: true, nameCore: "waveform_glitch_multisim", description: "glitch 波形（消除前）", ext: "png" },
+            { id: "item_42_04", required: true, nameCore: "fixed_schematic_multisim", description: "加入额外项后的电路", ext: "png" },
+            { id: "item_42_05", required: true, nameCore: "waveform_no_glitch_multisim", description: "消除后无 glitch 波形", ext: "png" },
+            { id: "item_42_06", required: true, nameCore: "hardware_verification_hardware", description: "硬件验证照片或截图", ext: "jpg" }
+          ]
+        },
+        {
+          id: "exp_43",
+          code: "4.3",
+          title: "实验 4.3",
+          items: [
+            { id: "item_43_01", required: true, nameCore: "kmap_multiplier_handdrawn", description: "乘法器 Karnaugh 图", ext: "png" },
+            { id: "item_43_02", required: true, nameCore: "logic_schematic_multisim", description: "乘法器逻辑电路图", ext: "png" },
+            { id: "item_43_03", required: true, nameCore: "waveform_logic_analyzer_multisim", description: "乘法器逻辑分析仪波形", ext: "png" },
+            { id: "item_43_04", required: true, nameCore: "hardware_wiring_hardware", description: "乘法器硬件连线照片", ext: "jpg" },
+            { id: "item_43_05", required: true, nameCore: "hardware_result_logic_analyzer_hardware", description: "乘法器硬件结果截图", ext: "png" }
+          ]
+        }
+      ]
+    };
+
+    if (!window.localforage) {
+      alert("未加载到 localForage，无法使用 IndexedDB 存储。请联网后刷新页面。");
+      throw new Error("localForage unavailable");
+    }
+
+    const metaDb = localforage.createInstance({ name: DB_NAME, storeName: META_STORE });
+    const filesDb = localforage.createInstance({ name: DB_NAME, storeName: FILES_STORE });
+
+    let state = cloneState(DEFAULT_STATE);
+    let filesByItem = {};
+    let itemMap = new Map();
+
+    let draftState = null;
+    let hoverPasteItemId = null;
+
+    let previewItemId = "";
+    let previewIndex = 0;
+
+    const experimentContainer = document.getElementById("experimentContainer");
+    const editorModal = document.getElementById("editorModal");
+    const editorExperiments = document.getElementById("editorExperiments");
+    const quickAddExpSelect = document.getElementById("quickAddExpSelect");
+    const previewModal = document.getElementById("previewModal");
+    const previewImage = document.getElementById("previewImage");
+    const previewMeta = document.getElementById("previewMeta");
+    const labPrefixInput = document.getElementById("labPrefixInput");
+
+    function uid(prefix) {
+      return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+    }
+
+    function cloneState(raw) {
+      return JSON.parse(JSON.stringify(raw));
+    }
+
+    function cloneFilesMap(raw) {
+      return JSON.parse(JSON.stringify(raw || {}));
+    }
+
+    function sanitizeSegment(value, fallback = "untitled") {
+      const text = String(value || "")
+        .trim()
+        .replace(/\s+/g, "_")
+        .replace(/[\\/:*?"<>|\u0000-\u001f]+/g, "_")
+        .replace(/_+/g, "_")
+        .replace(/^_+|_+$/g, "")
+        .replaceAll(DESC_SEPARATOR, "-")
+        .replaceAll(TOKEN_SEPARATOR, "_");
+      return text || fallback;
+    }
+
+    function sanitizeExt(ext) {
+      return String(ext || "png").trim().replace(/^\./, "").toLowerCase() || "png";
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll("\"", "&quot;");
+    }
+
+    function normalizeItem(raw, idxHint = 1) {
+      const parsedFromFilename = parseLegacyFilename(raw && raw.filename ? raw.filename : "");
+      const nameCoreRaw = raw && raw.nameCore ? raw.nameCore : (raw && raw.filenameCore ? raw.filenameCore : parsedFromFilename.nameCore);
+      const descriptionRaw = raw && raw.description !== undefined ? raw.description : (raw && raw.note !== undefined ? raw.note : "");
+      return {
+        id: String(raw && raw.id ? raw.id : uid(`item${idxHint}`)),
+        required: raw && raw.required !== undefined ? Boolean(raw.required) : true,
+        nameCore: sanitizeSegment(nameCoreRaw || `image_${idxHint}`),
+        description: String(descriptionRaw || "").trim(),
+        ext: sanitizeExt(raw && raw.ext ? raw.ext : parsedFromFilename.ext)
+      };
+    }
+
+    function normalizeExperiment(raw, idxHint = 1) {
+      const expCode = String(raw && (raw.code !== undefined ? raw.code : raw.exp) ? (raw.code !== undefined ? raw.code : raw.exp) : `${idxHint}`).trim() || `${idxHint}`;
+      const rawItems = Array.isArray(raw && raw.items) ? raw.items : [];
+      const items = rawItems.map((x, i) => normalizeItem(x, i + 1));
+      return {
+        id: String(raw && raw.id ? raw.id : uid(`exp${idxHint}`)),
+        code: expCode,
+        title: String(raw && raw.title ? raw.title : `实验 ${expCode}`).trim() || `实验 ${expCode}`,
+        items
+      };
+    }
+
+    function normalizeState(raw) {
+      const directExperiments = Array.isArray(raw && raw.experiments) ? raw.experiments : [];
+      const fromManifest = Array.isArray(raw && raw.manifest) ? convertFlatManifestToExperiments(raw.manifest) : [];
+      const source = directExperiments.length ? directExperiments : fromManifest;
+
+      const experiments = source.map((x, i) => normalizeExperiment(x, i + 1));
+      return {
+        version: 1,
+        labPrefix: sanitizeSegment(raw && raw.labPrefix ? raw.labPrefix : "lab", "lab"),
+        experiments: experiments.length ? experiments : cloneState(DEFAULT_STATE).experiments
+      };
+    }
+
+    function convertFlatManifestToExperiments(manifest) {
+      const byExp = new Map();
+      for (const row of manifest) {
+        const expCode = String(row && row.exp ? row.exp : "x").trim() || "x";
+        if (!byExp.has(expCode)) {
+          byExp.set(expCode, {
+            id: uid("exp"),
+            code: expCode,
+            title: `实验 ${expCode}`,
+            items: []
+          });
+        }
+        byExp.get(expCode).items.push(normalizeItem(row, byExp.get(expCode).items.length + 1));
+      }
+      return Array.from(byExp.values());
+    }
+
+    function parseLegacyFilename(filename) {
+      const full = String(filename || "").trim();
+      if (!full) return { nameCore: "", ext: "png" };
+      const dot = full.lastIndexOf(".");
+      const ext = sanitizeExt(dot > 0 ? full.slice(dot + 1) : "png");
+      const stem = dot > 0 ? full.slice(0, dot) : full;
+      const m = stem.match(/^.+?_e\d+_\d+_(.+)$/i);
+      return { nameCore: sanitizeSegment(m ? m[1] : stem), ext };
+    }
+
+    function defaultNewItem(seed = 1) {
+      return {
+        id: uid("item"),
+        required: true,
+        nameCore: `new_image_${seed}`,
+        description: "",
+        ext: "png"
+      };
+    }
+
+    function getItemFiles(itemId) {
+      const arr = filesByItem[itemId];
+      return Array.isArray(arr) ? arr : [];
+    }
+
+    async function loadStateFromDb() {
+      const raw = await metaDb.getItem(META_STATE_KEY);
+      state = normalizeState(raw || DEFAULT_STATE);
+    }
+
+    async function saveStateToDb() {
+      await metaDb.setItem(META_STATE_KEY, state);
+    }
+
+    async function loadFilesFromDb() {
+      const loaded = {};
+      await filesDb.iterate((value, key) => {
+        if (Array.isArray(value)) loaded[key] = value.filter(Boolean);
+      });
+      filesByItem = loaded;
+    }
+
+    async function persistFilesAll() {
+      await filesDb.clear();
+      for (const [itemId, arr] of Object.entries(filesByItem)) {
+        if (Array.isArray(arr) && arr.length) {
+          await filesDb.setItem(itemId, arr);
+        }
+      }
+    }
+
+    async function removeFilesForItem(itemId) {
+      delete filesByItem[itemId];
+      await filesDb.removeItem(itemId);
+    }
+
+    async function clearAllFiles() {
+      filesByItem = {};
+      await filesDb.clear();
+    }
+
+    function makeItemSignature(expCode, item) {
+      return [
+        String(expCode || ""),
+        sanitizeSegment(item && item.nameCore ? item.nameCore : ""),
+        sanitizeSegment(item && item.description ? item.description : ""),
+        sanitizeExt(item && item.ext ? item.ext : "png")
+      ].join("|");
+    }
+
+    function formatSize(n) {
+      if (!n) return "-";
+      if (n < 1024) return `${n} B`;
+      if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+      return `${(n / 1024 / 1024).toFixed(2)} MB`;
+    }
+
+    function getStoreUsageBytes() {
+      let total = 0;
+      for (const [k, v] of Object.entries(filesByItem)) {
+        total += k.length * 2;
+        total += JSON.stringify(v).length * 2;
+      }
+      return total;
+    }
+
+    function buildExportFilename(labPrefix, expCode, itemOrder, imageOrder, item, fileRec) {
+      const lab = sanitizeSegment(labPrefix || "lab", "lab");
+      const exp = sanitizeSegment(expCode || "x", "x");
+      const seq = String(itemOrder).padStart(2, "0");
+      const imageSeq = String(imageOrder).padStart(2, "0");
+      const core = sanitizeSegment(item && item.nameCore ? item.nameCore : "image");
+      const desc = sanitizeSegment(item && item.description ? item.description : "no_desc");
+      const extFromType = String(fileRec && fileRec.type ? fileRec.type : "").startsWith("image/")
+        ? sanitizeExt(String(fileRec.type).split("/")[1])
+        : "";
+      const ext = sanitizeExt(extFromType || (item && item.ext ? item.ext : "png"));
+
+      const left = [lab, exp, seq, imageSeq, core].join(TOKEN_SEPARATOR);
+      return `${left}${DESC_SEPARATOR}${desc}.${ext}`;
+    }
+
+    function buildFilenameHint(labPrefix, expCode, itemOrder, item) {
+      return buildExportFilename(labPrefix, expCode, itemOrder, 1, item, null).replace(`${TOKEN_SEPARATOR}01${TOKEN_SEPARATOR}`, `${TOKEN_SEPARATOR}{n}${TOKEN_SEPARATOR}`);
+    }
+
+    function dataUrlToUint8Array(dataUrl) {
+      const base64 = String(dataUrl || "").split(",")[1] || "";
+      const binary = atob(base64);
+      const out = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) out[i] = binary.charCodeAt(i);
+      return out;
+    }
+
+    function readFileAsDataURL(file) {
+      return new Promise((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onload = () => resolve(fr.result);
+        fr.onerror = reject;
+        fr.readAsDataURL(file);
+      });
+    }
+
+    function blobToDataURL(blob) {
+      return new Promise((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onload = () => resolve(fr.result);
+        fr.onerror = reject;
+        fr.readAsDataURL(blob);
+      });
+    }
+
+    function getImageFileFromDataTransfer(dt) {
+      if (!dt) return null;
+      if (dt.files && dt.files.length) {
+        for (const file of dt.files) {
+          if (String(file.type || "").startsWith("image/")) return file;
+        }
+      }
+      if (dt.items && dt.items.length) {
+        for (const it of dt.items) {
+          if (it.kind === "file" && String(it.type || "").startsWith("image/")) {
+            const f = it.getAsFile();
+            if (f) return f;
+          }
+        }
+      }
+      return null;
+    }
+
+    function getImageFileFromClipboard(clipboardData) {
+      if (!clipboardData) return null;
+      if (clipboardData.files && clipboardData.files.length) {
+        for (const file of clipboardData.files) {
+          if (String(file.type || "").startsWith("image/")) return file;
+        }
+      }
+      if (clipboardData.items && clipboardData.items.length) {
+        for (const it of clipboardData.items) {
+          if (it.kind === "file" && String(it.type || "").startsWith("image/")) {
+            const blob = it.getAsFile();
+            if (blob) {
+              const type = blob.type || "image/png";
+              const ext = sanitizeExt(type.split("/")[1] || "png");
+              return new File([blob], `pasted-${Date.now()}.${ext}`, { type });
+            }
+          }
+        }
+      }
+      return null;
+    }
+
+    function makeCrcTable() {
+      const table = new Uint32Array(256);
+      for (let n = 0; n < 256; n++) {
+        let c = n;
+        for (let k = 0; k < 8; k++) {
+          c = (c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1);
+        }
+        table[n] = c >>> 0;
+      }
+      return table;
+    }
+
+    const CRC_TABLE = makeCrcTable();
+
+    function crc32(bytes) {
+      let c = 0xffffffff;
+      for (let i = 0; i < bytes.length; i++) {
+        c = CRC_TABLE[(c ^ bytes[i]) & 0xff] ^ (c >>> 8);
+      }
+      return (c ^ 0xffffffff) >>> 0;
+    }
+
+    function dosDateTime(ts) {
+      const d = new Date(ts || Date.now());
+      const year = Math.max(1980, d.getFullYear());
+      const dosTime = (d.getHours() << 11) | (d.getMinutes() << 5) | ((d.getSeconds() / 2) | 0);
+      const dosDate = ((year - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+      return { dosTime, dosDate };
+    }
+
+    function u16(n) {
+      return [n & 0xff, (n >>> 8) & 0xff];
+    }
+
+    function u32(n) {
+      return [n & 0xff, (n >>> 8) & 0xff, (n >>> 16) & 0xff, (n >>> 24) & 0xff];
+    }
+
+    function encodeUtf8(str) {
+      return new TextEncoder().encode(str);
+    }
+
+    function buildZip(entries) {
+      const out = [];
+      const central = [];
+      let offset = 0;
+
+      for (const e of entries) {
+        const nameBytes = encodeUtf8(e.name);
+        const data = e.bytes;
+        const crc = crc32(data);
+        const { dosTime, dosDate } = dosDateTime(e.time);
+
+        const local = [
+          ...u32(0x04034b50),
+          ...u16(20),
+          ...u16(0x0800),
+          ...u16(0),
+          ...u16(dosTime),
+          ...u16(dosDate),
+          ...u32(crc),
+          ...u32(data.length),
+          ...u32(data.length),
+          ...u16(nameBytes.length),
+          ...u16(0)
+        ];
+        out.push(new Uint8Array(local), nameBytes, data);
+
+        const centralHeader = [
+          ...u32(0x02014b50),
+          ...u16(20),
+          ...u16(20),
+          ...u16(0x0800),
+          ...u16(0),
+          ...u16(dosTime),
+          ...u16(dosDate),
+          ...u32(crc),
+          ...u32(data.length),
+          ...u32(data.length),
+          ...u16(nameBytes.length),
+          ...u16(0),
+          ...u16(0),
+          ...u16(0),
+          ...u16(0),
+          ...u32(0),
+          ...u32(offset)
+        ];
+        central.push(new Uint8Array(centralHeader), nameBytes);
+
+        offset += local.length + nameBytes.length + data.length;
+      }
+
+      let centralSize = 0;
+      for (const chunk of central) centralSize += chunk.length;
+
+      out.push(...central);
+      const eocd = new Uint8Array([
+        ...u32(0x06054b50),
+        ...u16(0),
+        ...u16(0),
+        ...u16(entries.length),
+        ...u16(entries.length),
+        ...u32(centralSize),
+        ...u32(offset),
+        ...u16(0)
+      ]);
+      out.push(eocd);
+
+      return new Blob(out, { type: "application/zip" });
+    }
+
+    function downloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function parseBackupFilename(pathName) {
+      const base = String(pathName || "").split("/").pop();
+      if (!base) return null;
+
+      const dot = base.lastIndexOf(".");
+      if (dot <= 0) return null;
+      const ext = sanitizeExt(base.slice(dot + 1));
+      const stem = base.slice(0, dot);
+
+      const joinPos = stem.lastIndexOf(DESC_SEPARATOR);
+      if (joinPos <= 0) return null;
+
+      const left = stem.slice(0, joinPos);
+      const descRaw = stem.slice(joinPos + DESC_SEPARATOR.length);
+      const tokens = left.split(TOKEN_SEPARATOR);
+      if (tokens.length < 5) return null;
+
+      const [labPrefix, expCode, itemToken, imageToken, ...coreParts] = tokens;
+      const nameCore = coreParts.join(TOKEN_SEPARATOR);
+      if (!labPrefix || !expCode || !nameCore) return null;
+
+      const itemOrder = Number(itemToken);
+      const imageOrder = Number(imageToken);
+
+      return {
+        labPrefix: sanitizeSegment(labPrefix, "lab"),
+        expCode: String(expCode).trim(),
+        itemOrder: Number.isFinite(itemOrder) && itemOrder > 0 ? itemOrder : 999,
+        imageOrder: Number.isFinite(imageOrder) && imageOrder > 0 ? imageOrder : 1,
+        nameCore: sanitizeSegment(nameCore),
+        description: sanitizeSegment(descRaw, "no_desc"),
+        ext
+      };
+    }
+
+    function setJsonSchemaAndPrompt() {
+      document.getElementById("jsonSchema").textContent = JSON_SCHEMA_TEXT;
+      document.getElementById("promptTemplate").value = buildPromptTemplate();
+    }
+
+    function buildPromptTemplate() {
+      const expSummary = state.experiments.map((exp) => {
+        return `- ${exp.code} ${exp.title}（当前条目数 ${exp.items.length}）`;
+      }).join("\n");
+
+      return [
+        "你是实验助教，请根据我的课程实验安排，生成“实验列表 JSON”。",
+        "严格只输出 JSON，不要输出 Markdown 或解释。",
+        "",
+        "硬性要求：",
+        "1) 输出必须符合下面结构：version, labPrefix, experiments[].",
+        "2) 每个 experiments[] 内必须有 code, title, items[].",
+        "3) 每个 items[] 内必须有 required, nameCore, description, ext。",
+        "4) nameCore 仅使用字母/数字/下划线；ext 只能是 png/jpg/jpeg/webp。",
+        "5) id 字段可省略（页面会自动补）。",
+        "",
+        `当前推荐 labPrefix: ${state.labPrefix}`,
+        "当前实验概览：",
+        expSummary || "- 暂无",
+        "",
+        "输出样例结构（请按需替换内容）：",
+        JSON_SCHEMA_TEXT
+      ].join("\n");
+    }
+
+    function buildItemMap() {
+      itemMap = new Map();
+      for (const exp of state.experiments) {
+        for (const item of exp.items) {
+          itemMap.set(item.id, { exp, item });
+        }
+      }
+    }
+
+    function render() {
+      buildItemMap();
+      renderExperimentBlocks();
+      updateSummary();
+      setJsonSchemaAndPrompt();
+      labPrefixInput.value = state.labPrefix;
+    }
+
+    function renderExperimentBlocks() {
+      experimentContainer.innerHTML = "";
+      for (const exp of state.experiments) {
+        const block = document.createElement("div");
+        block.className = "card experiment-block";
+
+        const head = document.createElement("div");
+        head.className = "experiment-head";
+        head.innerHTML = `
+          <div>
+            <span class="exp-code">${escapeHtml(exp.code)}</span>
+            <strong>${escapeHtml(exp.title)}</strong>
+          </div>
+          <div class="small muted">本实验条目：${exp.items.length}</div>
+        `;
+        block.appendChild(head);
+
+        const table = document.createElement("table");
+        table.innerHTML = `
+          <thead>
+            <tr>
+              <th style="width:110px;">必需</th>
+              <th style="width:360px;">导出文件名模板</th>
+              <th>描述</th>
+              <th style="width:230px;">预览</th>
+              <th style="width:160px;">状态</th>
+              <th style="width:250px;">操作</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        `;
+
+        const tbody = table.querySelector("tbody");
+
+        exp.items.forEach((item, idx) => {
+          const files = getItemFiles(item.id);
+          const inputId = `file_${item.id}`;
+          const hint = buildFilenameHint(state.labPrefix, exp.code, idx + 1, item);
+
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>
+              <span class="tag ${item.required ? "" : "optional"}">${item.required ? "必需" : "可选"}</span>
+            </td>
+            <td><div class="filename">${escapeHtml(hint)}</div></td>
+            <td>${escapeHtml(item.description || "-")}</td>
+            <td>
+              ${renderThumbCell(item.id, files)}
+            </td>
+            <td>
+              <div class="status ${files.length ? "ok" : "missing"}">${files.length ? "已上传" : "缺失"}</div>
+              <div class="small">${files.length ? `${files.length} 张 · 最新 ${new Date(files[files.length - 1].updatedAt).toLocaleString()}` : "-"}</div>
+            </td>
+            <td>
+              <div class="operation">
+                <input id="${inputId}" type="file" accept="image/*" multiple class="hidden">
+                <label
+                  for="${inputId}"
+                  class="file-btn upload-btn"
+                  data-item-id="${item.id}"
+                  title="支持多选上传；拖拽图片到此处；鼠标悬停后按 Ctrl+V 粘贴"
+                >上传图片</label>
+                <button data-clear-item="${item.id}" ${files.length ? "" : "disabled"}>清空该条目</button>
+              </div>
+            </td>
+          `;
+
+          tbody.appendChild(tr);
+
+          const fileInput = tr.querySelector(`#${inputId}`);
+          const uploadLabel = tr.querySelector("label.upload-btn");
+
+          fileInput.addEventListener("change", async (ev) => {
+            const selected = Array.from(ev.target.files || []);
+            if (!selected.length) return;
+            await appendFilesToItem(item.id, selected);
+            ev.target.value = "";
+          });
+
+          uploadLabel.addEventListener("mouseenter", () => {
+            hoverPasteItemId = item.id;
+            uploadLabel.classList.add("paste-hover");
+          });
+
+          uploadLabel.addEventListener("mouseleave", () => {
+            if (hoverPasteItemId === item.id) hoverPasteItemId = null;
+            uploadLabel.classList.remove("paste-hover");
+          });
+
+          uploadLabel.addEventListener("dragenter", (ev) => {
+            ev.preventDefault();
+            uploadLabel.classList.add("drag-hover");
+          });
+
+          uploadLabel.addEventListener("dragover", (ev) => {
+            ev.preventDefault();
+            uploadLabel.classList.add("drag-hover");
+          });
+
+          uploadLabel.addEventListener("dragleave", () => {
+            uploadLabel.classList.remove("drag-hover");
+          });
+
+          uploadLabel.addEventListener("drop", async (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            uploadLabel.classList.remove("drag-hover");
+            const file = getImageFileFromDataTransfer(ev.dataTransfer);
+            if (!file) {
+              alert("拖拽内容不是图片文件。\n可一次拖入多张图片文件。\n");
+              return;
+            }
+            await appendFilesToItem(item.id, [file]);
+          });
+        });
+
+        block.appendChild(table);
+        experimentContainer.appendChild(block);
+      }
+
+      experimentContainer.querySelectorAll("button[data-clear-item]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const itemId = btn.getAttribute("data-clear-item");
+          const files = getItemFiles(itemId);
+          if (!files.length) return;
+          if (!confirm(`确认清空该条目的 ${files.length} 张图片？`)) return;
+          await removeFilesForItem(itemId);
+          render();
+        });
+      });
+
+      experimentContainer.querySelectorAll("img[data-preview-item]").forEach((imgEl) => {
+        imgEl.addEventListener("click", () => {
+          const itemId = imgEl.getAttribute("data-preview-item");
+          const idx = Number(imgEl.getAttribute("data-preview-idx") || 0);
+          openPreview(itemId, idx);
+        });
+      });
+    }
+
+    function renderThumbCell(itemId, files) {
+      if (!files.length) {
+        return `<div class="small">未上传</div>`;
+      }
+      const show = files.slice(0, 3).map((f, idx) => {
+        return `<img class="thumb" src="${f.dataUrl}" alt="preview" data-preview-item="${itemId}" data-preview-idx="${idx}">`;
+      }).join("");
+
+      const more = files.length > 3 ? `<span class="thumb-more">+${files.length - 3}</span>` : "";
+      const size = files.reduce((sum, x) => sum + (x.size || 0), 0);
+      return `
+        <div class="thumb-list">
+          ${show}
+          ${more}
+        </div>
+        <div class="small">总大小 ${formatSize(size)}</div>
+      `;
+    }
+
+    async function appendFilesToItem(itemId, selectedFiles) {
+      const itemInfo = itemMap.get(itemId);
+      if (!itemInfo) return;
+
+      const next = getItemFiles(itemId).slice();
+      for (const file of selectedFiles) {
+        if (!file || !String(file.type || "").startsWith("image/")) {
+          alert(`已跳过非图片文件：${file ? file.name : "未知文件"}`);
+          continue;
+        }
+        try {
+          const dataUrl = await readFileAsDataURL(file);
+          next.push({
+            dataUrl,
+            originalName: file.name || "uploaded-image",
+            type: file.type || "image/png",
+            size: file.size || dataUrl.length,
+            updatedAt: Date.now()
+          });
+        } catch (err) {
+          console.error(err);
+          alert(`保存失败：${file.name || "图片"}。可能是浏览器存储空间不足。`);
+        }
+      }
+
+      filesByItem[itemId] = next;
+      await filesDb.setItem(itemId, next);
+      render();
+    }
+
+    function updateSummary() {
+      let required = 0;
+      let requiredDone = 0;
+      let itemDone = 0;
+      let totalItems = 0;
+      let totalImages = 0;
+
+      for (const exp of state.experiments) {
+        for (const item of exp.items) {
+          totalItems += 1;
+          const count = getItemFiles(item.id).length;
+          totalImages += count;
+          if (count > 0) itemDone += 1;
+          if (item.required) {
+            required += 1;
+            if (count > 0) requiredDone += 1;
+          }
+        }
+      }
+
+      const usage = getStoreUsageBytes();
+      document.getElementById("summary").textContent =
+        `必需完成: ${requiredDone}/${required} · 条目完成: ${itemDone}/${totalItems} · 图片总数: ${totalImages} · 浏览器占用: ${formatSize(usage)}`;
+    }
+
+    function openEditor() {
+      draftState = cloneState(state);
+      renderEditor();
+      editorModal.classList.remove("hidden");
+    }
+
+    function closeEditor() {
+      editorModal.classList.add("hidden");
+    }
+
+    function renderEditor() {
+      if (!draftState) return;
+      editorExperiments.innerHTML = "";
+
+      quickAddExpSelect.innerHTML = draftState.experiments
+        .map((exp) => `<option value="${exp.id}">${escapeHtml(exp.code)} · ${escapeHtml(exp.title)}</option>`)
+        .join("");
+
+      draftState.experiments.forEach((exp, expIdx) => {
+        const card = document.createElement("div");
+        card.className = "editor-exp";
+
+        card.innerHTML = `
+          <div class="editor-exp-head">
+            <input type="text" data-exp-key="code" data-exp-idx="${expIdx}" value="${escapeHtml(exp.code)}" placeholder="实验编号">
+            <input type="text" data-exp-key="title" data-exp-idx="${expIdx}" value="${escapeHtml(exp.title)}" placeholder="实验标题">
+            <button data-del-exp-idx="${expIdx}" class="danger">删除该实验块</button>
+          </div>
+
+          <table class="editor-table">
+            <thead>
+              <tr>
+                <th style="width:80px;">必需</th>
+                <th style="width:280px;">图片主体</th>
+                <th>描述</th>
+                <th style="width:90px;">扩展名</th>
+                <th style="width:90px;">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${exp.items.map((item, itemIdx) => `
+                <tr>
+                  <td class="cell-center"><input type="checkbox" data-item-key="required" data-exp-idx="${expIdx}" data-item-idx="${itemIdx}" ${item.required ? "checked" : ""}></td>
+                  <td><input type="text" data-item-key="nameCore" data-exp-idx="${expIdx}" data-item-idx="${itemIdx}" value="${escapeHtml(item.nameCore)}"></td>
+                  <td><input type="text" data-item-key="description" data-exp-idx="${expIdx}" data-item-idx="${itemIdx}" value="${escapeHtml(item.description || "")}"></td>
+                  <td><input type="text" data-item-key="ext" data-exp-idx="${expIdx}" data-item-idx="${itemIdx}" value="${escapeHtml(item.ext)}"></td>
+                  <td><button data-del-item-exp="${expIdx}" data-del-item-idx="${itemIdx}">删除</button></td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+
+          <div class="toolbar">
+            <button data-add-item-exp="${expIdx}">在本实验块下新增条目</button>
+          </div>
+        `;
+
+        editorExperiments.appendChild(card);
+      });
+
+      editorExperiments.querySelectorAll("input[data-exp-key]").forEach((el) => {
+        el.addEventListener("input", (ev) => {
+          const target = ev.target;
+          const expIdx = Number(target.getAttribute("data-exp-idx"));
+          const key = target.getAttribute("data-exp-key");
+          if (!draftState.experiments[expIdx]) return;
+          draftState.experiments[expIdx][key] = target.value;
+        });
+      });
+
+      editorExperiments.querySelectorAll("input[data-item-key]").forEach((el) => {
+        el.addEventListener("input", (ev) => {
+          const target = ev.target;
+          const expIdx = Number(target.getAttribute("data-exp-idx"));
+          const itemIdx = Number(target.getAttribute("data-item-idx"));
+          const key = target.getAttribute("data-item-key");
+          const exp = draftState.experiments[expIdx];
+          if (!exp || !exp.items[itemIdx]) return;
+          if (key === "required") {
+            exp.items[itemIdx].required = target.checked;
+          } else {
+            exp.items[itemIdx][key] = target.value;
+          }
+        });
+      });
+
+      editorExperiments.querySelectorAll("button[data-del-item-exp]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const expIdx = Number(btn.getAttribute("data-del-item-exp"));
+          const itemIdx = Number(btn.getAttribute("data-del-item-idx"));
+          const exp = draftState.experiments[expIdx];
+          if (!exp || !exp.items[itemIdx]) return;
+
+          const item = exp.items[itemIdx];
+          const count = getItemFiles(item.id).length;
+          if (count > 0) {
+            const ok = confirm(`该条目已有 ${count} 张已上传图片。删除条目会同时丢失这些图片，是否继续？`);
+            if (!ok) return;
+          }
+
+          exp.items.splice(itemIdx, 1);
+          renderEditor();
+        });
+      });
+
+      editorExperiments.querySelectorAll("button[data-add-item-exp]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const expIdx = Number(btn.getAttribute("data-add-item-exp"));
+          const exp = draftState.experiments[expIdx];
+          if (!exp) return;
+          exp.items.push(defaultNewItem(exp.items.length + 1));
+          renderEditor();
+        });
+      });
+
+      editorExperiments.querySelectorAll("button[data-del-exp-idx]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const expIdx = Number(btn.getAttribute("data-del-exp-idx"));
+          const exp = draftState.experiments[expIdx];
+          if (!exp) return;
+
+          const uploaded = exp.items.reduce((sum, item) => sum + getItemFiles(item.id).length, 0);
+          if (uploaded > 0) {
+            const ok = confirm(`该实验块已有 ${uploaded} 张已上传图片。删除实验块会丢失这些图片，是否继续？`);
+            if (!ok) return;
+          }
+
+          draftState.experiments.splice(expIdx, 1);
+          renderEditor();
+        });
+      });
+    }
+
+    function addExperimentFromInputs() {
+      const codeInput = document.getElementById("newExpCodeInput");
+      const titleInput = document.getElementById("newExpTitleInput");
+
+      const code = String(codeInput.value || "").trim() || `exp_${draftState.experiments.length + 1}`;
+      const title = String(titleInput.value || "").trim() || `实验 ${code}`;
+
+      draftState.experiments.push({
+        id: uid("exp"),
+        code,
+        title,
+        items: [defaultNewItem(1)]
+      });
+
+      codeInput.value = "";
+      titleInput.value = "";
+      renderEditor();
+    }
+
+    function quickAddItem() {
+      const expId = quickAddExpSelect.value;
+      const coreInput = document.getElementById("quickAddCoreInput");
+      const descInput = document.getElementById("quickAddDescInput");
+
+      const core = sanitizeSegment(coreInput.value, "new_image");
+      const description = String(descInput.value || "").trim();
+      const exp = draftState.experiments.find((x) => x.id === expId);
+      if (!exp) {
+        alert("请先选择实验块。");
+        return;
+      }
+
+      exp.items.push({
+        id: uid("item"),
+        required: true,
+        nameCore: core,
+        description,
+        ext: "png"
+      });
+
+      coreInput.value = "";
+      descInput.value = "";
+      renderEditor();
+    }
+
+    function cleanDraftState(raw) {
+      const next = normalizeState(raw);
+
+      for (const exp of next.experiments) {
+        exp.code = String(exp.code || "").trim() || "x";
+        exp.title = String(exp.title || "").trim() || `实验 ${exp.code}`;
+
+        const cleanedItems = exp.items
+          .map((item, i) => ({
+            id: item.id || uid("item"),
+            required: Boolean(item.required),
+            nameCore: sanitizeSegment(item.nameCore || `image_${i + 1}`),
+            description: String(item.description || "").trim(),
+            ext: sanitizeExt(item.ext || "png")
+          }))
+          .filter((item) => item.nameCore);
+
+        if (!cleanedItems.length) cleanedItems.push(defaultNewItem(1));
+        exp.items = cleanedItems;
+      }
+
+      if (!next.experiments.length) {
+        next.experiments.push({
+          id: uid("exp"),
+          code: "x",
+          title: "实验 x",
+          items: [defaultNewItem(1)]
+        });
+      }
+
+      return next;
+    }
+
+    async function saveEditor() {
+      if (!draftState) return;
+      const next = cleanDraftState(draftState);
+
+      const oldIds = new Set();
+      for (const exp of state.experiments) {
+        for (const item of exp.items) oldIds.add(item.id);
+      }
+
+      const newIds = new Set();
+      for (const exp of next.experiments) {
+        for (const item of exp.items) newIds.add(item.id);
+      }
+
+      const removedIds = [];
+      for (const id of oldIds) {
+        if (!newIds.has(id)) removedIds.push(id);
+      }
+
+      state = next;
+      await saveStateToDb();
+
+      for (const itemId of removedIds) {
+        await removeFilesForItem(itemId);
+      }
+
+      closeEditor();
+      render();
+    }
+
+    function openPreview(itemId, idx) {
+      const files = getItemFiles(itemId);
+      if (!files.length) return;
+
+      previewItemId = itemId;
+      previewIndex = Math.min(Math.max(0, idx), files.length - 1);
+      updatePreviewModal();
+      previewModal.classList.remove("hidden");
+    }
+
+    function closePreview() {
+      previewModal.classList.add("hidden");
+      previewItemId = "";
+      previewIndex = 0;
+    }
+
+    function updatePreviewModal() {
+      const files = getItemFiles(previewItemId);
+      if (!files.length) {
+        closePreview();
+        return;
+      }
+
+      if (previewIndex < 0) previewIndex = 0;
+      if (previewIndex >= files.length) previewIndex = files.length - 1;
+
+      const current = files[previewIndex];
+      const itemInfo = itemMap.get(previewItemId);
+      const expLabel = itemInfo ? `${itemInfo.exp.code} ${itemInfo.exp.title}` : "";
+      const itemLabel = itemInfo ? itemInfo.item.nameCore : "";
+
+      previewImage.src = current.dataUrl;
+      previewMeta.textContent = `${expLabel} · ${itemLabel} · 第 ${previewIndex + 1}/${files.length} 张 · ${formatSize(current.size || 0)} · ${new Date(current.updatedAt).toLocaleString()}`;
+
+      document.getElementById("previewPrevBtn").disabled = previewIndex <= 0;
+      document.getElementById("previewNextBtn").disabled = previewIndex >= files.length - 1;
+    }
+
+    async function deleteCurrentPreviewImage() {
+      const files = getItemFiles(previewItemId).slice();
+      if (!files.length) return;
+      if (!confirm("确认删除当前这张图片？")) return;
+
+      files.splice(previewIndex, 1);
+      if (files.length) {
+        filesByItem[previewItemId] = files;
+        await filesDb.setItem(previewItemId, files);
+      } else {
+        await removeFilesForItem(previewItemId);
+      }
+
+      render();
+      if (files.length) {
+        previewIndex = Math.min(previewIndex, files.length - 1);
+        updatePreviewModal();
+      } else {
+        closePreview();
+      }
+    }
+
+    async function exportImagesZip() {
+      const entries = [];
+      const missingRequired = [];
+
+      for (const exp of state.experiments) {
+        exp.items.forEach((item, itemIdx) => {
+          const files = getItemFiles(item.id);
+          if (!files.length && item.required) {
+            missingRequired.push(`${exp.code}-${item.nameCore}`);
+          }
+          files.forEach((rec, fileIdx) => {
+            entries.push({
+              name: buildExportFilename(state.labPrefix, exp.code, itemIdx + 1, fileIdx + 1, item, rec),
+              bytes: dataUrlToUint8Array(rec.dataUrl),
+              time: rec.updatedAt
+            });
+          });
+        });
+      }
+
+      if (!entries.length) {
+        alert("还没有上传任何图片。");
+        return;
+      }
+
+      if (missingRequired.length) {
+        const goOn = confirm(`还有 ${missingRequired.length} 个必需条目未上传，是否仍导出已上传图片？`);
+        if (!goOn) return;
+      }
+
+      const zipBlob = buildZip(entries);
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, "0");
+      const d = String(now.getDate()).padStart(2, "0");
+      downloadBlob(zipBlob, `${sanitizeSegment(state.labPrefix, "lab")}_images_${y}${m}${d}.zip`);
+    }
+
+    async function importImagesZip(file) {
+      if (!window.JSZip) {
+        alert("未加载到 JSZip，无法导入 ZIP。请联网刷新后重试。");
+        return;
+      }
+
+      const zip = await window.JSZip.loadAsync(file);
+      const nextState = cloneState(state);
+      const nextFiles = cloneFilesMap(filesByItem);
+
+      const expMap = new Map(nextState.experiments.map((exp) => [String(exp.code), exp]));
+      const itemCache = new Map();
+
+      let imported = 0;
+      let skipped = 0;
+      let createdExp = 0;
+      let createdItems = 0;
+
+      for (const [entryName, entry] of Object.entries(zip.files)) {
+        if (entry.dir) continue;
+
+        const parsed = parseBackupFilename(entryName);
+        if (!parsed) {
+          skipped += 1;
+          continue;
+        }
+
+        if ((!nextState.labPrefix || nextState.labPrefix === "lab") && parsed.labPrefix) {
+          nextState.labPrefix = parsed.labPrefix;
+        }
+
+        let exp = expMap.get(parsed.expCode);
+        if (!exp) {
+          exp = {
+            id: uid("exp"),
+            code: parsed.expCode,
+            title: `实验 ${parsed.expCode}`,
+            items: []
+          };
+          nextState.experiments.push(exp);
+          expMap.set(parsed.expCode, exp);
+          createdExp += 1;
+        }
+
+        const itemKey = `${exp.id}|${parsed.nameCore}|${parsed.description}`;
+        let item = itemCache.get(itemKey);
+        if (!item) {
+          item = exp.items.find((x) =>
+            sanitizeSegment(x.nameCore) === parsed.nameCore &&
+            sanitizeSegment(x.description || "", "") === sanitizeSegment(parsed.description || "", "")
+          );
+
+          if (!item) {
+            item = {
+              id: uid("item"),
+              required: true,
+              nameCore: parsed.nameCore,
+              description: parsed.description,
+              ext: parsed.ext
+            };
+            exp.items.push(item);
+            createdItems += 1;
+          }
+          itemCache.set(itemKey, item);
+        }
+
+        const blob = await entry.async("blob");
+        const dataUrl = await blobToDataURL(blob);
+        const arr = Array.isArray(nextFiles[item.id]) ? nextFiles[item.id].slice() : [];
+
+        const slot = Math.max(0, parsed.imageOrder - 1);
+        while (arr.length < slot) arr.push(null);
+        arr[slot] = {
+          dataUrl,
+          originalName: entryName,
+          type: blob.type || `image/${sanitizeExt(parsed.ext)}`,
+          size: blob.size || 0,
+          updatedAt: Date.now()
+        };
+
+        nextFiles[item.id] = arr;
+        imported += 1;
+      }
+
+      if (!imported) {
+        alert("ZIP 中没有识别到符合命名规则的图片。\n请检查命名格式：lab__exp__item__n__nameCore--description.ext");
+        return;
+      }
+
+      for (const [itemId, arr] of Object.entries(nextFiles)) {
+        nextFiles[itemId] = Array.isArray(arr) ? arr.filter(Boolean) : [];
+      }
+
+      state = cleanDraftState(nextState);
+      filesByItem = nextFiles;
+      await saveStateToDb();
+      await persistFilesAll();
+      render();
+
+      alert(`导入完成：${imported} 张图片；新建实验块 ${createdExp} 个；新建条目 ${createdItems} 个；跳过 ${skipped} 个文件。`);
+    }
+
+    async function importExperimentListJson(file) {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      const next = cleanDraftState({
+        labPrefix: state.labPrefix,
+        ...(parsed || {})
+      });
+
+      const oldById = new Map();
+      const oldBySignature = new Map();
+
+      for (const exp of state.experiments) {
+        for (const item of exp.items) {
+          const files = getItemFiles(item.id);
+          oldById.set(item.id, files);
+
+          const sig = makeItemSignature(exp.code, item);
+          if (!oldBySignature.has(sig)) oldBySignature.set(sig, []);
+          oldBySignature.get(sig).push(files);
+        }
+      }
+
+      const mappedFiles = {};
+      for (const exp of next.experiments) {
+        for (const item of exp.items) {
+          if (oldById.has(item.id)) {
+            mappedFiles[item.id] = cloneFilesMap(oldById.get(item.id));
+            continue;
+          }
+
+          const sig = makeItemSignature(exp.code, item);
+          const candidates = oldBySignature.get(sig);
+          if (candidates && candidates.length) {
+            mappedFiles[item.id] = cloneFilesMap(candidates.shift());
+          }
+        }
+      }
+
+      state = next;
+      filesByItem = mappedFiles;
+      await saveStateToDb();
+      await persistFilesAll();
+      render();
+      alert("实验列表导入完成。");
+    }
+
+    function exportExperimentListJson() {
+      const payload = {
+        version: 1,
+        labPrefix: state.labPrefix,
+        experiments: state.experiments
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, "0");
+      const d = String(now.getDate()).padStart(2, "0");
+      downloadBlob(blob, `experiment_list_${y}${m}${d}.json`);
+    }
+
+    async function handlePaste(ev) {
+      if (!hoverPasteItemId) return;
+      const file = getImageFileFromClipboard(ev.clipboardData);
+      if (!file) return;
+      ev.preventDefault();
+      await appendFilesToItem(hoverPasteItemId, [file]);
+    }
+
+    async function init() {
+      await loadStateFromDb();
+      await loadFilesFromDb();
+      render();
+    }
+
+    document.getElementById("downloadZipBtn").addEventListener("click", exportImagesZip);
+
+    document.getElementById("importZipInput").addEventListener("change", async (ev) => {
+      const file = ev.target.files && ev.target.files[0];
+      if (!file) return;
+      try {
+        await importImagesZip(file);
+      } catch (err) {
+        console.error(err);
+        alert("导入 ZIP 失败，请确认文件格式正确。\n需要文件名包含 -- 连接符用于解析描述。");
+      } finally {
+        ev.target.value = "";
+      }
+    });
+
+    document.getElementById("importListInput").addEventListener("change", async (ev) => {
+      const file = ev.target.files && ev.target.files[0];
+      if (!file) return;
+      try {
+        await importExperimentListJson(file);
+      } catch (err) {
+        console.error(err);
+        alert("导入实验列表 JSON 失败，请检查格式。\n页面内有可直接使用的 JSON 模板。");
+      } finally {
+        ev.target.value = "";
+      }
+    });
+
+    document.getElementById("exportListBtn").addEventListener("click", exportExperimentListJson);
+
+    document.getElementById("clearAllBtn").addEventListener("click", async () => {
+      if (!confirm("确认清空全部图片？该操作仅清除图片，不改实验列表。")) return;
+      await clearAllFiles();
+      render();
+    });
+
+    document.getElementById("openEditorBtn").addEventListener("click", openEditor);
+    document.getElementById("closeEditorBtn").addEventListener("click", closeEditor);
+    document.getElementById("cancelEditorBtn").addEventListener("click", closeEditor);
+    document.getElementById("saveEditorBtn").addEventListener("click", saveEditor);
+
+    document.getElementById("addExperimentBtn").addEventListener("click", () => {
+      if (!draftState) return;
+      addExperimentFromInputs();
+    });
+
+    document.getElementById("quickAddItemBtn").addEventListener("click", () => {
+      if (!draftState) return;
+      quickAddItem();
+    });
+
+    labPrefixInput.addEventListener("change", async () => {
+      state.labPrefix = sanitizeSegment(labPrefixInput.value || "lab", "lab");
+      await saveStateToDb();
+      render();
+    });
+
+    document.addEventListener("paste", handlePaste);
+
+    document.getElementById("closePreviewBtn").addEventListener("click", closePreview);
+    document.getElementById("previewPrevBtn").addEventListener("click", () => {
+      previewIndex -= 1;
+      updatePreviewModal();
+    });
+    document.getElementById("previewNextBtn").addEventListener("click", () => {
+      previewIndex += 1;
+      updatePreviewModal();
+    });
+    document.getElementById("previewDeleteBtn").addEventListener("click", deleteCurrentPreviewImage);
+
+    document.getElementById("copyPromptBtn").addEventListener("click", async () => {
+      const text = document.getElementById("promptTemplate").value;
+      try {
+        await navigator.clipboard.writeText(text);
+        alert("Prompt 已复制到剪贴板。");
+      } catch (err) {
+        console.error(err);
+        alert("复制失败，请手动复制。\n");
+      }
+    });
+
+    init().catch((err) => {
+      console.error(err);
+      alert("初始化失败：无法加载本地数据库。\n请刷新页面后重试。");
+    });
+  </script>
+</body>
+</html>

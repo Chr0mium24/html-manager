@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>科学电阻值计算器 (分数版 - 最终修复)</title>
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Math.js 库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.min.js"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center h-screen">
+    <div class="container mx-auto p-4">
+        <div class="max-w-md mx-auto bg-white rounded-lg shadow-md p-6">
+            <h1 class="text-2xl font-bold mb-4 text-center text-gray-800">科学电阻值计算器</h1>
+            <div class="mb-4">
+                <label for="expression" class="block text-gray-700 text-sm font-bold mb-2">输入电阻表达式 (支持分数):</label>
+                <input type="text" id="expression" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="例如: 2+2*6//6 或 1/3+1/6">
+            </div>
+            <div>
+                <h2 class="text-lg font-semibold text-gray-800">计算结果:</h2>
+                <p id="result" class="text-2xl font-mono p-2 bg-gray-200 rounded text-right text-gray-900 min-h-[40px]"></p>
+            </div>
+             <div class="mt-4 text-xs text-gray-500">
+                <p><strong>说明:</strong></p>
+                <p>- 支持加 (+), 减 (-), 乘 (*), 除 (/), 括号 ()</p>
+                <p>- 并联符号 (//) 优先级高于加减，低于乘除。</p>
+                <p>- 示例: <code>3//3//3</code> 结果为 <code>1</code>。</p>
+                <p>- 示例: <code>2+2*6//6</code> 等价于 <code>2+((2*6)//6)</code>，结果为 <code>5</code>。</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 最终修复方案 ---
+
+        // 1. 创建一个独立的、经过配置的 math.js 实例
+        const customMath = math.create(math.all, {
+            number: 'Fraction' // 将默认数字类型设置为分数
+        });
+
+        // 2. 定义并联电阻的计算函数和它的 transform
+        customMath.import({
+            // 定义名为 'parallel' 的函数，这是实际的计算逻辑
+            parallel: function(a, b) {
+                const sum = customMath.add(a, b);
+                if (customMath.equal(sum, 0)) {
+                    return customMath.fraction(0);
+                }
+                return customMath.divide(customMath.multiply(a, b), sum);
+            },
+            
+            // 定义一个 transform 来处理 '//' 语法
+            transform: function parallelTransform(args, math, scope) {
+                // 这个 transform 会在解析阶段被调用
+                // 它会找到一个 OperatorNode，也就是一个运算符节点
+                const operatorNode = args[0];
+                if (operatorNode.op === '//') {
+                    // 如果运算符是 '//'，就把它转换成一个对 'parallel' 函数的调用
+                    // 它的参数就是运算符左右两边的节点
+                    return new math.FunctionNode('parallel', operatorNode.args);
+                }
+            }
+        }, {
+            // 指定 transform 应用于哪些函数/运算符
+            // 在这里，我们让它应用于所有函数
+            // 这是一个捕获所有节点并筛选的简单方法
+            override: false 
+        });
+
+        // 3. 定义 '//' 运算符的属性
+        // `math.operators` 是一个隐藏属性，但这是定义优先级的标准方式
+        // 优先级：add (20) < parallel (21) = multiply (21)
+        // 这确保了乘法和并联会先于加法执行
+        customMath.operators['//'] = {
+            precedence: 21,
+            associativity: 'left'
+        };
+
+        // --- 事件处理 ---
+        
+        const expressionInput = document.getElementById('expression');
+        const resultElement = document.getElementById('result');
+
+        expressionInput.addEventListener('input', () => {
+            const expression = expressionInput.value.trim();
+            if (expression === '') {
+                resultElement.textContent = '';
+                return;
+            }
+
+            try {
+                // 使用配置好的 customMath 实例来计算
+                // 解析器现在能完全理解 '//' 的含义和优先级
+                const result = customMath.evaluate(expression);
+                resultElement.textContent = customMath.format(result, { fraction: 'ratio' });
+            } catch (error) {
+                resultElement.textContent = '错误';
+            }
+        });
+    </script>
+</body>
+</html>
