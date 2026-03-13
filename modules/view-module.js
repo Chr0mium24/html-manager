@@ -15,10 +15,10 @@ Object.assign(window.app, {
 
             if (!state.isAdmin && !state.ghToken) {
                 const latest = this.findLatestVersion(index);
-                if (latest && latest.path) {
-                    const latestUrl = this.buildRawHtmlUrl(latest.path);
-                    if (latestUrl) {
-                        window.location.replace(latestUrl);
+                if (latest && latest.projectId && latest.versionId) {
+                    const previewUrl = this.buildPreviewRoute(latest.projectId, latest.versionId);
+                    if (previewUrl) {
+                        window.location.replace(previewUrl);
                         return;
                     }
                 }
