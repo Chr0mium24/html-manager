@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Agent OS - Local Executor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .terminal { background: #1a1b26; color: #a9b1d6; font-family: 'Fira Code', monospace; }
+        .scroll-hide::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen p-4">
+    <div id="app" class="max-w-6xl mx-auto grid grid-cols-12 gap-4">
+        <aside class="col-span-12 lg:col-span-3 space-y-4">
+            <div class="bg-gray-800 p-4 rounded-xl shadow-lg border border-gray-700">
+                <h2 class="text-xl font-bold mb-4 flex items-center">⚙️ 设置</h2>
+                <div class="space-y-3 text-sm">
+                    <label class="block">API Key:
+                        <input type="password" id="apiKey" class="w-full bg-gray-900 border border-gray-600 rounded p-2 mt-1">
+                    </label>
+                    <label class="block">后端地址:
+                        <input type="text" id="backendUrl" value="http://127.0.0.1:9961" class="w-full bg-gray-900 border border-gray-600 rounded p-2 mt-1">
+                    </label>
+                    <label class="block">后端 Token:
+                        <input type="text" id="backendToken" class="w-full bg-gray-900 border border-gray-600 rounded p-2 mt-1">
+                    </label>
+                    <label class="block">风险阈值 (1-10): <span id="riskVal">5</span>
+                        <input type="range" id="riskThreshold" min="1" max="10" value="5" class="w-full">
+                    </label>
+                    <div id="status" class="text-red-400 font-bold mt-2">● 后端未连接</div>
+                </div>
+            </div>
+            <button onclick="addNewTask()" class="w-full bg-blue-600 hover:bg-blue-500 p-3 rounded-xl font-bold transition">＋ 新建任务</button>
+        </aside>
+
+        <main id="taskContainer" class="col-span-12 lg:col-span-9 grid grid-cols-1 md:grid-cols-2 gap-4">
+            </main>
+    </div>
+
+    <script>
+        const storage = {
+            get: (key, def) => localStorage.getItem(key) || def,
+            set: (key, val) => localStorage.setItem(key, val)
+        };
+
+        // 初始化配置
+        document.getElementById('apiKey').value = storage.get('apiKey', '');
+        document.getElementById('backendUrl').value = storage.get('backendUrl', 'http://127.0.0.1:9961');
+        document.getElementById('backendToken').value = storage.get('backendToken', '');
+        
+        // 状态轮询
+        setInterval(async () => {
+            const statusEl = document.getElementById('status');
+            try {
+                const res = await fetch(`${document.getElementById('backendUrl').value}/health`, {
+                    headers: {'Authorization': document.getElementById('backendToken').value}
+                });
+                if (res.ok) { statusEl.innerText = '● 后端在线'; statusEl.className = 'text-green-400 font-bold mt-2'; }
+                else throw Error();
+            } catch (e) {
+                statusEl.innerText = '● 后端离线'; statusEl.className = 'text-red-400 font-bold mt-2';
+            }
+        }, 3000);
+
+        function addNewTask() {
+            const id = Date.now();
+            const card = document.createElement('div');
+            card.className = "bg-gray-800 rounded-xl p-4 border border-gray-700 flex flex-col h-[500px]";
+            card.id = `task-${id}`;
+            card.innerHTML = `
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-xs font-mono text-gray-500">ID: ${id}</span>
+                    <button onclick="this.parentElement.parentElement.remove()" class="text-gray-500 hover:text-red-400">✕</button>
+                </div>
+                <div class="flex-1 overflow-y-auto terminal p-3 rounded mb-2 scroll-hide text-sm" id="log-${id}">
+                    <div>等待指令...</div>
+                </div>
+                <div class="flex gap-2">
+                    <input type="text" id="input-${id}" placeholder="输入任务..." class="flex-1 bg-gray-900 border border-gray-600 rounded p-2 outline-none">
+                    <button onclick="runAgent(${id})" class="bg-green-600 px-4 py-2 rounded">执行</button>
+                </div>
+            `;
+            document.getElementById('taskContainer').appendChild(card);
+        }
+
+        async function runAgent(id) {
+            const prompt = document.getElementById(`input-${id}`).value;
+            const logBox = document.getElementById(`log-${id}`);
+            const apiKey = document.getElementById('apiKey').value;
+            const threshold = parseInt(document.getElementById('riskThreshold').value);
+
+            const appendLog = (msg, type='info') => {
+                const div = document.createElement('div');
+                div.className = type === 'error' ? 'text-red-400' : (type === 'warn' ? 'text-yellow-400' : 'text-blue-300');
+                div.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+                logBox.appendChild(div);
+                logBox.scrollTop = logBox.scrollHeight;
+            };
+
+            // 1. 安全审查 (Audit AI)
+            appendLog("🔍 正在进行安全审查...", 'warn');
+            const safetyScore = await callLLM(apiKey, `请评估以下指令的风险等级(1-10)，1为完全安全，10为极度危险（如删库、格式化）。仅返回一个数字。指令：${prompt}`);
+            const score = parseInt(safetyScore.trim());
+            
+            if (score >= threshold) {
+                if (!confirm(`安全风险分数为 ${score}/10，是否继续执行？`)) return appendLog("🚫 用户拦截执行", 'error');
+            }
+
+            // 2. ReAct 循环
+            let context = [{role: "system", content: "你是一个拥有本地Python环境的Agent。你可以通过生成 ```python ... ``` 代码块来操作本地文件、网络和系统。如果需要第三方库，必须先执行 !pip install。输出格式：思考：... \n代码：```python ... ```"}];
+            context.push({role: "user", content: prompt});
+
+            for (let i = 0; i < 5; i++) { // 最多5轮循环
+                appendLog(`🧠 思考中 (第 ${i+1} 轮)...`);
+                const aiRes = await callLLM(apiKey, context);
+                const codeMatch = aiRes.match(/```python\n([\s\S]*?)```/);
+                
+                if (codeMatch) {
+                    const code = codeMatch[1];
+                    appendLog(`🚀 执行本地代码...`);
+                    const result = await executeLocal(code);
+                    appendLog(`📤 输出: ${result.output || result.error}`);
+                    context.push({role: "assistant", content: aiRes});
+                    context.push({role: "user", content: `执行结果：\n${result.output || result.error}\n根据结果继续或结束（结束后回复'任务完成'）。`});
+                    if (aiRes.includes("任务完成")) break;
+                } else {
+                    appendLog("🏁 任务结束");
+                    break;
+                }
+            }
+        }
+
+        async function callLLM(key, input) {
+            // 这里以标准 OpenAI 格式接口为例（支持 Gemini API 的兼容层或直接调用）
+            const res = await fetch("https://api.openai.com/v1/chat/completions", {
+                method: "POST",
+                headers: {"Authorization": `Bearer ${key}`, "Content-Type": "application/json"},
+                body: JSON.stringify({
+                    model: "gpt-4o", // 或 gemini-1.5-pro
+                    messages: typeof input === 'string' ? [{role: "user", content: input}] : input
+                })
+            });
+            const data = await res.json();
+            return data.choices[0].message.content;
+        }
+
+        async function executeLocal(code) {
+            const url = document.getElementById('backendUrl').value;
+            const token = document.getElementById('backendToken').value;
+            try {
+                const res = await fetch(`${url}/execute`, {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json", "Authorization": token},
+                    body: JSON.stringify({ code })
+                });
+                return await res.json();
+            } catch (e) {
+                return {error: "无法连接到本地执行器"};
+            }
+        }
+    </script>
+</body>
+</html>

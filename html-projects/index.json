@@ -1,22 +1,1022 @@
 {
   "version": 1,
-  "updated_at": "2026-03-13T06:52:15.870Z",
+  "updated_at": "2026-03-13T07:01:12.270Z",
   "projects": [
     {
-      "id": "4a2b4c8084744ce5938b6d7cd3e8f47a",
-      "name": "YOLO 标签编辑器",
-      "description": "YOLO 标签编辑器 YOLO 标签编辑器 使用 File System Access API 和 Tailwind CSS 操作面板 选择标签文件夹 1. 替换选中文件的所有标签为: 执行替换 2. 将所有文件中的指定标签: → 执行替换 全选 文件名 标签 (Class ID) 请先选择一个文件夹...",
+      "id": "26f8dd78",
+      "name": "静电平衡电场与等势面演示",
+      "description": "静电平衡电场与等势面演示 (2 versions)",
       "icon": "📁",
-      "created_at": "2026-03-13T06:52:12.970Z",
-      "updated_at": "2026-03-13T06:52:12.970Z",
+      "created_at": "2026-02-16T06:36:26.000Z",
+      "updated_at": "2026-03-13T06:57:38.672Z",
       "versions": [
         {
-          "id": "0ee62c34edcb40d88d9f211d51db09c8",
+          "id": "cd479c73",
+          "display_name": "pasted_cd479c73.html",
+          "original_filename": "pasted_cd479c73.html",
+          "created_at": "2026-02-16T06:36:26.000Z",
+          "path": "html-projects/projects/静电平衡电场与等势面演示_26f8dd78/pasted_cd479c73.html",
+          "sha": null
+        },
+        {
+          "id": "e95944c4f44cafbba421a2852028e297",
+          "display_name": "pasted.html",
+          "original_filename": "pasted.html",
+          "created_at": "2026-02-16T06:37:42.000Z",
+          "path": "html-projects/projects/静电平衡电场与等势面演示_26f8dd78/pasted.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "f63a62a2",
+      "name": "选课",
+      "description": "选课 (1 version)",
+      "icon": "📁",
+      "created_at": "2026-01-29T14:38:58.000Z",
+      "updated_at": "2026-03-13T06:57:38.672Z",
+      "versions": [
+        {
+          "id": "ce4c827a0b7f3a7b8cc37f802ccb44d6",
           "display_name": "_.html",
           "original_filename": "_.html",
-          "created_at": "2026-03-13T06:52:12.970Z",
-          "path": "html-projects/projects/4a2b4c8084744ce5938b6d7cd3e8f47a/versions/0ee62c34edcb40d88d9f211d51db09c8.html",
-          "sha": "1c7652384a8546ac002755e769b0ab769e49e9fb"
+          "created_at": "2026-01-29T14:38:58.000Z",
+          "path": "html-projects/projects/选课_f63a62a2/_.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "f043ddff",
+      "name": "聊天式局域网剪贴板",
+      "description": "聊天式局域网剪贴板 (2 versions)",
+      "icon": "📁",
+      "created_at": "2026-03-08T18:00:58.000Z",
+      "updated_at": "2026-03-13T06:57:38.671Z",
+      "versions": [
+        {
+          "id": "69289603",
+          "display_name": "pasted_69289603.html",
+          "original_filename": "pasted_69289603.html",
+          "created_at": "2026-03-08T18:00:58.000Z",
+          "path": "html-projects/projects/聊天式局域网剪贴板_f043ddff/pasted_69289603.html",
+          "sha": null
+        },
+        {
+          "id": "27067eee89e4112ce704d1211650e7b5",
+          "display_name": "pasted.html",
+          "original_filename": "pasted.html",
+          "created_at": "2026-03-08T18:16:38.000Z",
+          "path": "html-projects/projects/聊天式局域网剪贴板_f043ddff/pasted.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "a3574163",
+      "name": "电路实验助手 Pro",
+      "description": "电路实验助手 Pro (3 versions)",
+      "icon": "📁",
+      "created_at": "2026-01-26T17:37:26.000Z",
+      "updated_at": "2026-03-13T06:57:38.670Z",
+      "versions": [
+        {
+          "id": "b273c179",
+          "display_name": "lab-snap_b273c179.html",
+          "original_filename": "lab-snap_b273c179.html",
+          "created_at": "2026-01-26T19:44:26.000Z",
+          "path": "html-projects/projects/电路实验助手 Pro_a3574163/lab-snap_b273c179.html",
+          "sha": null
+        },
+        {
+          "id": "2cc2cfed",
+          "display_name": "lab-snap_2cc2cfed.html",
+          "original_filename": "lab-snap_2cc2cfed.html",
+          "created_at": "2026-01-26T17:37:26.000Z",
+          "path": "html-projects/projects/电路实验助手 Pro_a3574163/lab-snap_2cc2cfed.html",
+          "sha": null
+        },
+        {
+          "id": "f42c1043213f18843d8a3230f31c870e",
+          "display_name": "lab-snap.html",
+          "original_filename": "lab-snap.html",
+          "created_at": "2026-01-27T09:01:28.000Z",
+          "path": "html-projects/projects/电路实验助手 Pro_a3574163/lab-snap.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "c4771244",
+      "name": "科学电阻值计算器 (分数版 - 最终修复)",
+      "description": "科学电阻值计算器 (分数版 - 最终修复) (1 version)",
+      "icon": "📁",
+      "created_at": "2026-01-29T14:39:04.000Z",
+      "updated_at": "2026-03-13T06:57:38.670Z",
+      "versions": [
+        {
+          "id": "437d31ae4454db653deb533206663dbe",
+          "display_name": "_.html",
+          "original_filename": "_.html",
+          "created_at": "2026-01-29T14:39:04.000Z",
+          "path": "html-projects/projects/科学电阻值计算器 (分数版 - 最终修复)_c4771244/_.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "b59f406c",
+      "name": "极简本地 AI 助手",
+      "description": "极简本地 AI 助手 (2 versions)",
+      "icon": "📁",
+      "created_at": "2026-03-07T07:03:14.000Z",
+      "updated_at": "2026-03-13T06:57:38.668Z",
+      "versions": [
+        {
+          "id": "6eba2aad",
+          "display_name": "pasted_6eba2aad.html",
+          "original_filename": "pasted_6eba2aad.html",
+          "created_at": "2026-03-07T07:03:14.000Z",
+          "path": "html-projects/projects/极简本地 AI 助手_b59f406c/pasted_6eba2aad.html",
+          "sha": null
+        },
+        {
+          "id": "e2f84c70accb0abca2889b9863edb949",
+          "display_name": "pasted.html",
+          "original_filename": "pasted.html",
+          "created_at": "2026-03-07T07:09:52.000Z",
+          "path": "html-projects/projects/极简本地 AI 助手_b59f406c/pasted.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "b17bcc99",
+      "name": "图片转 GIF 工具 (终极版)",
+      "description": "图片转 GIF 工具 (终极版) (1 version)",
+      "icon": "📁",
+      "created_at": "2026-01-29T14:50:38.000Z",
+      "updated_at": "2026-03-13T06:57:38.667Z",
+      "versions": [
+        {
+          "id": "c74729d919e66d3091152e3d24386390",
+          "display_name": "ai_studio_code_11_.html",
+          "original_filename": "ai_studio_code_11_.html",
+          "created_at": "2026-01-29T14:50:38.000Z",
+          "path": "html-projects/projects/图片转 GIF 工具 (终极版)_b17bcc99/ai_studio_code_11_.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "2516dcb2",
+      "name": "制袋成本计算器",
+      "description": "制袋成本计算器 (9 versions)",
+      "icon": "📁",
+      "created_at": "2026-02-28T08:38:24.000Z",
+      "updated_at": "2026-03-13T06:57:38.666Z",
+      "versions": [
+        {
+          "id": "ed13821e",
+          "display_name": "pasted_ed13821e.html",
+          "original_filename": "pasted_ed13821e.html",
+          "created_at": "2026-02-28T08:38:24.000Z",
+          "path": "html-projects/projects/制袋成本计算器_2516dcb2/pasted_ed13821e.html",
+          "sha": null
+        },
+        {
+          "id": "b8aa8df4",
+          "display_name": "pasted_b8aa8df4.html",
+          "original_filename": "pasted_b8aa8df4.html",
+          "created_at": "2026-02-28T08:44:08.000Z",
+          "path": "html-projects/projects/制袋成本计算器_2516dcb2/pasted_b8aa8df4.html",
+          "sha": null
+        },
+        {
+          "id": "9b68d2ad",
+          "display_name": "pasted_9b68d2ad.html",
+          "original_filename": "pasted_9b68d2ad.html",
+          "created_at": "2026-02-28T08:48:12.000Z",
+          "path": "html-projects/projects/制袋成本计算器_2516dcb2/pasted_9b68d2ad.html",
+          "sha": null
+        },
+        {
+          "id": "9230fa46",
+          "display_name": "pasted_9230fa46.html",
+          "original_filename": "pasted_9230fa46.html",
+          "created_at": "2026-02-28T08:41:24.000Z",
+          "path": "html-projects/projects/制袋成本计算器_2516dcb2/pasted_9230fa46.html",
+          "sha": null
+        },
+        {
+          "id": "8e6d21ac",
+          "display_name": "pasted_8e6d21ac.html",
+          "original_filename": "pasted_8e6d21ac.html",
+          "created_at": "2026-02-28T08:49:04.000Z",
+          "path": "html-projects/projects/制袋成本计算器_2516dcb2/pasted_8e6d21ac.html",
+          "sha": null
+        },
+        {
+          "id": "4dde0b66",
+          "display_name": "pasted_4dde0b66.html",
+          "original_filename": "pasted_4dde0b66.html",
+          "created_at": "2026-02-28T08:50:42.000Z",
+          "path": "html-projects/projects/制袋成本计算器_2516dcb2/pasted_4dde0b66.html",
+          "sha": null
+        },
+        {
+          "id": "37506343",
+          "display_name": "pasted_37506343.html",
+          "original_filename": "pasted_37506343.html",
+          "created_at": "2026-02-28T08:45:42.000Z",
+          "path": "html-projects/projects/制袋成本计算器_2516dcb2/pasted_37506343.html",
+          "sha": null
+        },
+        {
+          "id": "127117c5",
+          "display_name": "pasted_127117c5.html",
+          "original_filename": "pasted_127117c5.html",
+          "created_at": "2026-02-28T08:54:12.000Z",
+          "path": "html-projects/projects/制袋成本计算器_2516dcb2/pasted_127117c5.html",
+          "sha": null
+        },
+        {
+          "id": "f84f18f009d29f242a4afd5b51a36c1e",
+          "display_name": "pasted.html",
+          "original_filename": "pasted.html",
+          "created_at": "2026-02-28T09:01:34.000Z",
+          "path": "html-projects/projects/制袋成本计算器_2516dcb2/pasted.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "e6e0b8a1",
+      "name": "分账计算器",
+      "description": "分账计算器 (1 version)",
+      "icon": "📁",
+      "created_at": "2026-01-29T14:38:54.000Z",
+      "updated_at": "2026-03-13T06:57:38.663Z",
+      "versions": [
+        {
+          "id": "14bbf42757d2b5be0476a6879c3bcd09",
+          "display_name": "_v3.html",
+          "original_filename": "_v3.html",
+          "created_at": "2026-01-29T14:38:54.000Z",
+          "path": "html-projects/projects/分账计算器_e6e0b8a1/_v3.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "4fcec22a",
+      "name": "俄罗斯轮盘赌",
+      "description": "俄罗斯轮盘赌 (1 version)",
+      "icon": "📁",
+      "created_at": "2026-01-29T14:38:52.000Z",
+      "updated_at": "2026-03-13T06:57:38.662Z",
+      "versions": [
+        {
+          "id": "4b7bff7e4bd300c33868d0322fc5f806",
+          "display_name": "_.html",
+          "original_filename": "_.html",
+          "created_at": "2026-01-29T14:38:52.000Z",
+          "path": "html-projects/projects/俄罗斯轮盘赌_4fcec22a/_.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "38784b77",
+      "name": "中文文本特征对比分析",
+      "description": "中文文本特征对比分析 (1 version)",
+      "icon": "📁",
+      "created_at": "2026-01-29T14:38:48.000Z",
+      "updated_at": "2026-03-13T06:57:38.662Z",
+      "versions": [
+        {
+          "id": "a395bd8a967c97d5ab7750498aaebdb4",
+          "display_name": "_.html",
+          "original_filename": "_.html",
+          "created_at": "2026-01-29T14:38:48.000Z",
+          "path": "html-projects/projects/中文文本特征对比分析_38784b77/_.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "a2a61661",
+      "name": "pasted",
+      "description": "pasted (1 version)",
+      "icon": "📁",
+      "created_at": "2026-03-12T06:52:14.000Z",
+      "updated_at": "2026-03-13T06:57:38.661Z",
+      "versions": [
+        {
+          "id": "446ebeab3decd450d5cd9893cb55460f",
+          "display_name": "pasted.html",
+          "original_filename": "pasted.html",
+          "created_at": "2026-03-12T06:52:14.000Z",
+          "path": "html-projects/projects/pasted_a2a61661/pasted.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "a3f6fe61",
+      "name": "YOLOv8s ONNX 实时检测",
+      "description": "YOLOv8s ONNX 实时检测 (1 version)",
+      "icon": "📁",
+      "created_at": "2026-02-08T13:26:44.000Z",
+      "updated_at": "2026-03-13T06:57:38.661Z",
+      "versions": [
+        {
+          "id": "ab17826a77c04ffc9c47a82e81ee2555",
+          "display_name": "ai_studio_code_40_.html",
+          "original_filename": "ai_studio_code_40_.html",
+          "created_at": "2026-02-08T13:26:44.000Z",
+          "path": "html-projects/projects/YOLOv8s ONNX 实时检测_a3f6fe61/ai_studio_code_40_.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "13a508b0",
+      "name": "YOLO 标签编辑器",
+      "description": "YOLO 标签编辑器 (1 version)",
+      "icon": "📁",
+      "created_at": "2026-01-29T14:39:00.000Z",
+      "updated_at": "2026-03-13T06:57:38.660Z",
+      "versions": [
+        {
+          "id": "1af5cbc68f5db7a8b9a131b78a384aa0",
+          "display_name": "_.html",
+          "original_filename": "_.html",
+          "created_at": "2026-01-29T14:39:00.000Z",
+          "path": "html-projects/projects/YOLO 标签编辑器_13a508b0/_.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "de4720e8",
+      "name": "Type Help",
+      "description": "Type Help (2 versions)",
+      "icon": "📁",
+      "created_at": "2026-03-03T13:40:56.000Z",
+      "updated_at": "2026-03-13T06:57:38.657Z",
+      "versions": [
+        {
+          "id": "f4610aaf827cf10ffe0483b2c9f7d027",
+          "display_name": "th-v2025-6-13.html",
+          "original_filename": "th-v2025-6-13.html",
+          "created_at": "2026-03-03T13:41:32.000Z",
+          "path": "html-projects/projects/Type Help_de4720e8/th-v2025-6-13.html",
+          "sha": null
+        },
+        {
+          "id": "73aa1bb47072deebab8a3e0eb45841d4",
+          "display_name": "pasted.html",
+          "original_filename": "pasted.html",
+          "created_at": "2026-03-03T13:40:56.000Z",
+          "path": "html-projects/projects/Type Help_de4720e8/pasted.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "43c7d128",
+      "name": "PDF 预览与自定义拆分工具",
+      "description": "PDF 预览与自定义拆分工具 (1 version)",
+      "icon": "📁",
+      "created_at": "2026-02-19T06:41:40.000Z",
+      "updated_at": "2026-03-13T06:57:38.652Z",
+      "versions": [
+        {
+          "id": "ee08bf9c2bbf2b9376a11fb3120494f4",
+          "display_name": "pasted.html",
+          "original_filename": "pasted.html",
+          "created_at": "2026-02-19T06:41:40.000Z",
+          "path": "html-projects/projects/PDF 预览与自定义拆分工具_43c7d128/pasted.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "2842ae93",
+      "name": "Textual Resolution Scaling Demo",
+      "description": "Textual Resolution Scaling Demo (1 version)",
+      "icon": "📁",
+      "created_at": "2026-02-15T14:58:24.000Z",
+      "updated_at": "2026-03-13T06:57:38.652Z",
+      "versions": [
+        {
+          "id": "591a6dd8fa4655ee6afa7fb33a5fb44a",
+          "display_name": "pasted.html",
+          "original_filename": "pasted.html",
+          "created_at": "2026-02-15T14:58:24.000Z",
+          "path": "html-projects/projects/Textual Resolution Scaling Demo_2842ae93/pasted.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "981a35ec",
+      "name": "Mahjong ONNX Demo",
+      "description": "Mahjong ONNX Demo (21 versions)",
+      "icon": "📁",
+      "created_at": "2026-03-01T15:27:18.000Z",
+      "updated_at": "2026-03-13T06:57:38.651Z",
+      "versions": [
+        {
+          "id": "fc63b9bc",
+          "display_name": "pasted_fc63b9bc.html",
+          "original_filename": "pasted_fc63b9bc.html",
+          "created_at": "2026-03-01T18:37:36.000Z",
+          "path": "html-projects/projects/Mahjong ONNX Demo_981a35ec/pasted_fc63b9bc.html",
+          "sha": null
+        },
+        {
+          "id": "f16fd5ea",
+          "display_name": "pasted_f16fd5ea.html",
+          "original_filename": "pasted_f16fd5ea.html",
+          "created_at": "2026-03-01T19:11:48.000Z",
+          "path": "html-projects/projects/Mahjong ONNX Demo_981a35ec/pasted_f16fd5ea.html",
+          "sha": null
+        },
+        {
+          "id": "e939d254",
+          "display_name": "pasted_e939d254.html",
+          "original_filename": "pasted_e939d254.html",
+          "created_at": "2026-03-01T17:31:02.000Z",
+          "path": "html-projects/projects/Mahjong ONNX Demo_981a35ec/pasted_e939d254.html",
+          "sha": null
+        },
+        {
+          "id": "daad8c1c",
+          "display_name": "pasted_daad8c1c.html",
+          "original_filename": "pasted_daad8c1c.html",
+          "created_at": "2026-03-01T15:41:34.000Z",
+          "path": "html-projects/projects/Mahjong ONNX Demo_981a35ec/pasted_daad8c1c.html",
+          "sha": null
+        },
+        {
+          "id": "d4d98f56",
+          "display_name": "pasted_d4d98f56.html",
+          "original_filename": "pasted_d4d98f56.html",
+          "created_at": "2026-03-01T15:27:18.000Z",
+          "path": "html-projects/projects/Mahjong ONNX Demo_981a35ec/pasted_d4d98f56.html",
+          "sha": null
+        },
+        {
+          "id": "c65c34b4",
+          "display_name": "pasted_c65c34b4.html",
+          "original_filename": "pasted_c65c34b4.html",
+          "created_at": "2026-03-01T15:45:04.000Z",
+          "path": "html-projects/projects/Mahjong ONNX Demo_981a35ec/pasted_c65c34b4.html",
+          "sha": null
+        },
+        {
+          "id": "9d8b4bbd",
+          "display_name": "pasted_9d8b4bbd.html",
+          "original_filename": "pasted_9d8b4bbd.html",
+          "created_at": "2026-03-02T06:35:58.000Z",
+          "path": "html-projects/projects/Mahjong ONNX Demo_981a35ec/pasted_9d8b4bbd.html",
+          "sha": null
+        },
+        {
+          "id": "9858b2c5",
+          "display_name": "pasted_9858b2c5.html",
+          "original_filename": "pasted_9858b2c5.html",
+          "created_at": "2026-03-01T19:00:10.000Z",
+          "path": "html-projects/projects/Mahjong ONNX Demo_981a35ec/pasted_9858b2c5.html",
+          "sha": null
+        },
+        {
+          "id": "711475da",
+          "display_name": "pasted_711475da.html",
+          "original_filename": "pasted_711475da.html",
+          "created_at": "2026-03-01T17:10:38.000Z",
+          "path": "html-projects/projects/Mahjong ONNX Demo_981a35ec/pasted_711475da.html",
+          "sha": null
+        },
+        {
+          "id": "710ef36e",
+          "display_name": "pasted_710ef36e.html",
+          "original_filename": "pasted_710ef36e.html",
+          "created_at": "2026-03-01T15:49:42.000Z",
+          "path": "html-projects/projects/Mahjong ONNX Demo_981a35ec/pasted_710ef36e.html",
+          "sha": null
+        },
+        {
+          "id": "6a1e6b5f",
+          "display_name": "pasted_6a1e6b5f.html",
+          "original_filename": "pasted_6a1e6b5f.html",
+          "created_at": "2026-03-01T16:57:40.000Z",
+          "path": "html-projects/projects/Mahjong ONNX Demo_981a35ec/pasted_6a1e6b5f.html",
+          "sha": null
+        },
+        {
+          "id": "5f224de3",
+          "display_name": "pasted_5f224de3.html",
+          "original_filename": "pasted_5f224de3.html",
+          "created_at": "2026-03-01T15:34:52.000Z",
+          "path": "html-projects/projects/Mahjong ONNX Demo_981a35ec/pasted_5f224de3.html",
+          "sha": null
+        },
+        {
+          "id": "4f490fdd",
+          "display_name": "pasted_4f490fdd.html",
+          "original_filename": "pasted_4f490fdd.html",
+          "created_at": "2026-03-01T17:13:44.000Z",
+          "path": "html-projects/projects/Mahjong ONNX Demo_981a35ec/pasted_4f490fdd.html",
+          "sha": null
+        },
+        {
+          "id": "497b0365",
+          "display_name": "pasted_497b0365.html",
+          "original_filename": "pasted_497b0365.html",
+          "created_at": "2026-03-01T16:06:02.000Z",
+          "path": "html-projects/projects/Mahjong ONNX Demo_981a35ec/pasted_497b0365.html",
+          "sha": null
+        },
+        {
+          "id": "3e9f924f",
+          "display_name": "pasted_3e9f924f.html",
+          "original_filename": "pasted_3e9f924f.html",
+          "created_at": "2026-03-02T06:25:58.000Z",
+          "path": "html-projects/projects/Mahjong ONNX Demo_981a35ec/pasted_3e9f924f.html",
+          "sha": null
+        },
+        {
+          "id": "3cf6bac5",
+          "display_name": "pasted_3cf6bac5.html",
+          "original_filename": "pasted_3cf6bac5.html",
+          "created_at": "2026-03-01T15:37:18.000Z",
+          "path": "html-projects/projects/Mahjong ONNX Demo_981a35ec/pasted_3cf6bac5.html",
+          "sha": null
+        },
+        {
+          "id": "1c7a4a9b",
+          "display_name": "pasted_1c7a4a9b.html",
+          "original_filename": "pasted_1c7a4a9b.html",
+          "created_at": "2026-03-02T06:00:02.000Z",
+          "path": "html-projects/projects/Mahjong ONNX Demo_981a35ec/pasted_1c7a4a9b.html",
+          "sha": null
+        },
+        {
+          "id": "15121e74",
+          "display_name": "pasted_15121e74.html",
+          "original_filename": "pasted_15121e74.html",
+          "created_at": "2026-03-01T18:29:08.000Z",
+          "path": "html-projects/projects/Mahjong ONNX Demo_981a35ec/pasted_15121e74.html",
+          "sha": null
+        },
+        {
+          "id": "06a9abc2",
+          "display_name": "pasted_06a9abc2.html",
+          "original_filename": "pasted_06a9abc2.html",
+          "created_at": "2026-03-01T18:45:36.000Z",
+          "path": "html-projects/projects/Mahjong ONNX Demo_981a35ec/pasted_06a9abc2.html",
+          "sha": null
+        },
+        {
+          "id": "01dda31f",
+          "display_name": "pasted_01dda31f.html",
+          "original_filename": "pasted_01dda31f.html",
+          "created_at": "2026-03-02T06:17:44.000Z",
+          "path": "html-projects/projects/Mahjong ONNX Demo_981a35ec/pasted_01dda31f.html",
+          "sha": null
+        },
+        {
+          "id": "4d07ac83cd173c22b7c809836ceef974",
+          "display_name": "pasted.html",
+          "original_filename": "pasted.html",
+          "created_at": "2026-03-02T06:47:00.000Z",
+          "path": "html-projects/projects/Mahjong ONNX Demo_981a35ec/pasted.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "68187d52",
+      "name": "OpenCV 颜色范围选择器 (HSV & LAB)",
+      "description": "OpenCV 颜色范围选择器 (HSV & LAB) (1 version)",
+      "icon": "📁",
+      "created_at": "2026-01-29T14:38:28.000Z",
+      "updated_at": "2026-03-13T06:57:38.651Z",
+      "versions": [
+        {
+          "id": "94162c7b29287b064327bad13c2a791a",
+          "display_name": "lab_select2.html",
+          "original_filename": "lab_select2.html",
+          "created_at": "2026-01-29T14:38:28.000Z",
+          "path": "html-projects/projects/OpenCV 颜色范围选择器 (HSV & LAB)_68187d52/lab_select2.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "bb3c3571",
+      "name": "Lean 4 抽象代数智能辅导系统",
+      "description": "Lean 4 抽象代数智能辅导系统 (5 versions)",
+      "icon": "📁",
+      "created_at": "2026-02-16T09:23:46.000Z",
+      "updated_at": "2026-03-13T06:57:38.631Z",
+      "versions": [
+        {
+          "id": "c976a3cdff1e571b2c9fd266bdcddfef",
+          "display_name": "pasted.html",
+          "original_filename": "pasted.html",
+          "created_at": "2026-02-16T15:18:02.000Z",
+          "path": "html-projects/projects/Lean 4 抽象代数智能辅导系统_bb3c3571/pasted.html",
+          "sha": null
+        },
+        {
+          "id": "e347d1dd",
+          "display_name": "a_e347d1dd.html",
+          "original_filename": "a_e347d1dd.html",
+          "created_at": "2026-02-16T09:23:46.000Z",
+          "path": "html-projects/projects/Lean 4 抽象代数智能辅导系统_bb3c3571/a_e347d1dd.html",
+          "sha": null
+        },
+        {
+          "id": "da327276",
+          "display_name": "a_da327276.html",
+          "original_filename": "a_da327276.html",
+          "created_at": "2026-02-16T09:38:46.000Z",
+          "path": "html-projects/projects/Lean 4 抽象代数智能辅导系统_bb3c3571/a_da327276.html",
+          "sha": null
+        },
+        {
+          "id": "1cdb9d38",
+          "display_name": "a_1cdb9d38.html",
+          "original_filename": "a_1cdb9d38.html",
+          "created_at": "2026-02-16T09:39:54.000Z",
+          "path": "html-projects/projects/Lean 4 抽象代数智能辅导系统_bb3c3571/a_1cdb9d38.html",
+          "sha": null
+        },
+        {
+          "id": "f2e81ee97f927b2fb7b70d8e18e74c06",
+          "display_name": "a.html",
+          "original_filename": "a.html",
+          "created_at": "2026-02-16T09:43:46.000Z",
+          "path": "html-projects/projects/Lean 4 抽象代数智能辅导系统_bb3c3571/a.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "14ed0386",
+      "name": "Lcapy in Pyodide (Final Fix)",
+      "description": "Lcapy in Pyodide (Final Fix) (1 version)",
+      "icon": "📁",
+      "created_at": "2026-01-29T14:38:44.000Z",
+      "updated_at": "2026-03-13T06:57:38.629Z",
+      "versions": [
+        {
+          "id": "9cabd8a754b9b84d9ebaca7a8750e216",
+          "display_name": "WASM_lcapy.html",
+          "original_filename": "WASM_lcapy.html",
+          "created_at": "2026-01-29T14:38:44.000Z",
+          "path": "html-projects/projects/Lcapy in Pyodide (Final Fix)_14ed0386/WASM_lcapy.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "fc1670b3",
+      "name": "Lab3 图片上传与打包",
+      "description": "Lab3 图片上传与打包 (6 versions)",
+      "icon": "📁",
+      "created_at": "2026-03-09T07:18:22.000Z",
+      "updated_at": "2026-03-13T06:57:38.628Z",
+      "versions": [
+        {
+          "id": "eab28ba5",
+          "display_name": "pasted_eab28ba5.html",
+          "original_filename": "pasted_eab28ba5.html",
+          "created_at": "2026-03-09T14:28:38.000Z",
+          "path": "html-projects/projects/Lab3 图片上传与打包_fc1670b3/pasted_eab28ba5.html",
+          "sha": null
+        },
+        {
+          "id": "6715815f",
+          "display_name": "pasted_6715815f.html",
+          "original_filename": "pasted_6715815f.html",
+          "created_at": "2026-03-09T07:38:04.000Z",
+          "path": "html-projects/projects/Lab3 图片上传与打包_fc1670b3/pasted_6715815f.html",
+          "sha": null
+        },
+        {
+          "id": "49b426a1",
+          "display_name": "pasted_49b426a1.html",
+          "original_filename": "pasted_49b426a1.html",
+          "created_at": "2026-03-09T14:19:48.000Z",
+          "path": "html-projects/projects/Lab3 图片上传与打包_fc1670b3/pasted_49b426a1.html",
+          "sha": null
+        },
+        {
+          "id": "412ce6b8",
+          "display_name": "pasted_412ce6b8.html",
+          "original_filename": "pasted_412ce6b8.html",
+          "created_at": "2026-03-09T07:18:22.000Z",
+          "path": "html-projects/projects/Lab3 图片上传与打包_fc1670b3/pasted_412ce6b8.html",
+          "sha": null
+        },
+        {
+          "id": "2a1897b5",
+          "display_name": "pasted_2a1897b5.html",
+          "original_filename": "pasted_2a1897b5.html",
+          "created_at": "2026-03-09T14:12:28.000Z",
+          "path": "html-projects/projects/Lab3 图片上传与打包_fc1670b3/pasted_2a1897b5.html",
+          "sha": null
+        },
+        {
+          "id": "5853620ff26bbacd57a5587722d93f6b",
+          "display_name": "pasted.html",
+          "original_filename": "pasted.html",
+          "created_at": "2026-03-09T14:48:58.000Z",
+          "path": "html-projects/projects/Lab3 图片上传与打包_fc1670b3/pasted.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "f1646cf0",
+      "name": "GRE Flow",
+      "description": "GRE Flow (10 versions)",
+      "icon": "📁",
+      "created_at": "2026-01-29T06:12:30.000Z",
+      "updated_at": "2026-03-13T06:57:38.622Z",
+      "versions": [
+        {
+          "id": "dfdf9f1e",
+          "display_name": "gre_words_dfdf9f1e.html",
+          "original_filename": "gre_words_dfdf9f1e.html",
+          "created_at": "2026-01-29T06:28:08.000Z",
+          "path": "html-projects/projects/GRE Flow_f1646cf0/gre_words_dfdf9f1e.html",
+          "sha": null
+        },
+        {
+          "id": "c6a20ddc",
+          "display_name": "gre_words_c6a20ddc.html",
+          "original_filename": "gre_words_c6a20ddc.html",
+          "created_at": "2026-01-29T06:39:44.000Z",
+          "path": "html-projects/projects/GRE Flow_f1646cf0/gre_words_c6a20ddc.html",
+          "sha": null
+        },
+        {
+          "id": "7316bcb3",
+          "display_name": "gre_words_7316bcb3.html",
+          "original_filename": "gre_words_7316bcb3.html",
+          "created_at": "2026-01-29T06:26:32.000Z",
+          "path": "html-projects/projects/GRE Flow_f1646cf0/gre_words_7316bcb3.html",
+          "sha": null
+        },
+        {
+          "id": "3138f623",
+          "display_name": "gre_words_3138f623.html",
+          "original_filename": "gre_words_3138f623.html",
+          "created_at": "2026-01-29T06:24:50.000Z",
+          "path": "html-projects/projects/GRE Flow_f1646cf0/gre_words_3138f623.html",
+          "sha": null
+        },
+        {
+          "id": "2a0c938b",
+          "display_name": "gre_words_2a0c938b.html",
+          "original_filename": "gre_words_2a0c938b.html",
+          "created_at": "2026-01-29T06:37:28.000Z",
+          "path": "html-projects/projects/GRE Flow_f1646cf0/gre_words_2a0c938b.html",
+          "sha": null
+        },
+        {
+          "id": "24b7fe2e",
+          "display_name": "gre_words_24b7fe2e.html",
+          "original_filename": "gre_words_24b7fe2e.html",
+          "created_at": "2026-01-29T06:20:42.000Z",
+          "path": "html-projects/projects/GRE Flow_f1646cf0/gre_words_24b7fe2e.html",
+          "sha": null
+        },
+        {
+          "id": "20044f1e",
+          "display_name": "gre_words_20044f1e.html",
+          "original_filename": "gre_words_20044f1e.html",
+          "created_at": "2026-01-29T06:46:00.000Z",
+          "path": "html-projects/projects/GRE Flow_f1646cf0/gre_words_20044f1e.html",
+          "sha": null
+        },
+        {
+          "id": "097db57b",
+          "display_name": "gre_words_097db57b.html",
+          "original_filename": "gre_words_097db57b.html",
+          "created_at": "2026-01-29T06:43:38.000Z",
+          "path": "html-projects/projects/GRE Flow_f1646cf0/gre_words_097db57b.html",
+          "sha": null
+        },
+        {
+          "id": "bafcbf9d60c163c587d7b61ef4a1dd39",
+          "display_name": "gre_words.html",
+          "original_filename": "gre_words.html",
+          "created_at": "2026-01-29T06:49:56.000Z",
+          "path": "html-projects/projects/GRE Flow_f1646cf0/gre_words.html",
+          "sha": null
+        },
+        {
+          "id": "2d19221ea90daa5f8448f28a4f764ecc",
+          "display_name": "ai_studio_code_40_.html",
+          "original_filename": "ai_studio_code_40_.html",
+          "created_at": "2026-01-29T06:12:30.000Z",
+          "path": "html-projects/projects/GRE Flow_f1646cf0/ai_studio_code_40_.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "d56707f6",
+      "name": "Fingerdance Minimal Demo",
+      "description": "Fingerdance Minimal Demo (5 versions)",
+      "icon": "📁",
+      "created_at": "2026-02-20T16:36:54.000Z",
+      "updated_at": "2026-03-13T06:57:38.613Z",
+      "versions": [
+        {
+          "id": "cd36c3f2",
+          "display_name": "pasted_cd36c3f2.html",
+          "original_filename": "pasted_cd36c3f2.html",
+          "created_at": "2026-02-20T16:45:04.000Z",
+          "path": "html-projects/projects/Fingerdance Minimal Demo_d56707f6/pasted_cd36c3f2.html",
+          "sha": null
+        },
+        {
+          "id": "ac29faa2",
+          "display_name": "pasted_ac29faa2.html",
+          "original_filename": "pasted_ac29faa2.html",
+          "created_at": "2026-02-20T16:47:54.000Z",
+          "path": "html-projects/projects/Fingerdance Minimal Demo_d56707f6/pasted_ac29faa2.html",
+          "sha": null
+        },
+        {
+          "id": "86fda3cb",
+          "display_name": "pasted_86fda3cb.html",
+          "original_filename": "pasted_86fda3cb.html",
+          "created_at": "2026-02-20T16:36:54.000Z",
+          "path": "html-projects/projects/Fingerdance Minimal Demo_d56707f6/pasted_86fda3cb.html",
+          "sha": null
+        },
+        {
+          "id": "7a9dc3dd",
+          "display_name": "pasted_7a9dc3dd.html",
+          "original_filename": "pasted_7a9dc3dd.html",
+          "created_at": "2026-02-20T16:42:30.000Z",
+          "path": "html-projects/projects/Fingerdance Minimal Demo_d56707f6/pasted_7a9dc3dd.html",
+          "sha": null
+        },
+        {
+          "id": "6365fd1a6f9f9d807e50b36b69da306c",
+          "display_name": "pasted.html",
+          "original_filename": "pasted.html",
+          "created_at": "2026-02-20T16:49:20.000Z",
+          "path": "html-projects/projects/Fingerdance Minimal Demo_d56707f6/pasted.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "8f217958",
+      "name": "Doodle Jump - 陀螺仪版",
+      "description": "Doodle Jump - 陀螺仪版 (1 version)",
+      "icon": "📁",
+      "created_at": "2026-01-27T06:33:48.000Z",
+      "updated_at": "2026-03-13T06:57:38.604Z",
+      "versions": [
+        {
+          "id": "70943504eaea33bd917ad6a7cf8e325c",
+          "display_name": "gyyUntitled.html",
+          "original_filename": "gyyUntitled.html",
+          "created_at": "2026-01-27T06:33:48.000Z",
+          "path": "html-projects/projects/Doodle Jump - 陀螺仪版_8f217958/gyyUntitled.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "7dfa334c",
+      "name": "Class Schedule Pro",
+      "description": "Class Schedule Pro (2 versions)",
+      "icon": "📁",
+      "created_at": "2026-01-29T07:28:04.000Z",
+      "updated_at": "2026-03-13T06:57:38.594Z",
+      "versions": [
+        {
+          "id": "83a4a5d9",
+          "display_name": "classtable_83a4a5d9.html",
+          "original_filename": "classtable_83a4a5d9.html",
+          "created_at": "2026-01-29T07:28:04.000Z",
+          "path": "html-projects/projects/Class Schedule Pro_7dfa334c/classtable_83a4a5d9.html",
+          "sha": null
+        },
+        {
+          "id": "cfa79176ff52ea2ec4a8b3bee0e1748d",
+          "display_name": "classtable.html",
+          "original_filename": "classtable.html",
+          "created_at": "2026-01-29T07:34:12.000Z",
+          "path": "html-projects/projects/Class Schedule Pro_7dfa334c/classtable.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "330efde1",
+      "name": "Calculate Shanten (Single HTML)",
+      "description": "Calculate Shanten (Single HTML) (3 versions)",
+      "icon": "📁",
+      "created_at": "2026-03-01T15:31:36.000Z",
+      "updated_at": "2026-03-13T06:57:38.590Z",
+      "versions": [
+        {
+          "id": "fd107428",
+          "display_name": "pasted_fd107428.html",
+          "original_filename": "pasted_fd107428.html",
+          "created_at": "2026-03-01T15:39:34.000Z",
+          "path": "html-projects/projects/Calculate Shanten (Single HTML)_330efde1/pasted_fd107428.html",
+          "sha": null
+        },
+        {
+          "id": "3cb4e599",
+          "display_name": "pasted_3cb4e599.html",
+          "original_filename": "pasted_3cb4e599.html",
+          "created_at": "2026-03-01T15:31:36.000Z",
+          "path": "html-projects/projects/Calculate Shanten (Single HTML)_330efde1/pasted_3cb4e599.html",
+          "sha": null
+        },
+        {
+          "id": "e4aa9712bdca6f5334ef290bc05bd8af",
+          "display_name": "pasted.html",
+          "original_filename": "pasted.html",
+          "created_at": "2026-03-01T15:44:10.000Z",
+          "path": "html-projects/projects/Calculate Shanten (Single HTML)_330efde1/pasted.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "566c133b",
+      "name": "CEC Sign-in Helper",
+      "description": "CEC Sign-in Helper (2 versions)",
+      "icon": "📁",
+      "created_at": "2026-01-26T17:43:10.000Z",
+      "updated_at": "2026-03-13T06:57:38.587Z",
+      "versions": [
+        {
+          "id": "661a50f5464e31ae2ac830174c2e0eb5",
+          "display_name": "cec-tool.html",
+          "original_filename": "cec-tool.html",
+          "created_at": "2026-01-26T17:43:10.000Z",
+          "path": "html-projects/projects/CEC Sign-in Helper_566c133b/cec-tool.html",
+          "sha": null
+        },
+        {
+          "id": "e1c79363d641b1a63aa4b95519c4414f",
+          "display_name": "ai_studio_code_39_.html",
+          "original_filename": "ai_studio_code_39_.html",
+          "created_at": "2026-02-04T05:57:48.000Z",
+          "path": "html-projects/projects/CEC Sign-in Helper_566c133b/ai_studio_code_39_.html",
+          "sha": null
+        }
+      ]
+    },
+    {
+      "id": "dd95876a",
+      "name": "AI Agent OS - Local Executor",
+      "description": "AI Agent OS - Local Executor (3 versions)",
+      "icon": "📁",
+      "created_at": "2026-02-20T15:31:10.000Z",
+      "updated_at": "2026-03-13T06:57:38.584Z",
+      "versions": [
+        {
+          "id": "70a2467e",
+          "display_name": "pasted_70a2467e.html",
+          "original_filename": "pasted_70a2467e.html",
+          "created_at": "2026-02-20T15:42:54.000Z",
+          "path": "html-projects/projects/AI Agent OS - Local Executor_dd95876a/pasted_70a2467e.html",
+          "sha": null
+        },
+        {
+          "id": "0081a261",
+          "display_name": "pasted_0081a261.html",
+          "original_filename": "pasted_0081a261.html",
+          "created_at": "2026-02-20T15:31:10.000Z",
+          "path": "html-projects/projects/AI Agent OS - Local Executor_dd95876a/pasted_0081a261.html",
+          "sha": null
+        },
+        {
+          "id": "95d78d4b4b2f4601df0064521ea79576",
+          "display_name": "pasted.html",
+          "original_filename": "pasted.html",
+          "created_at": "2026-02-20T16:05:22.000Z",
+          "path": "html-projects/projects/AI Agent OS - Local Executor_dd95876a/pasted.html",
+          "sha": null
         }
       ]
     }

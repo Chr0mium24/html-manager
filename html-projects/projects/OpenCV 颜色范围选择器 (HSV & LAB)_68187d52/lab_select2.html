@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenCV 颜色范围选择器 (HSV & LAB)</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- noUiSlider CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.1/nouislider.min.css" rel="stylesheet">
+    
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding-top: 1rem;
+        }
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            max-width: 512px;
+            aspect-ratio: 4 / 3;
+            background-color: #e9ecef;
+            border: 1px dashed #ced4da;
+            border-radius: 0.375rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        canvas {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 0.375rem;
+        }
+        .canvas-placeholder {
+            color: #6c757d;
+            text-align: center;
+        }
+        .slider-label {
+            font-weight: 500;
+            min-width: 120px;
+        }
+        .noUi-target {
+            border-radius: 99px;
+            background: #e9ecef;
+            border: 1px solid #ced4da;
+        }
+        .noUi-connect {
+            background: #0d6efd;
+        }
+        .noUi-handle {
+            border-radius: 50%;
+            background: #fff;
+            border: 2px solid #0d6efd;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        #code-output {
+            background-color: #212529;
+            color: #f8f9fa;
+            border-radius: 0.375rem;
+            padding: 1rem;
+            white-space: pre-wrap;
+            word-break: break-all;
+            position: relative;
+        }
+        #copy-code-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+        }
+        #loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            flex-direction: column;
+            gap: 1rem;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 加载指示器 -->
+    <div id="loader">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="text-primary mb-0">正在加载 OpenCV.js...</p>
+    </div>
+
+    <div class="container-fluid">
+        <h3 class="text-center mb-4">OpenCV 颜色范围选择器</h3>
+
+        <!-- 控制区域 -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row g-3 align-items-center">
+                    <!-- 模式选择 -->
+                    <div class="col-md-auto">
+                        <label class="form-label fw-bold">色彩模式:</label>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="colorMode" id="hsvMode" value="hsv" checked>
+                            <label class="form-check-label" for="hsvMode">HSV</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="colorMode" id="labMode" value="lab">
+                            <label class="form-check-label" for="labMode">LAB</label>
+                        </div>
+                    </div>
+                    <!-- 文件上传 -->
+                    <div class="col-md-auto">
+                         <label for="imageUpload" class="btn btn-primary">上传图片</label>
+                         <input type="file" id="imageUpload" accept="image/*" class="d-none">
+                         <span class="form-text d-none d-md-inline ms-2">或直接在页面按 Ctrl+V 粘贴</span>
+                    </div>
+                    <!-- 取色器 -->
+                    <div class="col-md-auto">
+                        <label for="colorPicker" class="form-label fw-bold">取色器:</label>
+                        <input type="color" class="form-control form-control-color" id="colorPicker" value="#563d7c" title="选择颜色">
+                    </div>
+                    <div class="col-md">
+                        <div id="color-values" class="form-text" style="font-family: monospace;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 图像显示 -->
+        <div class="row g-4 mb-4">
+            <div class="col-lg-6">
+                <h5 class="text-center">原图</h5>
+                <div class="canvas-container mx-auto" id="original-container">
+                    <canvas id="originalCanvas"></canvas>
+                    <div class="canvas-placeholder" id="original-placeholder">
+                        <p class="mb-0">请上传或粘贴图片</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <h5 class="text-center">遮罩 (Mask)</h5>
+                <div class="canvas-container mx-auto" id="mask-container">
+                    <canvas id="maskCanvas"></canvas>
+                     <div class="canvas-placeholder" id="mask-placeholder">
+                        <p class="mb-0">处理结果将显示在此处</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 滑动条 -->
+        <div class="card mb-4">
+            <div class="card-body" id="sliders-container">
+                <!-- Sliders will be dynamically generated here -->
+            </div>
+        </div>
+
+        <!-- 代码输出 -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Python 代码</h5>
+            </div>
+            <div class="card-body">
+                <div id="code-output">
+                    <button id="copy-code-btn" class="btn btn-sm btn-outline-light">复制</button>
+                    <code id="python-code"></code>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- OpenCV.js -->
+    <script async src="https://docs.opencv.org/4.9.0/opencv.js" onload="onOpenCvReady();"></script>
+    
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- noUiSlider JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.1/nouislider.min.js"></script>
+
+    <script>
+        let cvReady = false;
+        const loader = document.getElementById('loader');
+
+        function onOpenCvReady() {
+            cvReady = true;
+            loader.style.display = 'none';
+            main();
+        }
+
+        function main() {
+            // --- DOM Elements ---
+            const imageUpload = document.getElementById('imageUpload');
+            const originalCanvas = document.getElementById('originalCanvas');
+            const maskCanvas = document.getElementById('maskCanvas');
+            const originalPlaceholder = document.getElementById('original-placeholder');
+            const maskPlaceholder = document.getElementById('mask-placeholder');
+            const slidersContainer = document.getElementById('sliders-container');
+            const pythonCode = document.getElementById('python-code');
+            const copyBtn = document.getElementById('copy-code-btn');
+            const colorPicker = document.getElementById('colorPicker');
+            const colorValuesEl = document.getElementById('color-values');
+            const modeRadios = document.querySelectorAll('input[name="colorMode"]');
+
+            // --- State ---
+            let currentMode = 'hsv';
+            let originalImage = null;
+            let sliders = [];
+            let ranges = {
+                hsv: {
+                    h: { min: 0, max: 179 },
+                    s: { min: 0, max: 255 },
+                    v: { min: 0, max: 255 }
+                },
+                lab: {
+                    l: { min: 0, max: 255 },
+                    a: { min: 0, max: 255 },
+                    b: { min: 0, max: 255 }
+                }
+            };
+            let currentValues = {};
+
+            // --- Color Conversion Functions ---
+            function hexToRgb(hex) {
+                let result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+                return result ? {
+                    r: parseInt(result[1], 16),
+                    g: parseInt(result[2], 16),
+                    b: parseInt(result[3], 16)
+                } : null;
+            }
+
+            function rgbToHsv(r, g, b) {
+                r /= 255; g /= 255; b /= 255;
+                let max = Math.max(r, g, b), min = Math.min(r, g, b);
+                let h, s, v = max;
+                let d = max - min;
+                s = max === 0 ? 0 : d / max;
+                if (max === min) {
+                    h = 0;
+                } else {
+                    switch (max) {
+                        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                        case g: h = (b - r) / d + 2; break;
+                        case b: h = (r - g) / d + 4; break;
+                    }
+                    h /= 6;
+                }
+                return { h: Math.round(h * 179), s: Math.round(s * 255), v: Math.round(v * 255) };
+            }
+            
+            function rgbToLab(r, g, b) {
+                r /= 255; g /= 255; b /= 255;
+                r = (r > 0.04045) ? Math.pow((r + 0.055) / 1.055, 2.4) : r / 12.92;
+                g = (g > 0.04045) ? Math.pow((g + 0.055) / 1.055, 2.4) : g / 12.92;
+                b = (b > 0.04045) ? Math.pow((b + 0.055) / 1.055, 2.4) : b / 12.92;
+                r *= 100; g *= 100; b *= 100;
+
+                let x = r * 0.4124 + g * 0.3576 + b * 0.1805;
+                let y = r * 0.2126 + g * 0.7152 + b * 0.0722;
+                let z = r * 0.0193 + g * 0.1192 + b * 0.9505;
+
+                x /= 95.047; y /= 100.000; z /= 108.883;
+                x = (x > 0.008856) ? Math.pow(x, 1/3) : (7.787 * x) + 16/116;
+                y = (y > 0.008856) ? Math.pow(y, 1/3) : (7.787 * y) + 16/116;
+                z = (z > 0.008856) ? Math.pow(z, 1/3) : (7.787 * z) + 16/116;
+
+                let L = (116 * y) - 16;
+                let a = 500 * (x - y);
+                let b_ = 200 * (y - z);
+                
+                let L_out = Math.round(L * 255 / 100);
+                let a_out = Math.round(a + 128);
+                let b_out = Math.round(b_ + 128);
+
+                return { l: L_out, a: a_out, b: b_out };
+            }
+
+
+            // --- Core Functions ---
+            function createSliders() {
+                slidersContainer.innerHTML = '';
+                sliders = [];
+                currentValues = {}; // FIX: Reset current values on mode change
+                const channels = currentMode === 'hsv' ? ['H', 'S', 'V'] : ['L', 'A', 'B'];
+                const keys = currentMode === 'hsv' ? ['h', 's', 'v'] : ['l', 'a', 'b'];
+
+                channels.forEach((channel, i) => {
+                    const key = keys[i];
+                    const range = ranges[currentMode][key];
+
+                    const row = document.createElement('div');
+                    row.className = 'row align-items-center mb-3';
+                    
+                    const labelCol = document.createElement('div');
+                    labelCol.className = 'col-md-2';
+                    labelCol.innerHTML = `<label class="slider-label">${channel} Range:</label>`;
+
+                    const sliderCol = document.createElement('div');
+                    sliderCol.className = 'col-md-8';
+                    const sliderEl = document.createElement('div');
+                    sliderCol.appendChild(sliderEl);
+
+                    const valueCol = document.createElement('div');
+                    valueCol.className = 'col-md-2';
+                    valueCol.innerHTML = `<span id="${key}-value" class="fw-bold" style="font-family: monospace;"></span>`;
+                    
+                    row.appendChild(labelCol);
+                    row.appendChild(sliderCol);
+                    row.appendChild(valueCol);
+                    slidersContainer.appendChild(row);
+
+                    const slider = noUiSlider.create(sliderEl, {
+                        start: [range.min, range.max],
+                        connect: true,
+                        step: 1,
+                        range: { 'min': range.min, 'max': range.max },
+                        format: { to: value => Math.round(value), from: value => Number(value) }
+                    });
+
+                    sliders.push({ key: key, instance: slider, valueEl: document.getElementById(`${key}-value`) });
+
+                    slider.on('update', (values) => {
+                        currentValues[key] = { min: values[0], max: values[1] };
+                        document.getElementById(`${key}-value`).textContent = `[${values[0]}, ${values[1]}]`;
+                        processImage();
+                        updateCode();
+                    });
+                });
+            }
+
+            function processImage() {
+    if (!originalImage || !cvReady || Object.keys(currentValues).length !== 3) {
+        return;
+    }
+    
+    // 声明所有将要创建的 Mat 对象
+    let src, dst, temp, lower, upper; 
+    try {
+        src = cv.imread(originalImage);
+        dst = new cv.Mat();
+        temp = new cv.Mat();
+
+        // 转换色彩空间
+        cv.cvtColor(src, temp, cv.COLOR_RGBA2BGR);
+        const finalConversionCode = currentMode === 'hsv' ? cv.COLOR_BGR2HSV : cv.COLOR_BGR2Lab;
+        cv.cvtColor(temp, temp, finalConversionCode);
+
+        const keys = Object.keys(currentValues);
+        
+        // --- 错误修复 START ---
+        // 使用 1x3 的 Mat 作为边界向量，类型为 CV_8U
+        const lowerValues = [currentValues[keys[0]].min, currentValues[keys[1]].min, currentValues[keys[2]].min];
+        const upperValues = [currentValues[keys[0]].max, currentValues[keys[1]].max, currentValues[keys[2]].max];
+        
+        lower = cv.matFromArray(1, 3, cv.CV_8U, lowerValues);
+        upper = cv.matFromArray(1, 3, cv.CV_8U, upperValues);
+        // --- 错误修复 END ---
+
+        cv.inRange(temp, lower, upper, dst);
+        
+        cv.imshow('maskCanvas', dst);
+        maskPlaceholder.style.display = 'none';
+
+    } catch (err) {
+        console.error("OpenCV Error: ", err);
+        // 你可以在这里向用户显示一个友好的错误提示
+    } finally {
+        // 确保所有创建的 Mat 都被删除，防止内存泄漏
+        if (src) src.delete();
+        if (dst) dst.delete();
+        if (temp) temp.delete();
+        if (lower) lower.delete(); // 新增
+        if (upper) upper.delete(); // 新增
+    }
+}
+            
+            function updateCode() {
+                if (Object.keys(currentValues).length !== 3) {
+                    pythonCode.textContent = "# 等待滑块值...";
+                    return;
+                }
+                const keys = currentMode === 'hsv' ? ['h', 's', 'v'] : ['l', 'a', 'b'];
+                const lower = `[${currentValues[keys[0]].min}, ${currentValues[keys[1]].min}, ${currentValues[keys[2]].min}]`;
+                const upper = `[${currentValues[keys[0]].max}, ${currentValues[keys[1]].max}, ${currentValues[keys[2]].max}]`;
+                const conversion = currentMode === 'hsv' ? 'cv2.COLOR_BGR2HSV' : 'cv2.COLOR_BGR2LAB';
+
+                const code = `
+import cv2
+import numpy as np
+
+# 读取图片
+# image = cv2.imread('your_image.jpg')
+
+# 将图片从 BGR 转换到 ${currentMode.toUpperCase()} 色彩空间
+converted_frame = cv2.cvtColor(image, ${conversion})
+
+# 定义 ${currentMode.toUpperCase()} 中的颜色范围
+lower_bound = np.array(${lower})
+upper_bound = np.array(${upper})
+
+# 根据颜色范围创建遮罩
+mask = cv2.inRange(converted_frame, lower_bound, upper_bound)
+
+# (可选) 将遮罩应用到原图
+# result = cv2.bitwise_and(image, image, mask=mask)
+
+# 显示遮罩
+# cv2.imshow('Mask', mask)
+# cv2.waitKey(0)
+# cv2.destroyAllWindows()
+`;
+                pythonCode.textContent = code.trim();
+            }
+            
+            function loadImage(src) {
+                const img = new Image();
+                img.onload = () => {
+                    originalImage = img;
+                    const ctx = originalCanvas.getContext('2d');
+                    originalCanvas.width = img.width;
+                    originalCanvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+                    originalPlaceholder.style.display = 'none';
+                    processImage();
+                };
+                img.src = src;
+            }
+
+            function handleImageUpload(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => loadImage(e.target.result);
+                    reader.readAsDataURL(file);
+                }
+            }
+
+            function handlePaste(event) {
+                const items = (event.clipboardData || event.originalEvent.clipboardData).items;
+                for (let item of items) {
+                    if (item.type.indexOf('image') === 0) {
+                        const blob = item.getAsFile();
+                        const reader = new FileReader();
+                        reader.onload = (e) => loadImage(e.target.result);
+                        reader.readAsDataURL(blob);
+                        event.preventDefault();
+                        break;
+                    }
+                }
+            }
+
+            function updateColorPickerValues(hex) {
+                const rgb = hexToRgb(hex);
+                if (rgb) {
+                    const hsv = rgbToHsv(rgb.r, rgb.g, rgb.b);
+                    const lab = rgbToLab(rgb.r, rgb.g, rgb.b);
+                    colorValuesEl.innerHTML = `
+                        RGB: (${rgb.r}, ${rgb.g}, ${rgb.b})<br>
+                        HSV: (${hsv.h}, ${hsv.s}, ${hsv.v})<br>
+                        LAB: (${lab.l}, ${lab.a}, ${lab.b})
+                    `;
+                }
+            }
+            
+            // --- Event Listeners ---
+            imageUpload.addEventListener('change', handleImageUpload);
+            window.addEventListener('paste', handlePaste);
+
+            modeRadios.forEach(radio => {
+                radio.addEventListener('change', (event) => {
+                    currentMode = event.target.value;
+                    createSliders();
+                });
+            });
+
+            copyBtn.addEventListener('click', () => {
+                navigator.clipboard.writeText(pythonCode.textContent).then(() => {
+                    const originalText = copyBtn.textContent;
+                    copyBtn.textContent = '已复制!';
+                    copyBtn.classList.remove('btn-outline-light');
+                    copyBtn.classList.add('btn-success');
+                    setTimeout(() => {
+                        copyBtn.textContent = originalText;
+                        copyBtn.classList.remove('btn-success');
+                        copyBtn.classList.add('btn-outline-light');
+                    }, 2000);
+                });
+            });
+
+            colorPicker.addEventListener('input', (event) => {
+                updateColorPickerValues(event.target.value);
+            });
+
+            // --- Initial Setup ---
+            createSliders();
+            updateColorPickerValues(colorPicker.value);
+        }
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Agent 大脑核心 (v2 交互进化版)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-gray-200 min-h-screen p-6">
+    <div class="max-w-5xl mx-auto space-y-6">
+        <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+            <h2 class="text-xl font-bold mb-4">⚙️ 系统配置</h2>
+            <div class="grid grid-cols-2 gap-4">
+                <input type="password" id="apiKey" placeholder="Gemini API Key" class="bg-gray-700 p-2 rounded text-sm w-full outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="text" id="backendUrl" placeholder="http://127.0.0.1:9961" class="bg-gray-700 p-2 rounded text-sm w-full outline-none">
+                <input type="password" id="backendToken" placeholder="Backend Token" class="bg-gray-700 p-2 rounded text-sm w-full outline-none">
+                <select id="riskThreshold" class="bg-gray-700 p-2 rounded text-sm w-full outline-none">
+                    <option value="3">严格限制 (>3 需确认)</option>
+                    <option value="6" selected>中等限制 (>6 需确认)</option>
+                    <option value="10">无限制</option>
+                </select>
+            </div>
+            <div class="mt-4 flex space-x-4">
+                <button onclick="saveConfig()" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded text-sm font-bold transition">保存配置</button>
+                <button onclick="checkBackend()" class="bg-green-600 hover:bg-green-500 px-4 py-2 rounded text-sm font-bold transition">测试连通性</button>
+            </div>
+            <p id="statusMsg" class="mt-2 text-sm text-gray-400"></p>
+        </div>
+
+        <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+            <h2 class="text-xl font-bold mb-4">🚀 发起新任务</h2>
+            <textarea id="taskInput" rows="2" placeholder="例如：写一个自动爬取某网站新闻并存为 CSV 的脚本..." class="bg-gray-700 p-3 rounded text-sm w-full outline-none focus:ring-2 focus:ring-blue-500 mb-4"></textarea>
+            <button onclick="createNewTask()" class="bg-purple-600 hover:bg-purple-500 w-full py-2 rounded text-md font-bold transition">开启任务会话</button>
+        </div>
+
+        <div id="tasksContainer" class="space-y-6"></div>
+    </div>
+
+    <script>
+        // --- 基础配置与通信 (与原版一致) ---
+        function saveConfig() {
+            localStorage.setItem('geminiKey', document.getElementById('apiKey').value);
+            localStorage.setItem('backendUrl', document.getElementById('backendUrl').value);
+            localStorage.setItem('backendToken', document.getElementById('backendToken').value);
+            localStorage.setItem('riskThreshold', document.getElementById('riskThreshold').value);
+            showStatus('配置已保存', 'text-green-400');
+        }
+
+        window.onload = () => {
+            document.getElementById('apiKey').value = localStorage.getItem('geminiKey') || '';
+            document.getElementById('backendUrl').value = localStorage.getItem('backendUrl') || 'http://127.0.0.1:9961';
+            document.getElementById('backendToken').value = localStorage.getItem('backendToken') || '';
+            document.getElementById('riskThreshold').value = localStorage.getItem('riskThreshold') || '6';
+        };
+
+        function showStatus(msg, colorClass) {
+            const el = document.getElementById('statusMsg');
+            el.className = `mt-2 text-sm ${colorClass}`;
+            el.innerText = msg;
+            setTimeout(() => el.innerText = '', 3000);
+        }
+
+        async function reqBackend(path, payload = {}) {
+            const url = document.getElementById('backendUrl').value;
+            const token = document.getElementById('backendToken').value;
+            const res = await fetch(`${url}${path}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(payload)
+            });
+            if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
+            return await res.json();
+        }
+
+        async function checkBackend() {
+            try { await reqBackend('/execute', {code: 'print("pong")'}); showStatus('后端连接成功！', 'text-green-400'); } 
+            catch (e) { showStatus('连接失败，请检查配置', 'text-red-400'); }
+        }
+
+        async function callGemini(messages) {
+            const apiKey = document.getElementById('apiKey').value;
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+            const contents = messages.map(m => ({ role: m.role, parts: [{ text: m.content }] }));
+            const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents }) });
+            const data = await res.json();
+            if(data.error) throw new Error(data.error.message);
+            return data.candidates[0].content.parts[0].text;
+        }
+
+        // --- 全局任务状态管理 ---
+        let taskIdCounter = 0;
+        const tasks = {}; // 存储每个任务的上下文: { messages: [], latestCode: "", isRunning: false }
+
+        // --- AI 2: 风险评估 ---
+        async function evaluateRisk(code) {
+            const prompt = `作为安全专家，评估以下Python代码在本地执行的破坏性风险得分（1-10分）。只回复纯数字。\n代码:\n${code}`;
+            const res = await callGemini([{role: "user", content: prompt}]);
+            return parseInt(res.trim().match(/\d+/)[0]) || 10;
+        }
+
+        // --- AI 3: 代码净化 (剥离测试与示例) ---
+        async function purifyCode(code) {
+            const prompt = `你是一个高级代码审查员。请提取并净化以下Python代码：
+1. 移除仅用于测试、演示的 \`print\` 语句、mock数据或断言。
+2. 将核心功能封装成整洁的函数或类。
+3. 保留必要的模块导入（如动态pip安装逻辑）。
+仅输出包含净化后代码的 \`\`\`python ... \`\`\` 代码块，不要解释。
+
+原始代码：\n${code}`;
+            const res = await callGemini([{role: "user", content: prompt}]);
+            const match = res.match(/```python\n([\s\S]*?)```/);
+            return match ? match[1] : code; // 兜底返回原代码
+        }
+
+        // --- 核心调度逻辑 ---
+        function createNewTask() {
+            const taskText = document.getElementById('taskInput').value;
+            if(!taskText) return;
+            
+            const id = ++taskIdCounter;
+            const systemPrompt = `你是一个运行在带Python解释器本地环境中的AI Agent。
+规则：
+1. 需用第三方库时，必须用 subprocess 调用 pip 动态安装。
+2. 若需执行代码验证，提供 \`\`\`python 代码块。
+3. 若阶段性任务完成，等待用户下一步指令，并输出 "READY: 等待指示"。`;
+
+            tasks[id] = {
+                messages: [{ role: "user", content: systemPrompt + "\n\n用户任务: " + taskText }],
+                latestCode: "",
+                isRunning: false
+            };
+            
+            buildTaskUI(id, taskText);
+            document.getElementById('taskInput').value = '';
+            
+            runAgentLoop(id); // 启动该任务的首次 ReAct 循环
+        }
+
+        async function continueTask(id) {
+            const inputEl = document.getElementById(`chatInput-${id}`);
+            const text = inputEl.value;
+            if(!text || tasks[id].isRunning) return;
+            
+            inputEl.value = '';
+            tasks[id].messages.push({ role: "user", content: text });
+            appendLog(id, `<span class="text-white font-bold">[User] ${text}</span>`);
+            
+            runAgentLoop(id);
+        }
+
+        async function runAgentLoop(id) {
+            const task = tasks[id];
+            task.isRunning = true;
+            document.getElementById(`btnSend-${id}`).disabled = true;
+            
+            let step = 0;
+            while(step++ < 8) { // 单次指令最大 ReAct 轮数
+                try {
+                    appendLog(id, `<span class="text-gray-400">[Agent] 思考中...</span>`);
+                    const response = await callGemini(task.messages);
+                    task.messages.push({ role: "model", content: response });
+                    
+                    const codeMatch = response.match(/```python\n([\s\S]*?)```/);
+                    
+                    if (response.includes("READY:") || response.includes("FINAL_ANSWER")) {
+                        appendLog(id, `<span class="text-green-400 font-bold">[Agent Reply] ${response.replace(/```python\n[\s\S]*?```/g, '[代码已生成]')}</span>`);
+                        break; // 跳出循环，等待用户继续对话
+                    }
+
+                    if (codeMatch) {
+                        const code = codeMatch[1];
+                        task.latestCode = code; // 缓存最新代码用于下载
+                        document.getElementById(`btnDownload-${id}`).classList.remove('hidden');
+
+                        appendLog(id, `<span class="text-yellow-400">[Plan] 准备执行:</span><pre class="bg-black p-2 rounded text-xs overflow-x-auto text-gray-300">${code}</pre>`);
+                        
+                        // 风险拦截
+                        const score = await evaluateRisk(code);
+                        const threshold = parseInt(document.getElementById('riskThreshold').value);
+                        if (score > threshold) {
+                            if (!confirm(`任务 #${id} 触发安全拦截！\n风险得分: ${score}\n\n是否允许执行？`)) {
+                                appendLog(id, `<span class="text-red-400">[Sec] 用户拒绝执行，中断当前循环。</span>`);
+                                task.messages.push({ role: "user", content: "用户拒绝了执行这段代码，请调整方案。" });
+                                break;
+                            }
+                        }
+
+                        // 后端执行
+                        const execRes = await reqBackend('/execute', {code});
+                        const obs = `Stdout:\n${execRes.stdout}\nStderr:\n${execRes.stderr}\nTraceback:\n${execRes.traceback}`;
+                        appendLog(id, `<span class="text-cyan-400">[Obs] 执行结果:</span><pre class="bg-gray-700 p-2 rounded text-xs text-gray-300">${obs}</pre>`);
+                        
+                        task.messages.push({ role: "user", content: `执行结果:\n${obs}\n请基于此结果继续，如果完成当前阶段请输出 READY: 等待指示。`});
+                    } else {
+                        appendLog(id, `<span class="text-gray-400">[Agent] ${response}</span>`);
+                        break;
+                    }
+                } catch(e) {
+                    appendLog(id, `<span class="text-red-500">[Error] 异常: ${e.message}</span>`);
+                    break;
+                }
+            }
+            
+            task.isRunning = false;
+            document.getElementById(`btnSend-${id}`).disabled = false;
+        }
+
+        // --- 净化与下载代码 ---
+        async function downloadCleanCode(id) {
+            const task = tasks[id];
+            if(!task.latestCode) return alert("当前任务还没有生成任何代码！");
+            
+            appendLog(id, `<span class="text-purple-400">[AI Purifier] 正在净化代码（移除测试输出与Mock数据）...</span>`);
+            try {
+                const cleanCode = await purifyCode(task.latestCode);
+                const blob = new Blob([cleanCode], { type: "text/plain;charset=utf-8" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `agent_task_${id}_clean.py`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                appendLog(id, `<span class="text-green-400">[AI Purifier] 净化完成，已触发下载！</span>`);
+            } catch(e) {
+                appendLog(id, `<span class="text-red-500">[Error] 净化失败: ${e.message}</span>`);
+            }
+        }
+
+        // --- UI 渲染辅助 ---
+        function buildTaskUI(id, title) {
+            const div = document.createElement('div');
+            div.className = "bg-gray-800 p-4 rounded-lg shadow border border-gray-700 flex flex-col";
+            div.innerHTML = `
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="font-bold text-sm text-blue-300">📌 任务 #${id}: ${title}</h3>
+                    <div class="space-x-2">
+                        <button id="btnDownload-${id}" onclick="downloadCleanCode(${id})" class="hidden bg-indigo-600 hover:bg-indigo-500 px-3 py-1 text-xs rounded transition">✨净化并下载代码</button>
+                        <button onclick="this.parentElement.parentElement.parentElement.remove()" class="text-gray-500 hover:text-red-500">✖</button>
+                    </div>
+                </div>
+                <div id="log-${id}" class="bg-gray-900 font-mono text-sm p-3 rounded h-64 overflow-y-auto space-y-2 mb-3"></div>
+                <div class="flex space-x-2 mt-auto">
+                    <input type="text" id="chatInput-${id}" placeholder="继续对话或纠正代码行为..." class="bg-gray-700 p-2 rounded text-sm flex-1 outline-none focus:ring-2 focus:ring-blue-500" onkeydown="if(event.key==='Enter') continueTask(${id})">
+                    <button id="btnSend-${id}" onclick="continueTask(${id})" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded text-sm font-bold transition">发送</button>
+                </div>
+            `;
+            document.getElementById('tasksContainer').prepend(div);
+        }
+
+        function appendLog(id, html) {
+            const logArea = document.getElementById(`log-${id}`);
+            logArea.innerHTML += `<div>${html}</div>`;
+            logArea.scrollTop = logArea.scrollHeight;
+        }
+    </script>
+</body>
+</html>
