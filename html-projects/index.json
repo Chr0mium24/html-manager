@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-03-13T08:05:30.464Z",
+  "updated_at": "2026-03-16T07:00:48.290Z",
   "projects": [
     {
       "id": "fc1670b3052847a5aa800cea4aa02e39",
@@ -8,7 +8,7 @@
       "description": "Lab3 图片上传与打包 Lab 3 图片上传与 ZIP 导出 按预设文件名上传图片，数据保存在浏览器 IndexedDB(localForage) 。关闭页面后再次打开仍可继续。 下载 ZIP 设置图片列表 清空全部图片 导出本地备份(JSON) 导入备份(JSON) 实验 目标文件名 说明 预览 状态 操作 图片列",
       "icon": "📁",
       "created_at": "2026-03-13T08:01:44.978Z",
-      "updated_at": "2026-03-13T08:01:44.983Z",
+      "updated_at": "2026-03-16T07:00:48.289Z",
       "versions": [
         {
           "id": "eab28ba563744af39508996d87c7616b",
@@ -48,14 +48,6 @@
           "original_filename": "412ce6b8cb624007ad7d77fed7b3b6ed.html",
           "created_at": "2026-03-13T08:01:44.979Z",
           "path": "html-projects/projects/fc1670b3052847a5aa800cea4aa02e39/412ce6b8cb624007ad7d77fed7b3b6ed.html",
-          "sha": null
-        },
-        {
-          "id": "2a1897b5fed34911a9e1633b22179be0",
-          "display_name": "2a1897b5fed34911a9e1633b22179be0.html",
-          "original_filename": "2a1897b5fed34911a9e1633b22179be0.html",
-          "created_at": "2026-03-13T08:01:44.978Z",
-          "path": "html-projects/projects/fc1670b3052847a5aa800cea4aa02e39/2a1897b5fed34911a9e1633b22179be0.html",
           "sha": null
         }
       ]
